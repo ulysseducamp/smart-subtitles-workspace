@@ -1,0 +1,49 @@
+# Netflix Subtitle Downloader - TypeScript Extension
+
+## Project Context
+This is a TypeScript conversion of a working Netflix subtitle extraction Chrome extension. The core functionality must be preserved exactly.
+
+## Critical Requirements
+
+### 1. PRESERVE EXACT FUNCTIONALITY
+- **DO NOT** change the core JSON hijacking mechanism in page-script.ts
+- **DO NOT** modify the Netflix API interception logic
+- **KEEP** the same message passing between popup/content-script/page-script
+- The extension currently works perfectly - only convert syntax, add types
+
+### 2. TypeScript Guidelines
+- Use strict TypeScript mode
+- Add proper type annotations without breaking functionality
+- Use Chrome extension types from @types/chrome
+- Preserve all existing logic and timing
+
+### 3. Build Process
+- Use webpack for bundling
+- Output to dist/ folder
+- Maintain Manifest V3 compatibility
+- Keep the same file structure as original
+
+### 4. Key Files
+- `src/page-script.ts` - Most critical, contains JSON hijacking
+- `src/content-script.ts` - Message passing and injection
+- `src/popup/popup.ts` - UI logic
+- `src/types/netflix.d.ts` - Type definitions
+
+### 5. Testing
+- Each change must preserve Netflix subtitle extraction
+- Test build process: `npm run build`
+- Test type checking: `npm run type-check`
+- Verify extension loads in Chrome correctly
+
+## Success Criteria
+- Extension loads and appears in Chrome correctly
+- Can extract Netflix subtitles exactly like before
+- TypeScript compilation succeeds without errors
+- All Chrome extension APIs properly typed
+- No runtime errors in Netflix player
+
+## DO NOT CHANGE
+- The core Netflix API interception approach
+- The timing of script injection
+- The communication protocol between scripts
+- The manifest.json permissions (they work)

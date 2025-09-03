@@ -1,0 +1,141 @@
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional
+import subprocess
+import tempfile
+import uvicorn
+import os
+
+app = FastAPI(
+    title="Smart Netflix Subtitles API",
+    description="FastAPI backend for bilingual adaptive subtitles",
+    version="0.1.0"
+)
+
+# CORS middleware for Chrome Extension
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En V0, on accepte toutes les origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Pydantic models for API data validation
+class SubtitleRequest(BaseModel):
+    target_language: str  # ex: "fr", "en"
+    native_language: str  # ex: "en", "fr"
+    top_n_words: int = 2000  # niveau vocabulaire
+    enable_inline_translation: bool = False
+    deepl_api_key: Optional[str] = None
+
+class SubtitleResponse(BaseModel):
+    success: bool
+    output_srt: str  # contenu du fichier SRT hybride
+    stats: dict  # statistiques de traitement
+    error: Optional[str] = None
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Smart Netflix Subtitles API is running!",
+        "status": "healthy",
+        "version": "0.1.0"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "smartsub-api"}
+
+# Endpoint for subtitle fusion using CLI wrapper
+@app.post("/fuse-subtitles", response_model=SubtitleResponse)
+async def fuse_subtitles(
+    target_language: str = Form(...),
+    native_language: str = Form(...),
+    top_n_words: int = Form(2000),
+    enable_inline_translation: bool = Form(False),
+    deepl_api_key: Optional[str] = Form(None),
+    target_srt: UploadFile = File(...),
+    native_srt: UploadFile = File(...),
+    frequency_list: UploadFile = File(...)
+):
+    try:
+        # Create temporary files for CLI processing
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.srt', delete=False) as temp_target, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.srt', delete=False) as temp_native, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_freq, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.srt', delete=False) as temp_output:
+            
+            # Write uploaded files to temp files
+            temp_target.write(target_srt.file.read().decode())
+            temp_native.write(native_srt.file.read().decode())
+            temp_freq.write(frequency_list.file.read().decode())
+            
+            # Close files to ensure writing is complete
+            temp_target.close()
+            temp_native.close()
+            temp_freq.close()
+            temp_output.close()
+            
+            # Build CLI command
+            cmd = [
+                "node", 
+                "../subtitles-fusion-algorithm-public/dist/main.js",  # Fixed path to CLI
+                "--target", temp_target.name,
+                "--native", temp_native.name,
+                "--freq", temp_freq.name,
+                "--out", temp_output.name,
+                "--topN", str(top_n_words),
+                "--lang", target_language,
+                "--native-lang", native_language
+            ]
+            
+            if enable_inline_translation:
+                cmd.append("--inline-translation")
+                if deepl_api_key:
+                    cmd.extend(["--deepl-key", deepl_api_key])
+            
+            # Execute CLI
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
+            )
+            
+            if result.returncode != 0:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"CLI processing failed: {result.stderr}"
+                )
+            
+            # Read output and return
+            with open(temp_output.name, 'r') as f:
+                output_srt = f.read()
+            
+            # Parse CLI output for stats (you can enhance this)
+            stats = {
+                "processing_time": "calculated_from_cli_output",
+                "words_processed": "extracted_from_cli_output"
+            }
+            
+            return SubtitleResponse(
+                success=True,
+                output_srt=output_srt,
+                stats=stats
+            )
+            
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Processing timeout")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Cleanup temp files
+        for temp_file in [temp_target.name, temp_native.name, temp_freq.name, temp_output.name]:
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 3000))  # Changed from 8001 to 3000 due to port blocking
+    uvicorn.run(app, host="0.0.0.0", port=port)
