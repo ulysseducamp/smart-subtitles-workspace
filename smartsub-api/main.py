@@ -1,5 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 import subprocess
@@ -21,6 +22,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API Key validation middleware
+@app.middleware("http")
+async def validate_api_key(request: Request, call_next):
+    # Skip validation for health check endpoint
+    if request.url.path == "/health":
+        return await call_next(request)
+    
+    # Get API key from query parameters or headers
+    api_key = request.query_params.get("api_key") or request.headers.get("x-api-key")
+    
+    # Get expected API key from environment
+    expected_api_key = os.getenv("API_KEY")
+    
+    if not expected_api_key:
+        # If no API key is configured, allow all requests (for development)
+        return await call_next(request)
+    
+    if not api_key or api_key != expected_api_key:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Invalid or missing API key"}
+        )
+    
+    return await call_next(request)
 
 # Pydantic models for API data validation
 class SubtitleRequest(BaseModel):
