@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+rootDirectory = "smartsub-api"
 
 [deploy]
-startCommand = "cd smartsub-api && uvicorn main:app --host 0.0.0.0 --port $PORT"
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
