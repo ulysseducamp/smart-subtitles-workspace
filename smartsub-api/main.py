@@ -105,9 +105,25 @@ async def fuse_subtitles(
             temp_freq.close()
             temp_output.close()
             
+            # Find Node.js executable
+            import shutil
+            node_path = shutil.which("node")
+            if not node_path:
+                # Try common paths
+                for path in ["/usr/local/bin/node", "/usr/bin/node", "/opt/node/bin/node"]:
+                    if os.path.exists(path):
+                        node_path = path
+                        break
+            
+            if not node_path:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Node.js not found. Please ensure Node.js is installed."
+                )
+            
             # Build CLI command
             cmd = [
-                "node", 
+                node_path, 
                 "dist/main.js",  # Fixed path to CLI
                 "--target", temp_target.name,
                 "--native", temp_native.name,
