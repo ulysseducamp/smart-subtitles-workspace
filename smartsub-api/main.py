@@ -7,11 +7,6 @@ import subprocess
 import tempfile
 import uvicorn
 import os
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Smart Netflix Subtitles API",
@@ -28,63 +23,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Get API key from environment at startup
-API_KEY = os.getenv("API_KEY")
-
-# Debug environment variables at startup
-logger.info("=== STARTUP DEBUG INFO ===")
-logger.info(f"RAILWAY_ENVIRONMENT_NAME: {os.getenv('RAILWAY_ENVIRONMENT_NAME', 'NOT_SET')}")
-logger.info(f"RAILWAY_PROJECT_ID: {os.getenv('RAILWAY_PROJECT_ID', 'NOT_SET')}")
-logger.info(f"API_KEY configured: {bool(API_KEY)}")
-if API_KEY:
-    logger.info(f"API_KEY length: {len(API_KEY)}")
-    logger.info(f"API_KEY first 10 chars: {API_KEY[:10]}...")
-else:
-    logger.warning("API_KEY is None or empty!")
-logger.info("=== END STARTUP DEBUG ===")
-
 # API Key validation middleware
 @app.middleware("http")
 async def validate_api_key(request: Request, call_next):
-    # Skip validation for health check and debug endpoints
-    if request.url.path in ["/health", "/debug-env"]:
+    # Skip validation for health check endpoint
+    if request.url.path == "/health":
         return await call_next(request)
     
     # Get API key from query parameters or headers
-    api_key_from_request = request.query_params.get("api_key") or request.headers.get("x-api-key")
+    api_key = request.query_params.get("api_key") or request.headers.get("x-api-key")
     
-    # Debug each request
-    logger.info(f"=== REQUEST DEBUG: {request.url.path} ===")
-    logger.info(f"API_KEY from env: {bool(API_KEY)}")
-    logger.info(f"API_KEY from request: {bool(api_key_from_request)}")
-    if api_key_from_request:
-        logger.info(f"Request API key length: {len(api_key_from_request)}")
-        logger.info(f"Request API key first 10 chars: {api_key_from_request[:10]}...")
+    # Get expected API key from environment
+    expected_api_key = os.getenv("API_KEY")
     
-    if not API_KEY:
-        logger.error("API_KEY not configured in environment!")
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Server API key not configured"}
-        )
+    if not expected_api_key:
+        # If no API key is configured, allow all requests (for development)
+        return await call_next(request)
     
-    if not api_key_from_request:
-        logger.warning("No API key provided in request")
+    if not api_key or api_key != expected_api_key:
         return JSONResponse(
             status_code=401,
             content={"error": "Invalid or missing API key"}
         )
     
-    # Compare API keys
-    if api_key_from_request != API_KEY:
-        logger.error(f"API key mismatch! Expected length: {len(API_KEY)}, Got length: {len(api_key_from_request)}")
-        logger.error(f"Expected starts with: {API_KEY[:10]}..., Got starts with: {api_key_from_request[:10]}...")
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Invalid or missing API key"}
-        )
-    
-    logger.info("API key validation successful")
     return await call_next(request)
 
 # Pydantic models for API data validation
@@ -113,17 +74,6 @@ async def root():
 async def health_check():
     return {"status": "ok", "service": "smartsub-api"}
 
-@app.get("/debug-env")
-async def debug_environment():
-    """Debug endpoint to check environment variables - REMOVE AFTER DEBUGGING"""
-    return {
-        "api_key_configured": bool(API_KEY),
-        "api_key_length": len(API_KEY) if API_KEY else 0,
-        "railway_environment": os.getenv("RAILWAY_ENVIRONMENT_NAME", "NOT_SET"),
-        "railway_project_id": os.getenv("RAILWAY_PROJECT_ID", "NOT_SET"),
-        "port": os.getenv("PORT", "NOT_SET"),
-        "python_version": os.getenv("PYTHON_VERSION", "NOT_SET")
-    }
 
 # Endpoint for subtitle fusion using CLI wrapper
 @app.post("/fuse-subtitles", response_model=SubtitleResponse)
