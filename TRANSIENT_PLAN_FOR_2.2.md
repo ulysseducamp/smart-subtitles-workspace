@@ -33,7 +33,7 @@
 - [x] Modifier `main.py` pour vérifier l'API key
 - [x] Ajouter middleware de validation API key
 - [x] Tester la sécurisation localement
-- [ ] Commiter et pousser les changements
+- [x] Commiter et pousser les changements
 
 ### 1.5.3 Création du Fichier .env.example
 - [ ] Créer `.env.example` avec des valeurs factices
@@ -55,8 +55,8 @@
 1. **Dans l'onglet "Settings" du projet Railway :**
    - [x] Vérifier que la branche par défaut est `main`
    - [x] Activer "Auto Deploy" si disponible
-   - [ ] Cliquer sur "Generate Domain" dans la section "Networking"
-   - [ ] Noter l'URL générée (ex: `https://smartsub-api-production.up.railway.app`)
+   - [x] Cliquer sur "Generate Domain" dans la section "Networking"
+   - [x] Noter l'URL générée (ex: `https://smartsub-api-production.up.railway.app`)
 
 ### 2.3 Configuration des Variables d'Environnement
 Dans l'onglet "Variables" de Railway, ajouter :
