@@ -1,0 +1,15 @@
+{
+  "name": "smartsub-api",
+  "version": "1.0.0",
+  "description": "Smart Subtitles API with Node.js CLI integration",
+  "scripts": {
+    "build": "echo 'Building Node.js dependencies...'",
+    "start": "uvicorn main:app --host 0.0.0.0 --port $PORT"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "node": "^18.0.0"
+  }
+}

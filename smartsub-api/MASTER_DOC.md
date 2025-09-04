@@ -5,7 +5,7 @@
 **SmartSub API** is a FastAPI backend service designed to provide bilingual adaptive subtitles for Netflix content. The system intelligently fuses target language subtitles with native language subtitles based on user vocabulary levels, creating personalized subtitle experiences.
 
 **Key Objectives:**
-- Generate bilingual subtitles that adapt to user's vocabulary proficiency ✅ **READY FOR RAILWAY DEPLOYMENT**
+- Generate bilingual subtitles that adapt to user's vocabulary proficiency ✅ **RAILWAY DEPLOYMENT LIVE**
 - Support multiple languages (EN, FR, PT, ES, DE, IT) ✅ **IMPLEMENTED VIA CLI INTEGRATION**
 - Integrate with Chrome extension for Netflix ✅ **READY FOR INTEGRATION**
 - Provide inline translation capabilities via DeepL API 🔄 **STRUCTURE READY, INTEGRATION PENDING**
@@ -13,7 +13,7 @@
 
 **Scope:** Backend API service that processes SRT subtitle files and returns hybrid bilingual subtitles optimized for language learning.
 
-**Current Status:** Phase 2.1 completed locally, Phase 2.2 (Railway deployment) pending for internet accessibility.
+**Current Status:** Phase 2.2 completed - Railway deployment live at https://smartsub-api-production.up.railway.app
 
 ## 2. Tech Stack & Dependencies
 
@@ -33,6 +33,8 @@
 - **Python 3.x** - Core runtime ✅ **IMPLEMENTED**
 - **Docker** - Containerization (referenced in CLI paths) ✅ **READY**
 - **Node.js** - CLI integration for subtitle processing ✅ **IMPLEMENTED**
+- **Railway** - Cloud deployment platform ✅ **DEPLOYED**
+- **Nixpacks** - Build system for Railway ✅ **CONFIGURED**
 
 ## 3. Project Architecture
 
@@ -41,6 +43,8 @@
 smartsub-api/
 ├── main.py                 # FastAPI application entry point ✅ COMPLETED
 ├── requirements.txt        # Python dependencies ✅ COMPLETED
+├── railway.toml           # Railway deployment configuration ✅ COMPLETED
+├── test_fuse_subtitles_endpoint.py # Comprehensive API testing suite ✅ COMPLETED
 ├── src/                   # Core business logic modules 🔄 STRUCTURE READY, INTEGRATION PENDING
 │   ├── deepl_client.py    # DeepL API integration 🔄 STRUCTURE READY, INTEGRATION PENDING
 │   ├── fusion_algorithm.py # Subtitle fusion core logic 🔄 PLACEHOLDER, CLI INTEGRATION WORKS
@@ -78,6 +82,8 @@ Upload SRT Files → Parse & Analyze → Vocabulary Decision → Fusion Algorith
 - **SubtitleRequest/Response Models**: Pydantic models for API validation ✅ **IMPLEMENTED**
 - **Fuse Subtitles Endpoint**: Main `/fuse-subtitles` POST endpoint ✅ **IMPLEMENTED**
 - **CLI Integration**: Subprocess execution of Node.js subtitle processing ✅ **IMPLEMENTED**
+- **API Security**: API key validation middleware for Railway deployment ✅ **IMPLEMENTED**
+- **Health Checks**: Service monitoring endpoints ✅ **IMPLEMENTED**
 
 ### Business Logic (`src/`) 🔄 **STRUCTURE READY, INTEGRATION PENDING**
 - **FusionAlgorithm**: Core subtitle fusion logic (currently placeholder, CLI integration works) 🔄 **PLACEHOLDER, CLI INTEGRATION WORKS**
@@ -92,8 +98,8 @@ Upload SRT Files → Parse & Analyze → Vocabulary Decision → Fusion Algorith
 
 ## 5. Current Features
 
-### ✅ Implemented Features (Phase 2.1 Complete)
-- **FastAPI Server**: Running on port 3000 with health checks ✅ **IMPLEMENTED**
+### ✅ Implemented Features (Phase 2.2 Complete)
+- **FastAPI Server**: Running on Railway with health checks ✅ **IMPLEMENTED**
 - **CORS Support**: Configured for Chrome extension integration ✅ **IMPLEMENTED**
 - **File Upload Handling**: Accepts SRT files and frequency lists ✅ **IMPLEMENTED**
 - **CLI Integration**: Subprocess execution of subtitle processing ✅ **IMPLEMENTED**
@@ -101,8 +107,11 @@ Upload SRT Files → Parse & Analyze → Vocabulary Decision → Fusion Algorith
 - **Temporary File Management**: Secure file handling with cleanup ✅ **IMPLEMENTED**
 - **Subtitle Fusion Endpoint**: `/fuse-subtitles` endpoint fully functional ✅ **IMPLEMENTED**
 - **Response Models**: Pydantic models for request/response validation ✅ **IMPLEMENTED**
+- **Railway Deployment**: Live API at https://smartsub-api-production.up.railway.app ✅ **IMPLEMENTED**
+- **API Security**: API key validation middleware ✅ **IMPLEMENTED**
+- **Comprehensive Testing**: Full test suite with Railway URL validation ✅ **IMPLEMENTED**
 
-### 🔄 Partially Implemented (Phase 2.2 Pending)
+### 🔄 Partially Implemented (Phase 3 Pending)
 - **DeepL Integration**: Client structure exists, needs actual API calls 🔄 **STRUCTURE READY, INTEGRATION PENDING**
 - **Supabase Connection**: Client structure exists, needs database setup 🔄 **STRUCTURE READY, INTEGRATION PENDING**
 - **Lemmatization**: Basic structure with Simplemma integration 🔄 **STRUCTURE READY, INTEGRATION PENDING**
@@ -115,11 +124,11 @@ Upload SRT Files → Parse & Analyze → Vocabulary Decision → Fusion Algorith
 
 ## 6. Pending Tasks & Roadmap
 
-### High Priority (Phase 2.2 - Railway Deployment)
-- [ ] **Deploy to Railway** for internet accessibility 🔄 **IN PROGRESS**
-  - Configure Railway project with Git-based deployment
-  - Set up environment variables and configuration
-  - Validate internet accessibility and API endpoints
+### High Priority (Phase 3 - Chrome Extension Integration)
+- [x] **Deploy to Railway** for internet accessibility ✅ **COMPLETED**
+  - Configure Railway project with Git-based deployment ✅ **COMPLETED**
+  - Set up environment variables and configuration ✅ **COMPLETED**
+  - Validate internet accessibility and API endpoints ✅ **COMPLETED**
 
 - [ ] **Complete Supabase Integration** (`src/supabase_client.py`) 🔄 **STRUCTURE READY, INTEGRATION PENDING**
   - Implement actual database connection
@@ -205,20 +214,23 @@ Upload SRT Files → Parse & Analyze → Vocabulary Decision → Fusion Algorith
 - **Error Handling**: Comprehensive error responses and timeout handling ✅ **COMPLETED**
 - **Response Models**: Pydantic validation for requests and responses ✅ **COMPLETED**
 
-### Phase 2.2: Railway Deployment 🔄 **IN PROGRESS**
+### Phase 2.2: Railway Deployment ✅ **COMPLETED**
 - **Objective**: Deploy FastAPI backend to Railway for internet accessibility
-- **Status**: Deployment planning and configuration in progress
-- **Blocking Issue**: Railway deployment needed to enable Chrome extension integration
-- **Next Milestone**: Complete Railway deployment to unlock end-to-end testing
+- **Status**: Deployment completed and API live
+- **Railway URL**: https://smartsub-api-production.up.railway.app
+- **API Security**: API key validation middleware implemented
+- **Testing**: Comprehensive test suite with Railway URL validation
+- **Next Milestone**: Chrome extension integration with live API
 
-### Phase 3: Chrome Extension Integration ✅ **READY FOR INTEGRATION**
-- **Extension Status**: Chrome extension is production-ready and waiting for API integration
+### Phase 3: Chrome Extension Integration 🔄 **ACTIVE**
+- **Extension Status**: Chrome extension is production-ready and Railway API is live
 - **API Readiness**: All endpoints ready for extension integration
 - **Integration Points**: Subtitle extraction, processing, and injection systems ready
+- **Railway API**: Live at https://smartsub-api-production.up.railway.app
 
 ---
 
 **Last Updated**: January 2025  
-**Version**: 2.1.0 (Phase 2.1 Complete, Phase 2.2 Pending)  
-**Status**: FastAPI Backend Complete Locally, Railway Deployment Pending, Ready for Chrome Extension Integration  
-**Next Milestone**: Complete Railway deployment to enable internet accessibility and Chrome extension integration
+**Version**: 2.2.0 (Phase 2.2 Complete, Phase 3 Active)  
+**Status**: Railway Deployment Live, API Accessible at https://smartsub-api-production.up.railway.app, Ready for Chrome Extension Integration  
+**Next Milestone**: Complete Chrome extension integration to enable end-to-end subtitle fusion workflow

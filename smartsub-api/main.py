@@ -108,7 +108,7 @@ async def fuse_subtitles(
             # Build CLI command
             cmd = [
                 "node", 
-                "../subtitles-fusion-algorithm-public/dist/main.js",  # Fixed path to CLI
+                "dist/main.js",  # Fixed path to CLI
                 "--target", temp_target.name,
                 "--native", temp_native.name,
                 "--freq", temp_freq.name,

@@ -24,9 +24,9 @@ This project is a Chrome extension designed to download subtitles from Netflix e
 - **Step 3**: ✅ Complete - TypeScript version with modern build system and enhanced type safety
 - **Step 4**: ✅ Complete - Subtitle injection/overlay system with real SRT content integration
 - **Step 5**: ✅ Complete - Robust blob URL cleanup system with memory leak prevention
-- **Step 6**: 🔄 **READY FOR RAILWAY API INTEGRATION** - Extension ready for subtitle fusion backend integration
+- **Step 6**: 🔄 **ACTIVE - RAILWAY API INTEGRATION** - Extension ready for subtitle fusion backend integration
 
-### 🚀 **Current Status: Production Ready, Waiting for API Integration**
+### 🚀 **Current Status: Production Ready, Railway API Live - Integration Active**
 
 #### **Extension Status**: ✅ **PRODUCTION READY**
 - **Subtitle Extraction**: Fully functional with JSON hijacking and WebVTT processing
@@ -35,11 +35,11 @@ This project is a Chrome extension designed to download subtitles from Netflix e
 - **TypeScript Implementation**: Modern build system with comprehensive type safety
 - **User Interface**: Clean popup interface with subtitle selection and download
 
-#### **Integration Status**: 🔄 **WAITING FOR RAILWAY API**
+#### **Integration Status**: 🔄 **ACTIVE - RAILWAY API LIVE**
 - **Backend Ready**: FastAPI backend with `/fuse-subtitles` endpoint completed locally
-- **Railway Deployment**: Phase 2.2 in progress for internet accessibility
+- **Railway Deployment**: Phase 2.2 completed - API live at https://smartsub-api-production.up.railway.app
 - **Extension Ready**: All components ready for API integration
-- **Next Step**: Complete Railway deployment to enable subtitle fusion functionality
+- **Next Step**: Complete Chrome extension integration with Railway API for subtitle fusion functionality
 
 ### 🚀 **Refactoring Progress (2025-01-XX)**
 
@@ -395,20 +395,22 @@ prototype-extension-v6/
 
 ## Pending Tasks & Roadmap
 
-### 🔄 **Next Phase: Railway API Integration (Phase 2.2)**
+### 🔄 **Active Phase: Railway API Integration (Phase 3)**
 
-#### **Extension API Integration** 🔄 **WAITING FOR RAILWAY DEPLOYMENT**
+#### **Extension API Integration** 🔄 **ACTIVE - RAILWAY API LIVE**
 - **Objective**: Connect extension to Railway backend for subtitle fusion
-- **Status**: All components ready, waiting for internet-accessible API
-- **Required Actions**:
-  1. **Complete Railway deployment** of FastAPI backend
-  2. **Add subtitle fusion controls** to extension popup
-  3. **Implement API calls** to `/fuse-subtitles` endpoint
-  4. **Handle API responses** and inject processed subtitles
-  5. **Add error handling** for API failures
+- **Status**: All components ready, Railway API live and accessible
+- **Railway API**: https://smartsub-api-production.up.railway.app
+- **Active Actions**:
+  1. ✅ **Complete Railway deployment** of FastAPI backend
+  2. 🔄 **Add subtitle fusion controls** to extension popup
+  3. 🔄 **Implement API calls** to `/fuse-subtitles` endpoint
+  4. 🔄 **Handle API responses** and inject processed subtitles
+  5. 🔄 **Add error handling** for API failures
 
-#### **Subtitle Fusion Controls** 🔄 **READY FOR IMPLEMENTATION**
+#### **Subtitle Fusion Controls** 🔄 **ACTIVE IMPLEMENTATION**
 - **Objective**: Add subtitle fusion interface to existing popup
+- **Railway API**: https://smartsub-api-production.up.railway.app
 - **Ready Components**:
   - Target language selection dropdown
   - Native language selection dropdown
@@ -419,6 +421,7 @@ prototype-extension-v6/
   - Existing subtitle extraction system
   - Subtitle injection system
   - Error handling and user feedback
+  - Railway API endpoint integration
 
 ### 🔧 Future Enhancements
 
@@ -606,7 +609,7 @@ prototype-extension-v6/
 
 ---
 
-**Last Updated**: 2025-01-XX
-**Version**: 6.0.0 (Production Ready, Waiting for Railway API Integration)
-**Status**: Chrome Extension Production Ready, All Features Implemented, Waiting for Backend Integration
-**Next Milestone**: Complete Railway deployment to enable subtitle fusion functionality
+**Last Updated**: January 2025
+**Version**: 6.1.0 (Production Ready, Railway API Live - Integration Active)
+**Status**: Chrome Extension Production Ready, Railway API Live, Integration in Progress
+**Next Milestone**: Complete Chrome extension integration with Railway API for end-to-end subtitle fusion workflow
