@@ -1,102 +1,26 @@
-# Git and version control
-.git
-.gitignore
-.gitattributes
+# Solution 3: Explicit .dockerignore for Railway
+# Include only what we need for the API build
 
-# Documentation
-README.md
-MASTER_DOC.md
-MASTER_PLAN.md
-TRANSIENT_PLAN_FOR_2.2.md
-*.md
+# Exclude everything by default
+*
 
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# But include the directories we need
+!smartsub-api/
+!subtitles-fusion-algorithm-public/
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Exclude specific files within smartsub-api that we don't need
+smartsub-api/venv/
+smartsub-api/__pycache__/
+smartsub-api/dist/
+smartsub-api/*.log
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-venv/
-env/
-ENV/
+# Exclude specific files within subtitles-fusion-algorithm-public that we don't need
+subtitles-fusion-algorithm-public/node_modules/
+subtitles-fusion-algorithm-public/dist/
+subtitles-fusion-algorithm-public/*.log
+subtitles-fusion-algorithm-public/test-*.html
+subtitles-fusion-algorithm-public/hybrid*.srt
+subtitles-fusion-algorithm-public/test-output.srt
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.npm
-.yarn-integrity
-
-# TypeScript build artifacts (we'll build these in Docker)
-*.tsbuildinfo
-
-# Test files
-test_*.py
-*_test.py
-tests/
-test-*.html
-
-# Temporary files
-*.tmp
-*.temp
-temp/
-tmp/
-
-# Logs
-*.log
-logs/
-
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Railway specific
-railway.toml
-
-# Chrome extension (not needed for API)
-netflix-smart-subtitles-chrome-extension/
-
-# Other project directories not needed for API
-smart-subtitles-workspace/
-reference/
-
-# Test output files
-test-output.srt
-hybrid.srt
-hybrid-inline.srt
+# Always include Dockerfile
+!Dockerfile
