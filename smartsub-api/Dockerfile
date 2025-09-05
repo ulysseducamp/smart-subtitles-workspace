@@ -7,6 +7,7 @@ WORKDIR /app/node-cli
 
 # Copy package files for Node.js dependencies
 COPY ts-package.json ./package.json
+COPY ts-package-lock.json ./package-lock.json
 
 # Install Node.js dependencies
 RUN npm ci --only=production
