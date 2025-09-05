@@ -5,6 +5,9 @@ FROM node:18-alpine AS node-builder
 # Set working directory for Node.js build
 WORKDIR /app/node-cli
 
+# Debug: Check what files Railway build context includes
+RUN echo "=== BUILD CONTEXT CONTENTS ===" && ls -la / && echo "=== WORKDIR CONTENTS ===" && ls -la ./
+
 # Copy package files for Node.js dependencies
 COPY subtitles-fusion-algorithm-public/package*.json ./
 
@@ -39,6 +42,9 @@ RUN node --version && npm --version
 
 # Set working directory
 WORKDIR /app
+
+# Debug: Check what files Railway build context includes
+RUN echo "=== BUILD CONTEXT CONTENTS ===" && ls -la / && echo "=== WORKDIR CONTENTS ===" && ls -la ./
 
 # Copy Python requirements and install dependencies
 COPY smartsub-api/requirements.txt ./
