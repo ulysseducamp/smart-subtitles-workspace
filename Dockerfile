@@ -49,8 +49,12 @@ COPY --from=node-builder /app/node-cli/dist ./dist
 COPY --from=node-builder /app/node-cli/node_modules ./node_modules
 COPY --from=node-builder /app/node-cli/package.json ./package.json
 
-# Copy FastAPI application
-COPY smartsub-api/ ./
+# Copy FastAPI application files individually
+COPY smartsub-api/main.py ./
+COPY smartsub-api/env.example ./
+COPY smartsub-api/test_api_key.py ./
+COPY smartsub-api/src/ ./src/
+COPY smartsub-api/utils/ ./utils/
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app \
