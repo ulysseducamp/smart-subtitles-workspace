@@ -1,0 +1,30 @@
+{
+  "name": "smart-subtitles",
+  "version": "1.0.0",
+  "description": "Adaptive bilingual subtitle system with vocabulary-based selection and inline translation",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node tests/test-deepl.js",
+    "start": "node dist/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/dotenv": "^6.1.1",
+    "dotenv": "^17.2.1",
+    "node-snowball": "^0.8.0",
+    "snowball": "^0.3.1"
+  },
+  "keywords": [
+    "subtitles",
+    "bilingual",
+    "language-learning",
+    "translation",
+    "srt"
+  ],
+  "author": "Smart Subtitles Contributors",
+  "license": "AGPL-3.0-or-later"
+}

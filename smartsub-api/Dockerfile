@@ -6,14 +6,14 @@ FROM node:18-alpine AS node-builder
 WORKDIR /app/node-cli
 
 # Copy package files for Node.js dependencies
-COPY ../subtitles-fusion-algorithm-public/package*.json ./
+COPY ts-package.json ./package.json
 
 # Install Node.js dependencies
 RUN npm ci --only=production
 
 # Copy TypeScript source code
-COPY ../subtitles-fusion-algorithm-public/src ./src
-COPY ../subtitles-fusion-algorithm-public/tsconfig.json ./
+COPY ts-src ./src
+COPY tsconfig.json ./
 
 # Install TypeScript and build dependencies
 RUN npm install typescript @types/node --save-dev

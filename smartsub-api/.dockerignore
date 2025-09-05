@@ -1,49 +1,27 @@
 # .dockerignore for smartsub-api/Dockerfile
-# Include parent directories that we need
+# Simple approach - exclude only what we don't need
 
-# Exclude everything by default
-*
-
-# But include what we need from parent directory
-!../subtitles-fusion-algorithm-public/
-
-# Include current directory files
-!main.py
-!requirements.txt
-!env.example
-!test_api_key.py
-!src/
-!utils/
-
-# Exclude files we don't need
-venv/
+# Python cache and virtual environments
 __pycache__/
-dist/
-*.log
+venv/
 *.pyc
 *.pyo
 *.pyd
-.Python
-build/
-develop-eggs/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# Exclude files from parent subtitles-fusion-algorithm-public that we don't need
-../subtitles-fusion-algorithm-public/node_modules/
-../subtitles-fusion-algorithm-public/dist/
-../subtitles-fusion-algorithm-public/*.log
-../subtitles-fusion-algorithm-public/test-*.html
-../subtitles-fusion-algorithm-public/hybrid*.srt
-../subtitles-fusion-algorithm-public/test-output.srt
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
