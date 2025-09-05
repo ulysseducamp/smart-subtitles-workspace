@@ -2,6 +2,9 @@
 # Stage 1: Build TypeScript CLI using Node.js
 FROM node:18-alpine AS node-builder
 
+# Install Python and build tools for native modules
+RUN apk add --no-cache python3 make g++
+
 # Set working directory for Node.js build
 WORKDIR /app/node-cli
 
