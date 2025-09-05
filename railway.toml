@@ -1,5 +1,5 @@
 [build]
-builder = "nixpacks"
+builder = "DOCKERFILE"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "python main.py"
