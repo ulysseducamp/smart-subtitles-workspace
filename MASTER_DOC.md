@@ -71,18 +71,18 @@ simplemma==0.9.1
 
 ### API Backend
 - **Python**: v3.11+ - Backend runtime ✅ **COMPLETED**
-- **FastAPI**: v0.104.1 - Web framework ✅ **COMPLETED**
-- **Uvicorn**: v0.24.0 - ASGI server ✅ **COMPLETED**
+- **FastAPI**: v0.116.1 - Web framework ✅ **COMPLETED**
+- **Uvicorn**: v0.35.0 - ASGI server ✅ **COMPLETED**
 - **Supabase**: v2.3.4 - Database and storage 🔄 **STRUCTURE READY, INTEGRATION PENDING**
-- **Simplemma**: v0.9.1 - Lemmatization 🔄 **STRUCTURE READY, INTEGRATION PENDING**
+- **Simplemma**: v1.1.2 - Pure Python lemmatization ✅ **MIGRATED TO PYTHON**
 
 **Dependencies**:
 ```
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+fastapi==0.116.1
+uvicorn==0.35.0
+python-multipart==0.0.20
 supabase==2.3.4
-simplemma==0.9.1
+simplemma==1.1.2
 ```
 
 ## 3. Project Architecture
@@ -93,7 +93,7 @@ Chrome Extension (Netflix) ✅ COMPLETED
          ↓
     API Backend (FastAPI) ✅ Phase 2.2 COMPLETED - Railway Deployment Live
          ↓
-Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
+Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
          ↓
     Supabase Database 🔄 STRUCTURE READY, INTEGRATION PENDING
 ```
@@ -122,16 +122,21 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 
 #### API Backend (`smartsub-api/`) ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
 - **`main.py`**: FastAPI application entry point ✅ **COMPLETED**
-- **`src/`**: Core Python modules 🔄 **STRUCTURE READY, INTEGRATION PENDING**
+- **`src/`**: Core Python modules ✅ **MIGRATED TO PYTHON**
+  - **`subtitle_fusion.py`**: Pure Python fusion algorithm ✅ **MIGRATED**
+  - **`srt_parser.py`**: SRT parsing and generation ✅ **MIGRATED**
+  - **`lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
+  - **`deepl_api.py`**: DeepL API integration (placeholder) 🔄 **PENDING**
+  - **`inline_translation.py`**: Inline translation service (placeholder) 🔄 **PENDING**
+- **`tests/`**: Comprehensive test suite ✅ **COMPLETED**
 - **`utils/`**: Utility functions (SRT parser, vocabulary analyzer) ✅ **COMPLETED**
-- **`Dockerfile`**: Multi-stage Docker build (Python + Node.js) ✅ **COMPLETED**
+- **`Dockerfile`**: Python-only Docker build ✅ **SIMPLIFIED**
 - **`venv/`**: Python virtual environment ✅ **READY**
 - **`requirements.txt`**: Python dependencies ✅ **COMPLETED**
-- **`railway.toml`**: Railway deployment configuration ✅ **COMPLETED**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite ✅ **COMPLETED**
-- **`ts-src/`**: TypeScript source files (copied from CLI) ⚠️ **DUPLICATE - See Technical Debt**
-- **`ts-package.json`**: Node.js dependencies (copied from CLI) ⚠️ **DUPLICATE - See Technical Debt**
-- **`tsconfig.json`**: TypeScript configuration (copied from CLI) ⚠️ **DUPLICATE - See Technical Debt**
+- **`ts-src/`**: TypeScript source files (legacy) ⚠️ **LEGACY - Can be removed**
+- **`ts-package.json`**: Node.js dependencies (legacy) ⚠️ **LEGACY - Can be removed**
+- **`tsconfig.json`**: TypeScript configuration (legacy) ⚠️ **LEGACY - Can be removed**
 
 ### Core Module Interactions
 
@@ -140,9 +145,9 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 - **Upload**: Ready to send SRT files to `/fuse-subtitles` endpoint ✅ **API LIVE ON RAILWAY**
 - **Injection**: Receives processed subtitles and injects them back into Netflix ✅ **COMPLETED**
 
-#### 2. API Backend → Fusion Algorithm ✅ **COMPLETED**
-- **Orchestration**: FastAPI manages file uploads and CLI execution ✅ **COMPLETED**
-- **CLI Wrapper**: Executes TypeScript fusion algorithm as subprocess ✅ **COMPLETED**
+#### 2. API Backend → Fusion Algorithm ✅ **MIGRATED TO PYTHON**
+- **Orchestration**: FastAPI manages file uploads and direct Python execution ✅ **MIGRATED**
+- **Python Engine**: Direct function calls to Python fusion algorithm ✅ **MIGRATED**
 - **Response Handling**: Processes results and returns to extension ✅ **COMPLETED**
 
 #### 3. Data Management 🔄 **STRUCTURE READY, INTEGRATION PENDING**
@@ -167,10 +172,12 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 
 ### API Backend Core Files ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
 - **`main.py`**: FastAPI application with `/fuse-subtitles` endpoint ✅ **COMPLETED**
+- **`src/subtitle_fusion.py`**: Pure Python fusion algorithm with all core logic ✅ **MIGRATED**
+- **`src/srt_parser.py`**: SRT parsing, generation, and word normalization ✅ **MIGRATED**
+- **`src/lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
 - **`src/supabase_client.py`**: Database connection and frequency list management 🔄 **STRUCTURE READY, INTEGRATION PENDING**
-- **`src/fusion_algorithm.py`**: Python wrapper for fusion logic 🔄 **PLACEHOLDER, CLI INTEGRATION WORKS**
-- **`src/deepl_client.py`**: DeepL API client for Python backend 🔄 **STRUCTURE READY, INTEGRATION PENDING**
-- **`railway.toml`**: Railway deployment configuration with Nixpacks builder ✅ **COMPLETED**
+- **`src/deepl_api.py`**: DeepL API client for Python backend 🔄 **PLACEHOLDER, INTEGRATION PENDING**
+- **`src/inline_translation.py`**: Inline translation service 🔄 **PLACEHOLDER, INTEGRATION PENDING**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite with Railway URL ✅ **COMPLETED**
 
 ### Critical Algorithms & Functions
@@ -186,9 +193,9 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 - **WebVTT Processing**: Converts Netflix subtitle format to SRT ✅ **COMPLETED**
 - **Immediate Injection**: Page script injection for reliable detection ✅ **COMPLETED**
 
-#### API Orchestration (`main.py`) ✅ **COMPLETED**
-- **File Management**: Temporary file creation and cleanup ✅ **COMPLETED**
-- **CLI Execution**: Subprocess management with timeout handling ✅ **COMPLETED**
+#### API Orchestration (`main.py`) ✅ **MIGRATED TO PYTHON**
+- **File Management**: Direct file processing without temporary files ✅ **MIGRATED**
+- **Python Engine**: Direct function calls to Python fusion algorithm ✅ **MIGRATED**
 - **Error Handling**: Comprehensive error responses and fallbacks ✅ **COMPLETED**
 - **API Security**: API key validation middleware for Railway deployment ✅ **COMPLETED**
 - **CORS Configuration**: Chrome extension compatibility ✅ **COMPLETED**
@@ -220,13 +227,14 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 #### API Backend ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
 - **FastAPI Framework**: Modern Python web framework ✅ **COMPLETED**
 - **File Upload Handling**: Multipart file processing ✅ **COMPLETED**
-- **CLI Integration**: Subprocess execution of fusion algorithm ✅ **COMPLETED**
+- **Pure Python Engine**: Direct function calls to Python fusion algorithm ✅ **MIGRATED**
 - **CORS Support**: Chrome extension compatibility ✅ **COMPLETED**
 - **Error Handling**: Comprehensive error responses ✅ **COMPLETED**
 - **Health Checks**: Service monitoring endpoints ✅ **COMPLETED**
 - **Railway Deployment**: Live API accessible at `https://smartsub-api-production.up.railway.app` ✅ **COMPLETED**
 - **API Security**: API key validation middleware ✅ **COMPLETED**
 - **Comprehensive Testing**: Full test suite with Railway URL validation ✅ **COMPLETED**
+- **Performance**: 72.2% replacement rate (343/475 subtitles) ✅ **IMPROVED**
 
 ### 🔄 Partially Implemented
 - **Supabase Integration**: Basic structure ready, full integration pending 🔄 **STRUCTURE READY, INTEGRATION PENDING**
@@ -256,17 +264,18 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 - **Mobile Support**: React Native or PWA implementation
 
 ### Known Issues & Technical Debt
-- **Python Dependency**: TypeScript algorithm requires Python for lemmatization ✅ **ACCEPTED FOR V0**
-- **CLI Integration**: Subprocess execution adds complexity and latency ✅ **ACCEPTED FOR V0**
-- **File Management**: Temporary file handling could be optimized ✅ **FUNCTIONAL FOR V0**
+- **Legacy TypeScript Files**: Old TypeScript files in `smartsub-api/` can be removed ⚠️ **CLEANUP NEEDED**
+- **DeepL API Integration**: Placeholder implementation needs completion 🔄 **PENDING**
+- **Inline Translation**: Service implementation pending 🔄 **PENDING**
 - **Error Recovery**: Limited fallback mechanisms for API failures 🔄 **IMPROVEMENT NEEDED**
 
 ### Development Phases
 1. **Phase 1**: Database Setup ✅ **COMPLETED**
 2. **Phase 2.1**: CLI Wrapper Implementation ✅ **COMPLETED**
 3. **Phase 2.2**: Railway Deployment ✅ **COMPLETED**
-4. **Phase 3**: Chrome Extension Integration 🔄 **ACTIVE**
-5. **Phase 4**: Testing & Polish ✅ **READY FOR TESTING**
+4. **Phase 2.3**: Python Migration ✅ **COMPLETED**
+5. **Phase 3**: Chrome Extension Integration 🔄 **ACTIVE**
+6. **Phase 4**: Testing & Polish ✅ **READY FOR TESTING**
 
 ## 7. AI Coding Guidelines
 
@@ -379,23 +388,23 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 2.2.0 (Phase 2.2 Complete, Phase 3 Active)  
-**Status**: Railway Deployment Live, Chrome Extension Integration Active, API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 2.3.0 (Phase 2.3 Complete - Python Migration, Phase 3 Active)  
+**Status**: Railway Deployment Live with Pure Python Engine, Chrome Extension Integration Active, API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 3 (Chrome Extension Integration) to enable end-to-end subtitle fusion workflow
 
-**Current Status**: Railway deployment fully operational with multi-stage Docker build successfully resolving all build context issues
+**Current Status**: Railway deployment fully operational with pure Python engine achieving 72.2% replacement rate (343/475 subtitles processed)
 
 
 ## ⚠️ Known Issues & Technical Debt
 
-### Duplicate TypeScript Files (Priority: Medium)
-**Problem:** TypeScript source files are duplicated between `smartsub-api/` and `subtitles-fusion-algorithm-public/`
+### Legacy TypeScript Files (Priority: Low)
+**Problem:** TypeScript source files remain in `smartsub-api/` after Python migration
 **Impact:** 
-- Manual sync required for changes
-- Risk of version drift
-- Maintenance overhead
-**Solution for V1:** Restructure as monorepo with proper workspace management
-**Current Workaround:** Manual file copying (acceptable for V0)
+- Unused files taking up space
+- Potential confusion for developers
+- No functional impact (Python engine is active)
+**Solution:** Remove legacy TypeScript files from `smartsub-api/`
+**Current Status:** Python engine fully operational, legacy files can be safely removed
