@@ -96,13 +96,13 @@ Dans l'onglet "Variables" de Railway, ajouter :
 - [x] Tester l'accès sans API key (doit retourner 401) ✅ **COMPLETED**
 - [x] Tester l'accès avec API key valide ✅ **COMPLETED**
 - [x] Tester `/fuse-subtitles` avec des fichiers SRT de test ✅ **COMPLETED**
-- [x] Vérifier la gestion des erreurs ✅ **COMPLETED**
-- [x] Vérifier la performance ✅ **COMPLETED**
+- [ ] Vérifier la gestion des erreurs 
+- [ ] Vérifier la performance 
 
-### 4.2 Tests d'Intégration ✅ **COMPLETED**
-- [x] Tester avec l'extension Chrome (si disponible) ✅ **COMPLETED**
-- [x] Vérifier la connectivité depuis différents réseaux ✅ **COMPLETED**
-- [x] Tester la stabilité sur la durée ✅ **COMPLETED**
+### 4.2 Tests d'Intégration 
+- [ ] Tester avec l'extension Chrome (si disponible) 
+- [ ] Vérifier la connectivité depuis différents réseaux 
+- [ ] Tester la stabilité sur la durée 
 
 ---
 

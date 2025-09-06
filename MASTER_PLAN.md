@@ -41,7 +41,7 @@
 - ✅ API REST auto-generated and tested
 - ✅ Database connectivity validated
 
-### Phase 2: Backend API Development ✅ **Phase 2.2 COMPLETED**
+### Phase 2: Backend API Development ✅ **Phase 2.1 COMPLETED, Phase 2.2 ACTIVE**
 
 **Status**: Phase 2.1 completed locally, Phase 2.2 (Railway deployment) completed
 

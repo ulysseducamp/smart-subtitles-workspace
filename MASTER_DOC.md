@@ -123,10 +123,15 @@ Subtitle Fusion Algorithm (TypeScript/Node.js) ✅ COMPLETED
 #### API Backend (`smartsub-api/`) ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
 - **`main.py`**: FastAPI application entry point ✅ **COMPLETED**
 - **`src/`**: Core Python modules 🔄 **STRUCTURE READY, INTEGRATION PENDING**
+- **`utils/`**: Utility functions (SRT parser, vocabulary analyzer) ✅ **COMPLETED**
+- **`Dockerfile`**: Multi-stage Docker build (Python + Node.js) ✅ **COMPLETED**
 - **`venv/`**: Python virtual environment ✅ **READY**
 - **`requirements.txt`**: Python dependencies ✅ **COMPLETED**
 - **`railway.toml`**: Railway deployment configuration ✅ **COMPLETED**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite ✅ **COMPLETED**
+- **`ts-src/`**: TypeScript source files (copied from CLI) ⚠️ **DUPLICATE - See Technical Debt**
+- **`ts-package.json`**: Node.js dependencies (copied from CLI) ⚠️ **DUPLICATE - See Technical Debt**
+- **`tsconfig.json`**: TypeScript configuration (copied from CLI) ⚠️ **DUPLICATE - See Technical Debt**
 
 ### Core Module Interactions
 
@@ -380,3 +385,17 @@ project-name/
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 3 (Chrome Extension Integration) to enable end-to-end subtitle fusion workflow
+
+**Current Status**: Railway deployment fully operational with multi-stage Docker build successfully resolving all build context issues
+
+
+## ⚠️ Known Issues & Technical Debt
+
+### Duplicate TypeScript Files (Priority: Medium)
+**Problem:** TypeScript source files are duplicated between `smartsub-api/` and `subtitles-fusion-algorithm-public/`
+**Impact:** 
+- Manual sync required for changes
+- Risk of version drift
+- Maintenance overhead
+**Solution for V1:** Restructure as monorepo with proper workspace management
+**Current Workaround:** Manual file copying (acceptable for V0)
