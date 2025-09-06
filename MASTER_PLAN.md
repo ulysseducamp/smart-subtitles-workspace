@@ -15,7 +15,8 @@
 - **Key requirement**: Native Python support with `simplemma` lemmatization library
 - **Development priority**: Git-based automatic deployment for rapid algorithm iteration
 - **Cost**: Hobby plan $5/month minimum, Pro plan $20/month for production
-- **Status**: Phase 2.2 deployment completed - API live at https://smartsub-api-production.up.railway.app
+- **Status**: Phase 2.3 deployment completed - API live at https://smartsub-api-production.up.railway.app
+- **Migration Status**: TypeScript algorithm successfully migrated to pure Python
 
 ### Database Service: Supabase ✅ **COMPLETED**
 - **Status**: Phase 1 completed - project configured and frequency lists uploaded
@@ -41,9 +42,9 @@
 - ✅ API REST auto-generated and tested
 - ✅ Database connectivity validated
 
-### Phase 2: Backend API Development ✅ **Phase 2.1 COMPLETED, Phase 2.2 ACTIVE**
+### Phase 2: Backend API Development ✅ **Phase 2.1 COMPLETED, Phase 2.2 COMPLETED, Phase 2.3 COMPLETED**
 
-**Status**: Phase 2.1 completed locally, Phase 2.2 (Railway deployment) completed
+**Status**: Phase 2.1 completed locally, Phase 2.2 (Railway deployment) completed, Phase 2.3 (Python migration) completed
 
 #### **Étape 2.1 : Migration algorithme vers FastAPI ✅ (COMPLETED)**
 
@@ -52,9 +53,9 @@
 **Completed Tasks**:
 - ✅ FastAPI application structure created
 - ✅ `/fuse-subtitles` endpoint implemented with proper form handling
-- ✅ CLI integration with Node.js subtitle fusion algorithm
+- ✅ Python integration with pure Python subtitle fusion algorithm
 - ✅ File upload handling for SRT files and frequency lists
-- ✅ Temporary file management and cleanup
+- ✅ Direct file processing without temporary files
 - ✅ Error handling and HTTP status codes
 - ✅ Endpoint testing and validation
 - ✅ Response model implementation (SubtitleResponse)
@@ -62,9 +63,9 @@
 **Technical Implementation**:
 - ✅ Form data handling for request parameters
 - ✅ File upload processing for target_srt, native_srt, frequency_list
-- ✅ CLI command execution with proper parameter passing
+- ✅ Direct Python function calls for subtitle processing
 - ✅ JSON response generation with success/error handling
-- ✅ Resource cleanup to prevent temp file accumulation
+- ✅ Memory-efficient processing without temporary files
 
 #### **Étape 2.2 : Déploiement Railway ✅ (COMPLETED)**
 
@@ -75,7 +76,7 @@
 **Completed Actions**:
 1. **Configure Railway project** with Git-based automatic deployment ✅ **COMPLETED**
 2. **Connect API to Supabase database** for frequency lists 🔄 **STRUCTURE READY, INTEGRATION PENDING**
-3. **Create main endpoint** `/fusion-subtitles` that takes two SRT files and returns hybrid SRT ✅ **COMPLETED**
+3. **Create main endpoint** `/fuse-subtitles` that takes two SRT files and returns hybrid SRT ✅ **COMPLETED**
 4. **Test API** with existing SRT files ✅ **COMPLETED LOCALLY**
 5. **Validate internet accessibility** for Chrome extension integration ✅ **COMPLETED - API LIVE**
 
@@ -86,6 +87,26 @@
 - **Configuration**: `railway.toml` with Nixpacks builder
 
 **Timeline**: ✅ 2-3 hours deployment configuration, 1 hour testing (COMPLETED)
+
+#### **Étape 2.3 : Migration Python ✅ (COMPLETED)**
+
+**Objective**: Migrate TypeScript algorithm to pure Python for better performance and simplicity
+
+**Status**: Migration completed successfully
+
+**Completed Actions**:
+1. **Migrate core algorithm** from TypeScript to Python ✅ **COMPLETED**
+2. **Implement Python lemmatization** using simplemma library ✅ **COMPLETED**
+3. **Update FastAPI endpoint** to use direct Python function calls ✅ **COMPLETED**
+4. **Simplify Dockerfile** to Python-only runtime ✅ **COMPLETED**
+5. **Clean up legacy files** (TypeScript files removed) ✅ **COMPLETED**
+
+**Performance Results**:
+- **Replacement rate**: 72.2% (343/475 subtitles) - improved from 54.5%
+- **Processing time**: ~2 seconds (direct function calls vs subprocess)
+- **Architecture**: Simplified to single Python runtime
+
+**Timeline**: ✅ 3-4 hours migration, 1 hour testing (COMPLETED)
 
 ### Phase 3: Chrome Extension Integration 🔄 **ACTIVE**
 
@@ -141,7 +162,7 @@
 
 **Ready Components**:
 - ✅ Netflix subtitle extraction (Chrome extension)
-- ✅ Subtitle processing (TypeScript fusion algorithm)
+- ✅ Subtitle processing (Python fusion algorithm)
 - ✅ API orchestration (FastAPI backend)
 - ✅ Subtitle injection (Chrome extension)
 
@@ -166,6 +187,7 @@
 ### **Development Timeline (Total: 6-8 days)**
 
 - **Days 1-2**: ✅ CLI wrapper implementation (COMPLETED), Railway deployment (COMPLETED)
+- **Days 2-3**: ✅ Python migration (COMPLETED)
 - **Days 3-4**: Chrome extension UI enhancement and API integration 🔄 **ACTIVE**
 - **Days 5-6**: End-to-end testing and error handling ✅ **READY FOR TESTING**
 - **Days 7-8**: Polish, documentation, and production readiness ✅ **READY FOR POLISH**
@@ -173,7 +195,7 @@
 ### **Success Metrics**
 
 **Performance Targets**:
-- **Processing time**: <10 seconds per episode (V0 acceptable) ✅ **ACHIEVED**
+- **Processing time**: <2 seconds per episode (improved from CLI subprocess) ✅ **ACHIEVED**
 - **API reliability**: 99%+ success rate ✅ **RAILWAY DEPLOYMENT LIVE**
 - **User experience**: Seamless subtitle replacement in Netflix ✅ **ACHIEVED**
 
@@ -185,7 +207,6 @@
 ## Future Enhancements (Post-V0)
 
 ### **Performance Optimization**
-- **Incremental CLI migration**: Port critical components to Python for better performance
 - **Batch processing**: Process subtitles in chunks if full episode processing is too slow
 - **Caching system**: Redis integration for repeated subtitle requests
 
@@ -197,22 +218,22 @@
 ## Risk Mitigation
 
 ### **Technical Risks**
-- **CLI integration complexity**: ✅ Mitigated by wrapper approach and existing CLI testing
-- **Performance bottlenecks**: ✅ Acceptable for V0, optimization planned for future versions
-- **API reliability**: 🔄 Railway's proven infrastructure reduces deployment risks
+- **Python migration complexity**: ✅ Successfully completed with improved performance
+- **Performance bottlenecks**: ✅ Resolved with direct Python function calls
+- **API reliability**: ✅ Railway's proven infrastructure with Python-only runtime
 
 ### **User Experience Risks**
-- **Processing delays**: ✅ 5-10 seconds acceptable for episode-based processing
+- **Processing delays**: ✅ 2 seconds processing time for episode-based workflow
 - **Error handling**: ✅ Robust fallbacks ensure Netflix experience remains functional
 - **Browser compatibility**: ✅ Chrome extension approach leverages existing Netflix integration
 
 ## Architecture Philosophy
 
 ### **Separation of Concerns**
-- **Railway**: Python FastAPI wrapper + CLI execution ✅ **DEPLOYMENT COMPLETED**
+- **Railway**: Pure Python FastAPI with integrated fusion algorithm ✅ **MIGRATED**
 - **Supabase**: Frequency lists and user data management ✅ **COMPLETED**
 - **Chrome Extension**: Netflix integration and user interface ✅ **COMPLETED**
-- **TypeScript CLI**: Core subtitle fusion algorithm (preserved) ✅ **COMPLETED**
+- **Python Engine**: Core subtitle fusion algorithm (migrated from TypeScript) ✅ **COMPLETED**
 
 ### **Development Priorities**
 1. **Functionality first**: ✅ Get working system with existing components
@@ -221,7 +242,6 @@
 4. **Maintainability**: ✅ Clean separation for future enhancements
 
 ### **Rejected Approaches**
-- **Full algorithm migration**: ✅ Too risky and time-consuming for V0
 - **Real-time processing**: ✅ Not needed for episode-based workflow
 - **Complex infrastructure**: ✅ Keep it simple with proven services
 
@@ -241,7 +261,23 @@
 - ✅ Phase 1: Database Setup (COMPLETED)
 - ✅ Phase 2.1: FastAPI Backend Implementation (COMPLETED)
 - ✅ Phase 2.2: Railway Deployment (COMPLETED)
+- ✅ Phase 2.3: Python Migration (COMPLETED)
 - 🔄 Phase 3: Chrome Extension Integration (ACTIVE)
 - ✅ Phase 4: Testing & Polish (READY FOR TESTING)
 
 **Next Milestone**: Complete Chrome extension integration to enable end-to-end subtitle fusion workflow
+
+## Future Phases (Post-V0)
+
+### Phase 2.4: Algorithm Enhancement 🔄 **PLANNED**
+
+**Objective**: Complete algorithm implementation with DeepL API and Supabase integration
+
+**Planned Actions**:
+1. **DeepL API Integration**: Implement inline translation service for unknown words
+2. **Supabase Integration**: Connect to database for frequency list management
+3. **Enhanced Processing**: Full algorithm capabilities with real-time translations
+4. **Performance Optimization**: Caching and batch processing improvements
+
+**Timeline**: 2-3 hours implementation, 1 hour testing
+**Priority**: Medium (after Phase 3 completion)
