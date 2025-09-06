@@ -75,7 +75,7 @@ async def health_check():
     return {"status": "ok", "service": "smartsub-api"}
 
 
-# Endpoint for subtitle fusion using CLI wrapper
+# Endpoint for subtitle fusion using Python engine
 @app.post("/fuse-subtitles", response_model=SubtitleResponse)
 async def fuse_subtitles(
     target_language: str = Form(...),
@@ -88,96 +88,60 @@ async def fuse_subtitles(
     frequency_list: UploadFile = File(...)
 ):
     try:
-        # Create temporary files for CLI processing
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.srt', delete=False) as temp_target, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.srt', delete=False) as temp_native, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_freq, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.srt', delete=False) as temp_output:
-            
-            # Write uploaded files to temp files
-            temp_target.write(target_srt.file.read().decode())
-            temp_native.write(native_srt.file.read().decode())
-            temp_freq.write(frequency_list.file.read().decode())
-            
-            # Close files to ensure writing is complete
-            temp_target.close()
-            temp_native.close()
-            temp_freq.close()
-            temp_output.close()
-            
-            # Find Node.js executable
-            import shutil
-            node_path = shutil.which("node")
-            if not node_path:
-                # Try common paths
-                for path in ["/usr/local/bin/node", "/usr/bin/node", "/opt/node/bin/node"]:
-                    if os.path.exists(path):
-                        node_path = path
-                        break
-            
-            if not node_path:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Node.js not found. Please ensure Node.js is installed."
-                )
-            
-            # Build CLI command
-            cmd = [
-                node_path, 
-                "dist/main.js",  # Fixed path to CLI
-                "--target", temp_target.name,
-                "--native", temp_native.name,
-                "--freq", temp_freq.name,
-                "--out", temp_output.name,
-                "--topN", str(top_n_words),
-                "--lang", target_language,
-                "--native-lang", native_language
-            ]
-            
-            if enable_inline_translation:
-                cmd.append("--inline-translation")
-                if deepl_api_key:
-                    cmd.extend(["--deepl-key", deepl_api_key])
-            
-            # Execute CLI
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout
-            )
-            
-            if result.returncode != 0:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"CLI processing failed: {result.stderr}"
-                )
-            
-            # Read output and return
-            with open(temp_output.name, 'r') as f:
-                output_srt = f.read()
-            
-            # Parse CLI output for stats (you can enhance this)
-            stats = {
-                "processing_time": "calculated_from_cli_output",
-                "words_processed": "extracted_from_cli_output"
-            }
-            
-            return SubtitleResponse(
-                success=True,
-                output_srt=output_srt,
-                stats=stats
-            )
-            
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=408, detail="Processing timeout")
+        # Import Python engine
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+        from subtitle_fusion import SubtitleFusionEngine
+        from srt_parser import parse_srt, generate_srt
+        
+        # Read uploaded files
+        target_content = await target_srt.read()
+        native_content = await native_srt.read()
+        freq_content = await frequency_list.read()
+        
+        # Parse SRT files
+        target_subs = parse_srt(target_content.decode('utf-8'))
+        native_subs = parse_srt(native_content.decode('utf-8'))
+        
+        # Parse frequency list
+        freq_lines = freq_content.decode('utf-8').split('\n')
+        known_words = set(freq_lines[:top_n_words])
+        
+        # Initialize fusion engine
+        engine = SubtitleFusionEngine()
+        
+        # Process fusion
+        result = engine.fuse_subtitles(
+            target_subs=target_subs,
+            native_subs=native_subs,
+            known_words=known_words,
+            lang=target_language,
+            enable_inline_translation=enable_inline_translation,
+            deepl_api=None,  # TODO: Implement DeepL API integration
+            native_lang=native_language
+        )
+        
+        # Generate output SRT
+        output_srt = generate_srt(result['hybrid'])
+        
+        # Prepare stats
+        stats = {
+            "processing_time": "calculated_from_python_engine",
+            "words_processed": len(known_words),
+            "subtitles_processed": len(target_subs),
+            "subtitles_replaced": result['replacedCount'],
+            "replacement_rate": f"{(result['replacedCount'] / len(target_subs) * 100):.1f}%"
+        }
+        
+        return SubtitleResponse(
+            success=True,
+            output_srt=output_srt,
+            stats=stats
+        )
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Cleanup temp files
-        for temp_file in [temp_target.name, temp_native.name, temp_freq.name, temp_output.name]:
-            if os.path.exists(temp_file):
-                os.unlink(temp_file)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))  # Changed from 8001 to 3000 due to port blocking

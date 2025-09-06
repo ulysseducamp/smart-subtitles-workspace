@@ -1,45 +1,10 @@
-# Multi-stage Dockerfile for SmartSub API
-# Stage 1: Build TypeScript CLI using Node.js
-FROM node:18-alpine AS node-builder
-
-# Install Python and build tools for native modules
-RUN apk add --no-cache python3 make g++
-
-# Set working directory for Node.js build
-WORKDIR /app/node-cli
-
-# Copy package files for Node.js dependencies
-COPY ts-package.json ./package.json
-COPY ts-package-lock.json ./package-lock.json
-
-# Install Node.js dependencies
-RUN npm ci --only=production
-
-# Copy TypeScript source code
-COPY ts-src ./src
-COPY tsconfig.json ./
-
-# Install TypeScript and build dependencies
-RUN npm install typescript @types/node --save-dev
-
-# Build TypeScript to JavaScript
-RUN npm run build
-
-# Stage 2: Final image with Python + Node.js runtime
+# Python-only Dockerfile for SmartSub API
 FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    gnupg \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Node.js 18.x
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
-
-# Verify Node.js installation
-RUN node --version && npm --version
 
 # Set working directory
 WORKDIR /app
@@ -48,12 +13,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the built Node.js CLI from stage 1
-COPY --from=node-builder /app/node-cli/dist ./dist
-COPY --from=node-builder /app/node-cli/node_modules ./node_modules
-COPY --from=node-builder /app/node-cli/package.json ./package.json
-
-# Copy FastAPI application files (now relative to smartsub-api/)
+# Copy FastAPI application files
 COPY main.py ./
 COPY env.example ./
 COPY test_api_key.py ./
