@@ -8481,7 +8481,7 @@ export const EN_FREQUENCY_LIST = new Set([
   "plays",
   "bulletin",
   "ia",
-  "pt",
+  "pt-BR",
   "indicates",
   "modify",
   "oxford",
@@ -25024,7 +25024,7 @@ export function getFrequencyList(language: string): Set<string> {
     case 'en':
     case 'english':
       return EN_FREQUENCY_LIST;
-    case 'pt':
+    case 'pt-BR':
     case 'portuguese':
       return PT_FREQUENCY_LIST;
     default:

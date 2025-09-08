@@ -10,7 +10,7 @@ This repository contains three interconnected subprojects that work together to 
 
 1. **Chrome Extension** (`netflix-smart-subtitles-chrome-extension/`): Netflix integration for subtitle extraction and injection ✅ **COMPLETED**
 2. **Subtitle Fusion Algorithm** (`subtitles-fusion-algorithm-public/`): Core TypeScript/Node.js engine for intelligent subtitle processing ✅ **COMPLETED**
-3. **API Backend** (`smartsub-api/`): FastAPI server that orchestrates the fusion process and manages data ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
+3. **API Backend** (`smartsub-api/`): FastAPI server that orchestrates the fusion process and manages data ✅ **Phase 3 COMPLETED - Full Integration Live**
 
 ### Key Objectives
 - **Adaptive Learning**: Automatically adjust subtitle difficulty based on vocabulary knowledge
@@ -73,7 +73,7 @@ simplemma==0.9.1
 - **Python**: v3.11+ - Backend runtime ✅ **COMPLETED**
 - **FastAPI**: v0.116.1 - Web framework ✅ **COMPLETED**
 - **Uvicorn**: v0.35.0 - ASGI server ✅ **COMPLETED**
-- **Supabase**: v2.3.4 - Database and storage 🔄 **STRUCTURE READY, INTEGRATION PENDING**
+- **Frequency Lists**: In-memory loading system ✅ **INTEGRATED**
 - **Simplemma**: v1.1.2 - Pure Python lemmatization ✅ **MIGRATED TO PYTHON**
 
 **Dependencies**:
@@ -91,11 +91,11 @@ simplemma==1.1.2
 ```
 Chrome Extension (Netflix) ✅ COMPLETED
          ↓
-    API Backend (FastAPI) ✅ Phase 2.2 COMPLETED - Railway Deployment Live
+    API Backend (FastAPI) ✅ Phase 3 COMPLETED - Full Integration Live
          ↓
 Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
          ↓
-    Supabase Database 🔄 STRUCTURE READY, INTEGRATION PENDING
+    Frequency Lists (In-Memory) ✅ INTEGRATED
 ```
 
 ### Directory Structure & Roles
@@ -120,29 +120,28 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **`dist/`**: Compiled JavaScript output ✅ **COMPLETED**
 - **`tests/`**: Test files and validation 🔄 **BASIC TESTS ONLY**
 
-#### API Backend (`smartsub-api/`) ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
+#### API Backend (`smartsub-api/`) ✅ **Phase 3 COMPLETED - Full Integration Live**
 - **`main.py`**: FastAPI application entry point ✅ **COMPLETED**
 - **`src/`**: Core Python modules ✅ **MIGRATED TO PYTHON**
   - **`subtitle_fusion.py`**: Pure Python fusion algorithm ✅ **MIGRATED**
   - **`srt_parser.py`**: SRT parsing and generation ✅ **MIGRATED**
   - **`lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
+  - **`frequency_loader.py`**: In-memory frequency list management ✅ **INTEGRATED**
   - **`deepl_api.py`**: DeepL API integration (placeholder) 🔄 **PENDING**
   - **`inline_translation.py`**: Inline translation service (placeholder) 🔄 **PENDING**
+- **`src/frequency_lists/`**: Static frequency list files ✅ **INTEGRATED**
 - **`tests/`**: Comprehensive test suite ✅ **COMPLETED**
 - **`utils/`**: Utility functions (SRT parser, vocabulary analyzer) ✅ **COMPLETED**
 - **`Dockerfile`**: Python-only Docker build ✅ **SIMPLIFIED**
 - **`venv/`**: Python virtual environment ✅ **READY**
 - **`requirements.txt`**: Python dependencies ✅ **COMPLETED**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite ✅ **COMPLETED**
-- **`ts-src/`**: TypeScript source files (legacy) ⚠️ **LEGACY - Can be removed**
-- **`ts-package.json`**: Node.js dependencies (legacy) ⚠️ **LEGACY - Can be removed**
-- **`tsconfig.json`**: TypeScript configuration (legacy) ⚠️ **LEGACY - Can be removed**
 
 ### Core Module Interactions
 
-#### 1. Chrome Extension → API Backend ✅ **READY FOR INTEGRATION**
+#### 1. Chrome Extension → API Backend ✅ **FULLY INTEGRATED**
 - **Extraction**: Chrome extension extracts Netflix subtitles using JSON hijacking ✅ **COMPLETED**
-- **Upload**: Ready to send SRT files to `/fuse-subtitles` endpoint ✅ **API LIVE ON RAILWAY**
+- **Upload**: Sends SRT files to `/fuse-subtitles` endpoint ✅ **API LIVE ON RAILWAY**
 - **Injection**: Receives processed subtitles and injects them back into Netflix ✅ **COMPLETED**
 
 #### 2. API Backend → Fusion Algorithm ✅ **MIGRATED TO PYTHON**
@@ -150,10 +149,10 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **Python Engine**: Direct function calls to Python fusion algorithm ✅ **MIGRATED**
 - **Response Handling**: Processes results and returns to extension ✅ **COMPLETED**
 
-#### 3. Data Management 🔄 **STRUCTURE READY, INTEGRATION PENDING**
-- **Supabase**: Stores frequency lists and user data 🔄 **PROJECT CONFIGURED, INTEGRATION PENDING**
-- **Frequency Lists**: Multi-language vocabulary data for algorithm decisions ✅ **UPLOADED TO SUPABASE**
-- **User Progress**: Future implementation for personalized learning
+#### 3. Data Management ✅ **INTEGRATED**
+- **Frequency Lists**: In-memory loading system for vocabulary data ✅ **INTEGRATED**
+- **Multi-language Support**: English, French, Portuguese, Spanish, German ✅ **AVAILABLE**
+- **Performance**: O(1) word lookup with startup caching ✅ **OPTIMIZED**
 
 ## 4. Key Components & Files
 
@@ -170,12 +169,13 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **`inline-translation.ts`**: Single-word translation service ✅ **COMPLETED**
 - **`scripts/lemmatizer.py`**: Python lemmatization using simplemma ✅ **COMPLETED**
 
-### API Backend Core Files ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
+### API Backend Core Files ✅ **Phase 3 COMPLETED - Full Integration Live**
 - **`main.py`**: FastAPI application with `/fuse-subtitles` endpoint ✅ **COMPLETED**
 - **`src/subtitle_fusion.py`**: Pure Python fusion algorithm with all core logic ✅ **MIGRATED**
 - **`src/srt_parser.py`**: SRT parsing, generation, and word normalization ✅ **MIGRATED**
 - **`src/lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
-- **`src/supabase_client.py`**: Database connection and frequency list management 🔄 **STRUCTURE READY, INTEGRATION PENDING**
+- **`src/frequency_loader.py`**: In-memory frequency list management system ✅ **INTEGRATED**
+- **`src/frequency_lists/`**: Static frequency list files (en, fr, pt, es, de) ✅ **INTEGRATED**
 - **`src/deepl_api.py`**: DeepL API client for Python backend 🔄 **PLACEHOLDER, INTEGRATION PENDING**
 - **`src/inline_translation.py`**: Inline translation service 🔄 **PLACEHOLDER, INTEGRATION PENDING**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite with Railway URL ✅ **COMPLETED**
@@ -196,6 +196,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 #### API Orchestration (`main.py`) ✅ **MIGRATED TO PYTHON**
 - **File Management**: Direct file processing without temporary files ✅ **MIGRATED**
 - **Python Engine**: Direct function calls to Python fusion algorithm ✅ **MIGRATED**
+- **Frequency Loading**: In-memory frequency list management at startup ✅ **INTEGRATED**
 - **Error Handling**: Comprehensive error responses and fallbacks ✅ **COMPLETED**
 - **API Security**: API key validation middleware for Railway deployment ✅ **COMPLETED**
 - **CORS Configuration**: Chrome extension compatibility ✅ **COMPLETED**
@@ -224,10 +225,11 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **CLI Interface**: Comprehensive command-line tool ✅ **COMPLETED**
 - **Multi-language Support**: 6 languages with lemmatization ✅ **COMPLETED**
 
-#### API Backend ✅ **Phase 2.2 COMPLETED - Railway Deployment Live**
+#### API Backend ✅ **Phase 3 COMPLETED - Full Integration Live**
 - **FastAPI Framework**: Modern Python web framework ✅ **COMPLETED**
 - **File Upload Handling**: Multipart file processing ✅ **COMPLETED**
 - **Pure Python Engine**: Direct function calls to Python fusion algorithm ✅ **MIGRATED**
+- **Frequency List Integration**: In-memory loading system ✅ **INTEGRATED**
 - **CORS Support**: Chrome extension compatibility ✅ **COMPLETED**
 - **Error Handling**: Comprehensive error responses ✅ **COMPLETED**
 - **Health Checks**: Service monitoring endpoints ✅ **COMPLETED**
@@ -235,24 +237,26 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **API Security**: API key validation middleware ✅ **COMPLETED**
 - **Comprehensive Testing**: Full test suite with Railway URL validation ✅ **COMPLETED**
 - **Performance**: 72.2% replacement rate (343/475 subtitles) ✅ **IMPROVED**
+- **End-to-End Integration**: Chrome extension ↔ Railway API workflow ✅ **COMPLETED**
 
 ### 🔄 Partially Implemented
-- **Supabase Integration**: Basic structure ready, full integration pending 🔄 **STRUCTURE READY, INTEGRATION PENDING**
+- **DeepL API Integration**: Placeholder implementation needs completion 🔄 **PENDING**
+- **Inline Translation**: Service implementation pending 🔄 **PENDING**
 - **User Authentication**: Framework ready, implementation pending
 - **Performance Metrics**: Basic stats, needs enhancement
 - **Error Recovery**: Basic fallbacks, needs robust handling
 
 ## 6. Pending Tasks & Roadmap
 
-### High Priority (Phase 3 - ACTIVE)
-- **Chrome Extension Integration**: Connect extension to Railway backend for subtitle fusion ✅ **READY FOR IMPLEMENTATION**
-- **Complete Supabase Integration**: Implement frequency list loading from database 🔄 **STRUCTURE READY, INTEGRATION PENDING**
-- **Enhance Error Handling**: Add robust fallback mechanisms and user feedback
-- **Performance Optimization**: Reduce processing time from CLI execution
+### High Priority (Phase 4 - READY)
+- **DeepL API Integration**: Complete inline translation service 🔄 **PENDING**
+- **Enhanced Error Handling**: Add robust fallback mechanisms and user feedback
+- **Performance Optimization**: Further reduce processing time and memory usage
+- **User Experience Polish**: Improve UI/UX and add advanced features
 
-### Medium Priority (Phase 3)
-- **Chrome Extension UI**: Add subtitle fusion controls to popup
-- **User Account System**: Leverage Supabase authentication
+### Medium Priority (Phase 4)
+- **Chrome Extension UI**: Add subtitle fusion controls to popup ✅ **COMPLETED**
+- **User Account System**: Implement user authentication and progress tracking
 - **Vocabulary Progress Tracking**: Store and adapt to user learning progress
 - **Batch Processing**: Handle multiple episodes efficiently
 - **Caching System**: Redis integration for repeated requests
@@ -264,18 +268,18 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **Mobile Support**: React Native or PWA implementation
 
 ### Known Issues & Technical Debt
-- **Legacy TypeScript Files**: Old TypeScript files in `smartsub-api/` can be removed ⚠️ **CLEANUP NEEDED**
 - **DeepL API Integration**: Placeholder implementation needs completion 🔄 **PENDING**
 - **Inline Translation**: Service implementation pending 🔄 **PENDING**
 - **Error Recovery**: Limited fallback mechanisms for API failures 🔄 **IMPROVEMENT NEEDED**
+- **Performance Optimization**: Further reduce processing time and memory usage 🔄 **IMPROVEMENT NEEDED**
 
 ### Development Phases
 1. **Phase 1**: Database Setup ✅ **COMPLETED**
 2. **Phase 2.1**: CLI Wrapper Implementation ✅ **COMPLETED**
 3. **Phase 2.2**: Railway Deployment ✅ **COMPLETED**
 4. **Phase 2.3**: Python Migration ✅ **COMPLETED**
-5. **Phase 3**: Chrome Extension Integration 🔄 **ACTIVE**
-6. **Phase 4**: Testing & Polish ✅ **READY FOR TESTING**
+5. **Phase 3**: Chrome Extension Integration ✅ **COMPLETED**
+6. **Phase 4**: Testing & Polish 🔄 **ACTIVE**
 
 ## 7. AI Coding Guidelines
 
@@ -388,23 +392,23 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 2.3.0 (Phase 2.3 Complete - Python Migration, Phase 3 Active)  
-**Status**: Railway Deployment Live with Pure Python Engine, Chrome Extension Integration Active, API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.0.0 (Phase 3 Complete - Full Integration, Phase 4 Active)  
+**Status**: End-to-End Integration Complete - Chrome Extension ↔ Railway API Workflow Operational, API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
-**Next Milestone**: Complete Phase 3 (Chrome Extension Integration) to enable end-to-end subtitle fusion workflow
+**Next Milestone**: Complete Phase 4 (Testing & Polish) with DeepL API integration and performance optimization
 
-**Current Status**: Railway deployment fully operational with pure Python engine achieving 72.2% replacement rate (343/475 subtitles processed)
+**Current Status**: Full end-to-end integration complete - Chrome extension successfully communicates with Railway API, processing subtitles with 72.2% replacement rate (343/475 subtitles processed)
 
 
 ## ⚠️ Known Issues & Technical Debt
 
-### Legacy TypeScript Files (Priority: Low)
-**Problem:** TypeScript source files remain in `smartsub-api/` after Python migration
+### DeepL API Integration (Priority: High)
+**Problem:** DeepL API integration is placeholder implementation
 **Impact:** 
-- Unused files taking up space
-- Potential confusion for developers
-- No functional impact (Python engine is active)
-**Solution:** Remove legacy TypeScript files from `smartsub-api/`
-**Current Status:** Python engine fully operational, legacy files can be safely removed
+- Inline translation feature not functional
+- Limited vocabulary learning capabilities
+- User experience incomplete
+**Solution:** Complete DeepL API integration with proper error handling and rate limiting
+**Current Status:** End-to-end integration complete, DeepL API integration needed for full feature set

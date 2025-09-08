@@ -78,7 +78,7 @@ export class FrequencyLoader {
     const languageMap: Record<string, string> = {
       'fr': 'fr-5000.txt',
       'en': 'en-10000.txt',
-      'pt': 'pt-10000.txt'
+      'pt-BR': 'pt-10000.txt'
     };
 
     const filename = languageMap[language.toLowerCase()];
@@ -101,7 +101,7 @@ export class FrequencyLoader {
    * Get available languages
    */
   public getAvailableLanguages(): string[] {
-    return ['fr', 'en', 'pt'];
+    return ['fr', 'en', 'pt-BR'];
   }
 
   /**
