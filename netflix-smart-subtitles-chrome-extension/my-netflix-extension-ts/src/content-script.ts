@@ -99,6 +99,16 @@ function handlePageScriptMessage(event: MessageEvent): void {
       case 'DOWNLOAD_ERROR':
         console.error('Netflix Subtitle Downloader: Download error:', event.data.data.error);
         break;
+
+      case 'SMART_SUBTITLES_SUCCESS':
+        console.log('Smart Netflix Subtitles: Processing successful:', event.data.data);
+        // Forward success message to popup if needed
+        break;
+
+      case 'SMART_SUBTITLES_ERROR':
+        console.error('Smart Netflix Subtitles: Processing error:', event.data.data.error);
+        // Forward error message to popup if needed
+        break;
     }
   }
 }
@@ -152,6 +162,18 @@ function handlePopupMessage(
     sendResponse({
       success: true,
       message: 'Download request sent'
+    });
+  } else if (request.action === 'processSmartSubtitles') {
+    // Request Smart Subtitles processing from page script
+    console.log('Smart Netflix Subtitles: Requesting subtitle processing:', request.settings);
+    sendMessageToPageScript({
+      action: 'processSmartSubtitles',
+      settings: request.settings
+    });
+    
+    sendResponse({
+      success: true,
+      message: 'Smart subtitles processing started'
     });
   } else {
     console.log('Netflix Subtitle Downloader: Unknown message action:', request.action);

@@ -63,6 +63,7 @@ export interface ExtensionMessage {
   type: 'NETFLIX_SUBTITLES' | 'NETFLIX_SUBTITLES_REQUEST';
   action: string;
   data?: any;
+  settings?: SmartSubtitlesSettings;
 }
 
 export interface SubtitleTrack {
@@ -101,8 +102,17 @@ export interface ChromeTab {
 }
 
 export interface ChromeMessage {
-  action: 'checkNetflixPage' | 'getSubtitles' | 'downloadSubtitle';
+  action: 'checkNetflixPage' | 'getSubtitles' | 'downloadSubtitle' | 'processSmartSubtitles';
   trackId?: string;
+  settings?: SmartSubtitlesSettings;
+}
+
+// Smart Subtitles Types
+export interface SmartSubtitlesSettings {
+  enabled: boolean;
+  targetLanguage: string;
+  nativeLanguage: string;
+  vocabularyLevel: number;
 }
 
 export interface ChromeResponse {

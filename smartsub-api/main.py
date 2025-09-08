@@ -7,12 +7,39 @@ import subprocess
 import tempfile
 import uvicorn
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Smart Netflix Subtitles API",
     description="FastAPI backend for bilingual adaptive subtitles",
     version="0.1.0"
 )
+
+# Initialize frequency loader at startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize frequency loader on application startup."""
+    try:
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+        from frequency_loader import initialize_frequency_loader
+        
+        # Initialize the global frequency loader
+        frequency_loader = initialize_frequency_loader()
+        logger.info("Frequency loader initialized successfully")
+        
+        # Log supported languages
+        supported_langs = frequency_loader.get_supported_languages()
+        logger.info(f"Supported languages: {supported_langs}")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize frequency loader: {e}")
+        # Don't fail startup, but log the error
 
 # CORS middleware for Chrome Extension
 app.add_middleware(
@@ -74,6 +101,28 @@ async def root():
 async def health_check():
     return {"status": "ok", "service": "smartsub-api"}
 
+@app.get("/frequency-lists")
+async def get_frequency_lists():
+    """Get information about available frequency lists."""
+    try:
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+        from frequency_loader import get_frequency_loader
+        
+        frequency_loader = get_frequency_loader()
+        supported_languages = frequency_loader.get_supported_languages()
+        cache_stats = frequency_loader.get_cache_stats()
+        
+        return {
+            "supported_languages": supported_languages,
+            "cache_stats": cache_stats,
+            "status": "available"
+        }
+    except Exception as e:
+        logger.error(f"Error getting frequency lists info: {e}")
+        return {"error": str(e), "status": "error"}
+
 
 # Endpoint for subtitle fusion using Python engine
 @app.post("/fuse-subtitles", response_model=SubtitleResponse)
@@ -84,8 +133,7 @@ async def fuse_subtitles(
     enable_inline_translation: bool = Form(False),
     deepl_api_key: Optional[str] = Form(None),
     target_srt: UploadFile = File(...),
-    native_srt: UploadFile = File(...),
-    frequency_list: UploadFile = File(...)
+    native_srt: UploadFile = File(...)
 ):
     try:
         # Import Python engine
@@ -94,19 +142,22 @@ async def fuse_subtitles(
         sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
         from subtitle_fusion import SubtitleFusionEngine
         from srt_parser import parse_srt, generate_srt
+        from frequency_loader import get_frequency_loader
         
         # Read uploaded files
         target_content = await target_srt.read()
         native_content = await native_srt.read()
-        freq_content = await frequency_list.read()
         
         # Parse SRT files
         target_subs = parse_srt(target_content.decode('utf-8'))
         native_subs = parse_srt(native_content.decode('utf-8'))
         
-        # Parse frequency list
-        freq_lines = freq_content.decode('utf-8').split('\n')
-        known_words = set(freq_lines[:top_n_words])
+        # Get frequency list from in-memory loader
+        frequency_loader = get_frequency_loader()
+        frequency_set = frequency_loader.get_frequency_set(target_language)
+        
+        # Convert set to list and limit to top_n_words
+        known_words = list(frequency_set)[:top_n_words]
         
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
@@ -129,9 +180,12 @@ async def fuse_subtitles(
         stats = {
             "processing_time": "calculated_from_python_engine",
             "words_processed": len(known_words),
+            "frequency_list_size": len(frequency_set),
             "subtitles_processed": len(target_subs),
             "subtitles_replaced": result['replacedCount'],
-            "replacement_rate": f"{(result['replacedCount'] / len(target_subs) * 100):.1f}%"
+            "replacement_rate": f"{(result['replacedCount'] / len(target_subs) * 100):.1f}%",
+            "target_language": target_language,
+            "native_language": native_language
         }
         
         return SubtitleResponse(

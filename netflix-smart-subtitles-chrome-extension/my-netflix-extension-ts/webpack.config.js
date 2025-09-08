@@ -18,6 +18,7 @@
 
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   entry: {
@@ -43,11 +44,20 @@ module.exports = {
     extensions: ['.ts', '.js']
   },
   plugins: [
+    new Dotenv({
+      path: './.env',
+      safe: true,
+      allowEmptyValues: true,
+      systemvars: true,
+      silent: true,
+      defaults: false
+    }),
     new CopyPlugin({
       patterns: [
         { from: 'src/popup/popup.html', to: 'popup.html' },
         { from: 'src/popup/popup.css', to: 'popup.css' },
-        { from: 'manifest.json', to: 'manifest.json' }
+        { from: 'manifest.json', to: 'manifest.json' },
+        { from: 'src/assets', to: 'src/assets' }
       ]
     })
   ],

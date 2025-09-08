@@ -22,7 +22,8 @@
 // This script is injected into Netflix pages and implements JSON hijacking to extract subtitles
 // Following Subadub's immediate injection approach
 
-import { NetflixSubtitle, NetflixManifest, NetflixMoviesResponse, NetflixAlternativeResponse, SubtitleTrack, ExtensionMessage } from './types/netflix';
+import { NetflixSubtitle, NetflixManifest, NetflixMoviesResponse, NetflixAlternativeResponse, SubtitleTrack, ExtensionMessage, SmartSubtitlesSettings } from './types/netflix';
+import { railwayAPIClient, RailwayAPIResponse } from './api/railwayClient';
 
 (function initializeNetflixSubtitleExtractor(): void {
   console.log('Netflix Subtitle Downloader: Page script loaded - starting JSON hijacking immediately');
@@ -60,6 +61,12 @@ import { NetflixSubtitle, NetflixManifest, NetflixMoviesResponse, NetflixAlterna
   // Injection state variables (simplified)
   let showSubsState = true;
   let currentBlobUrl: string | null = null; // Track current blob URL for cleanup
+
+  // Smart Subtitles state variables
+  let smartSubtitlesEnabled = false;
+  let currentSettings: SmartSubtitlesSettings | null = null;
+  let isProcessingSubtitles = false;
+  let processedSubtitlesCache = new Map<string, string>(); // Cache for processed subtitles
 
   // SRT file content for injection (real subtitles from E06.srt)
   const SRT_CONTENT = `1
@@ -751,6 +758,148 @@ Fim de história.`;
     }
   }
 
+  // SMART SUBTITLES FUNCTIONS
+
+  // Function to process subtitles with Railway API
+  async function processSmartSubtitles(settings: SmartSubtitlesSettings): Promise<void> {
+    console.log('Smart Netflix Subtitles: Processing subtitles with settings:', settings);
+    
+    if (isProcessingSubtitles) {
+      console.log('Smart Netflix Subtitles: Already processing, skipping request');
+      return;
+    }
+
+    if (!currentMovieId) {
+      throw new Error('No current movie ID available');
+    }
+
+    isProcessingSubtitles = true;
+    smartSubtitlesEnabled = true;
+    currentSettings = settings;
+
+    try {
+      // Get available tracks for current movie
+      const tracks = trackListCache.get(currentMovieId);
+      if (!tracks || tracks.length === 0) {
+        throw new Error('No subtitle tracks available');
+      }
+
+      // Find target and native language tracks
+      const targetTrack = tracks.find(track => track.language === settings.targetLanguage);
+      const nativeTrack = tracks.find(track => track.language === settings.nativeLanguage);
+
+      if (!targetTrack) {
+        throw new Error(`Target language ${settings.targetLanguage} not available`);
+      }
+      if (!nativeTrack) {
+        throw new Error(`Native language ${settings.nativeLanguage} not available`);
+      }
+
+      console.log('Smart Netflix Subtitles: Found tracks:', { targetTrack, nativeTrack });
+
+      // Download and convert subtitles to SRT
+      const targetSrt = await downloadAndConvertToSRT(targetTrack);
+      const nativeSrt = await downloadAndConvertToSRT(nativeTrack);
+
+      // Process with Railway API (frequency lists are now handled server-side)
+      console.log('Smart Netflix Subtitles: Sending to Railway API...');
+      const apiResponse = await railwayAPIClient.processSubtitles(
+        targetSrt,
+        nativeSrt,
+        settings
+      );
+
+      if (apiResponse.success && apiResponse.output_srt) {
+        console.log('Smart Netflix Subtitles: API processing successful');
+        
+        // Cache the processed subtitles
+        const cacheKey = `${currentMovieId}-${settings.targetLanguage}-${settings.nativeLanguage}-${settings.vocabularyLevel}`;
+        processedSubtitlesCache.set(cacheKey, apiResponse.output_srt);
+
+        // Convert processed SRT to WebVTT and inject
+        const processedWebVTT = convertSRTToWebVTT(apiResponse.output_srt);
+        const processedBlob = new Blob([processedWebVTT], { type: 'text/vtt' });
+        
+        const videoElem = document.querySelector('video');
+        if (videoElem) {
+          addTrackElem(videoElem, processedBlob, settings.targetLanguage);
+          console.log('Smart Netflix Subtitles: Processed subtitles injected successfully');
+        }
+
+        // Notify content script of success
+        notifyContentScript({
+          type: 'NETFLIX_SUBTITLES',
+          action: 'SMART_SUBTITLES_SUCCESS',
+          data: {
+            stats: apiResponse.stats,
+            message: 'Smart subtitles processed successfully'
+          }
+        });
+
+      } else {
+        throw new Error(apiResponse.error || 'API processing failed');
+      }
+
+    } catch (error) {
+      console.error('Smart Netflix Subtitles: Processing failed:', error);
+      
+      // Fallback to original subtitles
+      console.log('Smart Netflix Subtitles: Falling back to original subtitles');
+      smartSubtitlesEnabled = false;
+      
+      // Re-inject original subtitles
+      const videoElem = document.querySelector('video');
+      if (videoElem && currentMovieId) {
+        const tracks = trackListCache.get(currentMovieId);
+        if (tracks && tracks.length > 0) {
+          const originalTrack = tracks.find(track => track.language === settings.targetLanguage);
+          if (originalTrack) {
+            const originalSrt = await downloadAndConvertToSRT(originalTrack);
+            const originalWebVTT = convertSRTToWebVTT(originalSrt);
+            const originalBlob = new Blob([originalWebVTT], { type: 'text/vtt' });
+            addTrackElem(videoElem, originalBlob, settings.targetLanguage);
+          }
+        }
+      }
+
+      // Notify content script of error
+      notifyContentScript({
+        type: 'NETFLIX_SUBTITLES',
+        action: 'SMART_SUBTITLES_ERROR',
+        data: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: 'Falling back to original subtitles'
+        }
+      });
+
+    } finally {
+      isProcessingSubtitles = false;
+    }
+  }
+
+  // Function to download and convert subtitle to SRT
+  async function downloadAndConvertToSRT(track: SubtitleTrack): Promise<string> {
+    const cacheKey = currentMovieId + '/' + track.id;
+    
+    // Check if we have cached WebVTT data
+    if (!webvttCache.has(cacheKey)) {
+      console.log('Smart Netflix Subtitles: Fetching WebVTT from:', track.bestUrl);
+      
+      const response = await fetch(track.bestUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch WebVTT file');
+      }
+      
+      const blob = await response.blob();
+      webvttCache.set(cacheKey, blob);
+    }
+
+    const webvttBlob = webvttCache.get(cacheKey)!;
+    return await convertWebVTTToSRTUsingTextTrack(webvttBlob);
+  }
+
+  // Note: Frequency lists are now handled server-side by Railway API
+
   // Function to handle messages from content script
   function handleContentScriptMessage(event: MessageEvent): void {
     if (event.data.type === 'NETFLIX_SUBTITLES_REQUEST') {
@@ -793,6 +942,25 @@ Fim de história.`;
                 data: { error: error instanceof Error ? error.message : 'Unknown error' }
               });
             });
+          break;
+
+        case 'processSmartSubtitles':
+          if (event.data.settings) {
+            processSmartSubtitles(event.data.settings)
+              .then(() => {
+                console.log('Smart Netflix Subtitles: Processing completed successfully');
+              })
+              .catch(error => {
+                console.error('Smart Netflix Subtitles: Processing failed:', error);
+              });
+          } else {
+            console.error('Smart Netflix Subtitles: No settings provided');
+            notifyContentScript({
+              type: 'NETFLIX_SUBTITLES',
+              action: 'SMART_SUBTITLES_ERROR',
+              data: { error: 'No settings provided' }
+            });
+          }
           break;
       }
     }
