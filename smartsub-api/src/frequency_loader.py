@@ -50,7 +50,7 @@ class FrequencyLoader:
         self._language_files = {
             'en': 'en-10000.txt',
             'fr': 'fr-5000.txt', 
-            'pt': 'pt-10000.txt',
+            'pt-BR': 'pt-10000.txt',
             'es': 'es-10000.txt',
             'de': 'german-10000.txt',
             'german': 'german-10000.txt'  # Alias for German
@@ -63,7 +63,7 @@ class FrequencyLoader:
         Get frequency set for a language, loading it if not already cached.
         
         Args:
-            language: Language code (en, fr, pt, es, de, german)
+            language: Language code (en, fr, pt-BR, es, de, german)
             
         Returns:
             Set of words in the frequency list (normalized to lowercase)
