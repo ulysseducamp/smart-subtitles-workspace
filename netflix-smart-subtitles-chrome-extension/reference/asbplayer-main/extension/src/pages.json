@@ -1,0 +1,154 @@
+{
+    "pages": [
+        {
+            "host": "www\\.netflix\\.com",
+            "script": "netflix-page.js",
+            "path": "watch",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "(m|www)\\.youtube\\.com",
+            "script": "youtube-page.js",
+            "path": "watch|shorts|embed",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "tver\\.jp",
+            "script": "tver-page.js",
+            "path": "episodes",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "www\\.b-ch\\.com",
+            "script": "bandai-channel-page.js",
+            "path": "titles",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "www\\.amazon\\..+|www\\.primevideo\\.com",
+            "script": "amazon-prime-page.js",
+            "path": ".*",
+            "autoSync": {
+                "enabled": true,
+                "videoSrc": "^blob:.+"
+            },
+            "ignore": {
+                "class": "tst-video-overlay-player-html5",
+                "style": {
+                    "display": "none"
+                }
+            }
+        },
+        {
+            "host": "www\\.hulu\\..+",
+            "script": "hulu-page.js",
+            "path": "watch",
+            "autoSync": {
+                "enabled": true,
+                "elementId": "content-video-player"
+            }
+        },
+        {
+            "host": "www\\.disneyplus\\..+",
+            "script": "disney-plus-page.js",
+            "path": "video|play",
+            "searchShadowRoots": true,
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "www\\.apps\\.disneyplus\\..+",
+            "script": "apps-disney-plus-page.js",
+            "path": "watch",
+            "searchShadowRoots": true,
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "video.unext.jp",
+            "script": "unext-page.js",
+            "path": "play",
+            "autoSync": {
+                "enabled": false
+            }
+        },
+        {
+            "host": ".+\\.viki\\.(io|com)",
+            "script": "viki-page.js",
+            "path": "videos",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "(jellyfin.*)|(emby.*)|(:8096$)",
+            "script": "emby-jellyfin-page.js",
+            "hash": "#!/videoosd/videoosd.html|#/video",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "www.twitch.tv",
+            "allowBlankSrc": true
+        },
+        {
+            "host": "osnplus.com",
+            "script": "osnplus-page.js",
+            "path": "watch",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "www.bilibili.tv",
+            "script": "bilibili-page.js",
+            "path": "play|video",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "tv.nrk.no",
+            "script": "nrk-tv-page.js",
+            "path": ".*",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "(plex.*)|(:32400$)",
+            "script": "plex-page.js",
+            "path": ".*",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "areena.yle.fi",
+            "script": "areena-yle-page.js",
+            "path": ".*",
+            "autoSync": {
+                "enabled": true
+            }
+        },
+        {
+            "host": "play.max.com",
+            "script": "hbo-max-page.js",
+            "path": "watch",
+            "autoSync": {
+                "enabled": true
+            }
+        }
+    ]
+}

@@ -1,0 +1,413 @@
+#es {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif !important;
+
+  pre {
+    all: unset;
+    background-color: transparent;
+    font: inherit;
+  }
+
+  .i {
+    font-style: italic;
+  }
+  .b {
+    font-weight: bold;
+  }
+  .u {
+    text-decoration: underline;
+  }
+
+  .es-sub {
+    text-align: center;
+    line-height: 1.25;
+    padding: 0 10px;
+    cursor: pointer;
+  }
+
+  .es-sub-item {
+    display: inline;
+    position: relative;
+
+    pre {
+      display: inline;
+    }
+
+    &:hover {
+      color: #3a88a2;
+      cursor: pointer;
+    }
+
+    &-highlighted {
+      color: #3a88a2;
+    }
+  }
+  .es-sub-item-space {
+    display: inline;
+  }
+
+  .es-full-translation {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translate3d(-50%, -100%, 0);
+    background-color: #1e1e1e;
+    border-radius: 0.4em;
+    font-size: 18px;
+    width: 100%;
+    font-style: normal;
+    white-space: normal;
+    box-sizing: content-box;
+    color: #fff;
+    padding: 16px 24px;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    text-wrap: balance;
+
+    &:after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border: 10px solid transparent;
+      border-top-color: #1e1e1e;
+      border-bottom: 0;
+      margin-left: -10px;
+      margin-bottom: -10px;
+    }
+  }
+}
+
+.es-kinopub.es-enabled {
+  .jw-captions.jw-captions-enabled {
+    display: none;
+  }
+
+  #es {
+    bottom: 130px;
+
+    @media screen and (max-width: 1520px) {
+      bottom: 100px;
+    }
+  }
+}
+
+.es-kinopub {
+  .es-settings-icon {
+    svg {
+      width: 28px;
+    }
+  }
+}
+
+.es-enabled {
+  #es {
+    display: block;
+  }
+}
+
+.es-youtube {
+  .es-settings {
+    vertical-align: top;
+    height: 100%;
+  }
+
+  .es-settings-icon {
+    margin: 0 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    height: 100%;
+
+    svg {
+      width: 24px;
+      vertical-align: middle;
+    }
+  }
+}
+
+.es-youtube.es-enabled {
+  .captions-text {
+    display: none !important;
+  }
+
+  .html5-video-player {
+    &.ytp-fullscreen {
+      padding-bottom: 0;
+
+      #easysubs {
+        bottom: 110px;
+      }
+    }
+  }
+
+  #es {
+    z-index: 30;
+    bottom: 80px;
+
+    @media screen and (max-width: 1520px) {
+      bottom: 100px;
+    }
+  }
+}
+
+.es-coursera {
+  .es-settings {
+    vertical-align: top;
+  }
+
+  .es-settings-content {
+    bottom: 50px;
+  }
+
+  .es-settings-icon {
+    margin: 0 12px;
+    cursor: pointer;
+
+    svg {
+      width: 24px;
+      vertical-align: middle;
+    }
+  }
+
+  .video-main-player-container {
+    position: relative;
+  }
+}
+
+.es-coursera.es-enabled {
+  #es {
+    bottom: 7vh;
+  }
+
+  video::-webkit-media-text-track-container {
+    display: none;
+  }
+}
+
+.es-netflix {
+  .es-settings-content {
+    bottom: 120px;
+    right: 85px;
+  }
+
+  .es-settings-icon {
+    color: #fff;
+
+    svg {
+      opacity: 1;
+      transition: transform 350ms cubic-bezier(0.86, 0, 0.07, 1);
+    }
+
+    &:hover {
+      svg {
+        transform: scale(1.3);
+      }
+    }
+  }
+
+  .es-settings {
+    // height: 2.4rem;
+    width: 52px;
+    margin-right: 30px;
+
+    // @media screen and (min-width: 854px) {
+    //   height: 5.2rem;
+    //   width: 5.2rem;
+    //   margin-right: 2rem;
+    // }
+
+    // @media screen and (min-width: 1440px) {
+    //   margin-right: 39px;
+    // }
+
+    &-icon {
+      width: 44px;
+      margin: 0;
+
+      svg {
+        width: 100%;
+        height: 100%;
+
+        @media screen and (min-width: 854px) {
+          width: 40px;
+          height: 40px;
+        }
+      }
+    }
+  }
+}
+
+.es-netflix.es-enabled {
+  #es {
+    bottom: 21vh;
+
+    @media screen and (min-width: 1440px) {
+      bottom: 26vh;
+    }
+  }
+
+  .player-timedtext {
+    display: none !important;
+  }
+
+  hr {
+    border: none;
+  }
+
+  .watch-video--selector-audio-subtitle {
+    overflow-y: auto;
+  }
+}
+
+.es-youtube {
+  .es-settings-content {
+    bottom: 50px;
+  }
+}
+
+.es-netflix.es-netflix-ad-showing {
+  #es {
+    display: none !important;
+  }
+  .es-progress-bar {
+    display: none !important;
+  }
+}
+
+.es-plex {
+  #es {
+    bottom: 200px;
+  }
+
+  .es-settings-icon {
+    justify-content: center;
+    display: flex;
+    margin: 0 3px;
+
+    svg {
+      height: 20px;
+    }
+  }
+}
+
+.es-plex.es-enabled {
+  .libjass-subs {
+    display: none !important;
+  }
+}
+
+.es-plex.es-enabled {
+  .libjass-subs {
+    display: none !important;
+  }
+}
+
+.es-udemy {
+  #es {
+    bottom: 80px;
+  }
+
+  .es-settings-content {
+    bottom: 56px;
+  }
+
+  .es-settings-icon {
+    justify-content: center;
+    display: flex;
+    margin: 0 3px;
+
+    svg {
+      height: 22px;
+    }
+  }
+}
+
+.es-udemy.es-enabled {
+  div[data-purpose="captions-cue-text"] {
+    display: none !important;
+  }
+}
+
+.es-kinopoisk {
+  #es {
+    bottom: 200px;
+  }
+
+  .es-settings-icon {
+    svg {
+      width: 36px;
+      color: #fff;
+    }
+  }
+}
+
+.es-kinopoisk.es-enabled {
+  div[data-tid="SubtitlesPortalRoot"] {
+    display: none !important;
+  }
+}
+
+.es-amazon {
+  #es {
+    bottom: 150px;
+    font-weight: 400;
+  }
+
+  .atvwebplayersdk-captions-text {
+    display: none !important;
+  }
+
+  .es-settings-icon {
+    margin: 0;
+    margin-right: 1.5vw;
+    svg {
+      width: 26px;
+    }
+  }
+
+  .es-settings-content {
+    top: 64px;
+    font-weight: 400;
+  }
+}
+
+.es-inoriginal {
+  #es {
+    bottom: 140px;
+  }
+
+  #pjs_playerjs_subtitle {
+    display: none !important;
+  }
+
+  .es-settings-icon {
+    position: absolute;
+    top: -5px;
+    left: -75px;
+
+    svg {
+      opacity: 1;
+      color: #fff;
+      width: 30px;
+    }
+
+    &:hover {
+      svg {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .es-settings-content {
+    bottom: 90px;
+  }
+}

@@ -157,9 +157,9 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 ## 4. Key Components & Files
 
 ### Chrome Extension Core Files ✅ **COMPLETED**
-- **`content-script.ts`**: Message passing between popup and page script ✅ **COMPLETED**
-- **`page-script.ts`**: JSON hijacking for Netflix subtitle extraction ✅ **COMPLETED**
-- **`popup.ts`**: User interface and Chrome extension API communication ✅ **COMPLETED**
+- **`content-script.ts`**: Message passing between popup and page script with state synchronization ✅ **COMPLETED**
+- **`page-script.ts`**: JSON hijacking for Netflix subtitle extraction with auto-processing and polling ✅ **COMPLETED**
+- **`popup.ts`**: User interface with persistent settings and Chrome extension API communication ✅ **COMPLETED**
 - **`types/netflix.d.ts`**: TypeScript definitions for Netflix data structures ✅ **COMPLETED**
 
 ### Subtitle Fusion Algorithm Core Files ✅ **COMPLETED**
@@ -192,6 +192,9 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **JSON Hijacking**: Overrides `JSON.parse` to intercept Netflix API responses ✅ **COMPLETED**
 - **WebVTT Processing**: Converts Netflix subtitle format to SRT ✅ **COMPLETED**
 - **Immediate Injection**: Page script injection for reliable detection ✅ **COMPLETED**
+- **Auto-Processing**: Automatic subtitle processing on episode changes with polling ✅ **COMPLETED**
+- **State Management**: Robust state synchronization with retry mechanism ✅ **COMPLETED**
+- **Visual Feedback**: Intelligent loading message display with timing optimization ✅ **COMPLETED**
 
 #### API Orchestration (`main.py`) ✅ **MIGRATED TO PYTHON**
 - **File Management**: Direct file processing without temporary files ✅ **MIGRATED**
@@ -213,6 +216,10 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **TypeScript Architecture**: Modern development with type safety ✅ **COMPLETED**
 - **Subtitle Injection System**: WebVTT track injection with custom overlay ✅ **COMPLETED**
 - **Memory Management**: Robust blob URL cleanup system ✅ **COMPLETED**
+- **Smart Subtitles Auto-Processing**: Automatic subtitle processing on episode changes ✅ **COMPLETED**
+- **Persistent User Settings**: Settings saved with chrome.storage.local ✅ **COMPLETED**
+- **Visual Feedback**: "Loading smart subtitles..." message with intelligent timing ✅ **COMPLETED**
+- **State Synchronization**: Robust state management across extension contexts ✅ **COMPLETED**
 
 #### Subtitle Fusion Algorithm ✅ **COMPLETED**
 - **SRT Parsing & Generation**: Full SubRip format support ✅ **COMPLETED**
@@ -392,15 +399,62 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 3.0.0 (Phase 3 Complete - Full Integration, Phase 4 Active)  
-**Status**: End-to-End Integration Complete - Chrome Extension ↔ Railway API Workflow Operational, API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.1.0 (Phase 3 Complete - Full Integration + Auto-Processing, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings and Automatic Subtitle Processing, API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with DeepL API integration and performance optimization
 
-**Current Status**: Full end-to-end integration complete - Chrome extension successfully communicates with Railway API, processing subtitles with 72.2% replacement rate (343/475 subtitles processed)
+**Current Status**: Full end-to-end integration complete with auto-processing - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction), processing subtitles with 72.2% replacement rate (343/475 subtitles processed)
 
+
+## 🔧 Solutions Techniques Implémentées
+
+### Auto-Processing des Sous-titres Intelligents (Janvier 2025)
+
+**Problème résolu :** Les sous-titres intelligents ne se chargeaient pas automatiquement lors du changement d'épisode/série sur Netflix, et le message "Loading smart subtitles..." n'apparaissait pas.
+
+**Solution adoptée :** Polling + State Reset + Retry Mechanism
+- **Polling intelligent** : Détection des changements de `movieId` toutes les 500ms via `*[data-videoid]`
+- **Reset complet de l'état** : Réinitialisation de `isProcessingSubtitles`, `selectedTrackId`, `smartSubtitlesEnabled`, `currentSettings` et cache lors du changement
+- **Retry mechanism** : Tentatives multiples (jusqu'à 2) avec délai croissant pour la synchronisation d'état
+- **Délai intelligent** : Affichage du message "Loading smart subtitles..." avec un délai de 1.5s pour éviter les conflits avec Netflix
+
+**Alternatives considérées mais rejetées :**
+- `chrome.storage.onChanged` : Non accessible dans le contexte page-script
+- `MutationObserver` : Trop instable avec les changements DOM de Netflix
+- Event-driven simple : Complexité de synchronisation et risque de messages perdus
+
+**Code concerné :** `page-script.ts` lignes 878-918 (polling), 430-458 (auto-processing), 897-906 (délai intelligent)
+
+**Points d'amélioration future :**
+- Optimisation du polling (détection plus intelligente)
+- Délai dynamique pour le message de loading
+- Possibilité d'utiliser des Web Workers pour le polling
+
+### Persistance des Paramètres Utilisateur (Janvier 2025)
+
+**Problème résolu :** Les paramètres utilisateur (langue cible, langue maternelle, niveau de vocabulaire) n'étaient pas sauvegardés entre les sessions.
+
+**Solution adoptée :** `chrome.storage.local` avec synchronisation d'état
+- **Sauvegarde automatique** : Tous les changements de paramètres sont sauvegardés immédiatement
+- **État par défaut désactivé** : L'extension est désactivée par défaut au premier lancement
+- **Synchronisation robuste** : Communication page-script ↔ content-script pour l'état en temps réel
+
+**Code concerné :** `popup.ts` (sauvegarde/chargement), `content-script.ts` (synchronisation), `page-script.ts` (requête d'état)
+
+### Nettoyage du Code (Janvier 2025)
+
+**Problème résolu :** Accumulation de code mort et de variables inutilisées après les itérations de développement.
+
+**Solution adoptée :** Audit complet et nettoyage systématique
+- **Suppression du contenu SRT de test** : 214 lignes de contenu portugais inutile supprimées
+- **Suppression des fonctions obsolètes** : `updateCurrentMovieId()`, `updateSubtitleDisplay()`, raccourcis clavier
+- **Optimisation des imports** : Suppression des types non utilisés (`NetflixSubtitle`, `NetflixManifest`, etc.)
+- **Réduction de 22%** : De 1179 à 918 lignes (-261 lignes)
+
+**Résultat :** Code plus propre, plus léger et plus maintenable sans perte de fonctionnalité.
 
 ## ⚠️ Known Issues & Technical Debt
 

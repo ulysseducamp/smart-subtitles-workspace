@@ -31,6 +31,14 @@ interface SmartSubtitlesSettings {
   vocabularyLevel: number;
 }
 
+// Storage keys for chrome.storage.local
+const STORAGE_KEYS = {
+  SMART_SUBTITLES_ENABLED: 'smartSubtitlesEnabled',
+  TARGET_LANGUAGE: 'targetLanguage',
+  NATIVE_LANGUAGE: 'nativeLanguage',
+  VOCABULARY_LEVEL: 'vocabularyLevel'
+} as const;
+
 // Get DOM elements
 const smartSubtitlesToggle = document.getElementById('smart-subtitles-toggle') as HTMLInputElement;
 const targetLanguageSelect = document.getElementById('target-language') as HTMLSelectElement;
@@ -54,6 +62,63 @@ let currentSettings: SmartSubtitlesSettings = {
 };
 
 let isProcessing = false;
+
+// Function to save settings to chrome.storage.local
+async function saveSettings(): Promise<void> {
+  try {
+    const settings = {
+      [STORAGE_KEYS.SMART_SUBTITLES_ENABLED]: currentSettings.enabled,
+      [STORAGE_KEYS.TARGET_LANGUAGE]: currentSettings.targetLanguage,
+      [STORAGE_KEYS.NATIVE_LANGUAGE]: currentSettings.nativeLanguage,
+      [STORAGE_KEYS.VOCABULARY_LEVEL]: currentSettings.vocabularyLevel
+    };
+    
+    await chrome.storage.local.set(settings);
+    console.log('Smart Netflix Subtitles: Settings saved to storage:', settings);
+  } catch (error) {
+    console.error('Smart Netflix Subtitles: Error saving settings:', error);
+  }
+}
+
+// Function to load settings from chrome.storage.local
+async function loadSettings(): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get([
+      STORAGE_KEYS.SMART_SUBTITLES_ENABLED,
+      STORAGE_KEYS.TARGET_LANGUAGE,
+      STORAGE_KEYS.NATIVE_LANGUAGE,
+      STORAGE_KEYS.VOCABULARY_LEVEL
+    ]);
+    
+    console.log('Smart Netflix Subtitles: Loaded settings from storage:', result);
+    
+    // Update current settings with loaded values (with defaults)
+    const isFirstLaunch = !result[STORAGE_KEYS.SMART_SUBTITLES_ENABLED] && 
+                         !result[STORAGE_KEYS.TARGET_LANGUAGE] && 
+                         !result[STORAGE_KEYS.NATIVE_LANGUAGE] && 
+                         !result[STORAGE_KEYS.VOCABULARY_LEVEL];
+    
+    if (isFirstLaunch) {
+      console.log('Smart Netflix Subtitles: First launch detected - using default disabled state');
+    }
+    
+    currentSettings.enabled = result[STORAGE_KEYS.SMART_SUBTITLES_ENABLED] || false;
+    currentSettings.targetLanguage = result[STORAGE_KEYS.TARGET_LANGUAGE] || '';
+    currentSettings.nativeLanguage = result[STORAGE_KEYS.NATIVE_LANGUAGE] || '';
+    currentSettings.vocabularyLevel = result[STORAGE_KEYS.VOCABULARY_LEVEL] || 0;
+    
+    // Update UI with loaded settings
+    smartSubtitlesToggle.checked = currentSettings.enabled;
+    targetLanguageSelect.value = currentSettings.targetLanguage;
+    nativeLanguageSelect.value = currentSettings.nativeLanguage;
+    vocabularyLevelSelect.value = currentSettings.vocabularyLevel.toString();
+    
+    console.log('Smart Netflix Subtitles: Settings loaded and UI updated:', currentSettings);
+  } catch (error) {
+    console.error('Smart Netflix Subtitles: Error loading settings:', error);
+    // Keep default values if loading fails
+  }
+}
 
 // Function to show status message
 function showStatus(message: string, type: 'info' | 'error' | 'success' = 'info'): void {
@@ -121,6 +186,9 @@ function updateFormState(): void {
   processBtn.disabled = !isEnabled || isProcessing;
 
   currentSettings.enabled = isEnabled;
+  
+  // Save settings when toggle changes
+  saveSettings();
 
   if (!isEnabled) {
     clearStatus();
@@ -145,6 +213,9 @@ function handleLanguageChange(): void {
   currentSettings.targetLanguage = targetLanguageSelect.value;
   currentSettings.nativeLanguage = nativeLanguageSelect.value;
   
+  // Save settings when language changes
+  saveSettings();
+  
   updateProcessButton();
   
   // Clear any previous validation errors
@@ -156,6 +227,10 @@ function handleLanguageChange(): void {
 // Function to handle vocabulary level change
 function handleVocabularyLevelChange(): void {
   currentSettings.vocabularyLevel = parseInt(vocabularyLevelSelect.value) || 0;
+  
+  // Save settings when vocabulary level changes
+  saveSettings();
+  
   updateProcessButton();
   
   if (currentSettings.vocabularyLevel) {
@@ -409,13 +484,19 @@ async function handleDownloadClick(): Promise<void> {
 }
 
 // Function to initialize the popup
-function initializePopup(): void {
+async function initializePopup(): Promise<void> {
   console.log('Smart Netflix Subtitles: Initializing popup...');
   
   // Set initial state
   disableAllControls();
   clearStatus();
   hideLoading();
+  
+  // Load saved settings first
+  await loadSettings();
+  
+  // Update form state based on loaded settings
+  updateFormState();
   
   // Check Netflix page when popup opens
   checkNetflixPage();
@@ -434,7 +515,7 @@ function initializePopup(): void {
     downloadBtn.disabled = !selectedValue;
   });
   
-  console.log('Smart Netflix Subtitles: Popup initialized');
+  console.log('Smart Netflix Subtitles: Popup initialized with loaded settings');
 }
 
 // Initialize popup when DOM is loaded

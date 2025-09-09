@@ -22,8 +22,8 @@
 // This script is injected into Netflix pages and implements JSON hijacking to extract subtitles
 // Following Subadub's immediate injection approach
 
-import { NetflixSubtitle, NetflixManifest, NetflixMoviesResponse, NetflixAlternativeResponse, SubtitleTrack, ExtensionMessage, SmartSubtitlesSettings } from './types/netflix';
-import { railwayAPIClient, RailwayAPIResponse } from './api/railwayClient';
+import { SubtitleTrack, ExtensionMessage, SmartSubtitlesSettings } from './types/netflix';
+import { railwayAPIClient } from './api/railwayClient';
 
 (function initializeNetflixSubtitleExtractor(): void {
   console.log('Netflix Subtitle Downloader: Page script loaded - starting JSON hijacking immediately');
@@ -59,7 +59,6 @@ import { railwayAPIClient, RailwayAPIResponse } from './api/railwayClient';
   let selectedTrackId: string | null = null;
 
   // Injection state variables (simplified)
-  let showSubsState = true;
   let currentBlobUrl: string | null = null; // Track current blob URL for cleanup
 
   // Smart Subtitles state variables
@@ -68,222 +67,33 @@ import { railwayAPIClient, RailwayAPIResponse } from './api/railwayClient';
   let isProcessingSubtitles = false;
   let processedSubtitlesCache = new Map<string, string>(); // Cache for processed subtitles
 
-  // SRT file content for injection (real subtitles from E06.srt)
-  const SRT_CONTENT = `1
-00:00:56,916 --> 00:00:59,541
-O mundo era mais bonito
-na sua cabeça, pai.
+  // Function to request current state from content script with improved error handling
+  async function requestCurrentState(): Promise<{enabled: boolean, settings: SmartSubtitlesSettings | null}> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.log('Smart Netflix Subtitles: State request timeout - assuming disabled');
+        resolve({enabled: false, settings: null});
+      }, 2000); // Increased timeout
 
-2
-00:01:13,833 --> 00:01:17,750
-CEM ANOS DE SOLIDÃO
+      const handleResponse = (event: MessageEvent) => {
+        if (event.data.type === 'NETFLIX_SUBTITLES_STATE_RESPONSE') {
+          clearTimeout(timeout);
+          window.removeEventListener('message', handleResponse);
+          console.log('Smart Netflix Subtitles: Received state response:', event.data.data);
+          resolve(event.data.data);
+        }
+      };
 
-3
-00:01:28,333 --> 00:01:31,958
-<i>Il avait fait le tour du monde 65 fois,</i>
-
-4
-00:01:33,250 --> 00:01:36,583
-<i>enrôlé dans un équipage</i>
-<i>de marins apatrides.</i>
-
-5
-00:01:37,625 --> 00:01:38,958
-<i>Havia naufragado</i>
-
-6
-00:01:39,583 --> 00:01:43,250
-<i>et avait dérivé pendant deux semaines</i>
-<i>dans la mer du Japon.</i>
-
-7
-00:01:44,833 --> 00:01:46,833
-On a perdu le navire dans une tempête.
-
-8
-00:01:47,791 --> 00:01:52,000
-On est restés à la dérive
-pendant des jours, moi et un autre marin,
-
-9
-00:01:53,000 --> 00:01:54,666
-agrippés à une planche.
-
-10
-00:01:56,416 --> 00:01:58,083
-Fui o único sobrevivente (survivant).
-
-11
-00:01:58,666 --> 00:02:01,500
-Você disse que eram dois.
-O que houve com o outro?
-
-12
-00:02:02,000 --> 00:02:03,791
-Acabou morrendo de insolação (insolation).
-
-13
-00:02:04,291 --> 00:02:05,541
-Mas salvou minha vida.
-
-14
-00:02:06,083 --> 00:02:06,958
-Ele salgou
-
-15
-00:02:07,791 --> 00:02:08,625
-a carne (la viande).
-
-16
-00:02:09,166 --> 00:02:10,250
-Tinha um sabor (saveur)
-
-17
-00:02:10,916 --> 00:02:11,833
-que era doce (sucré).
-
-18
-00:02:11,916 --> 00:02:13,458
-<i>Úrsula chorava na mesa</i>
-
-19
-00:02:13,541 --> 00:02:16,708
-<i>comme si elle lisait les lettres</i>
-<i>qui n'étaient jamais arrivées</i>
-
-20
-00:02:17,458 --> 00:02:22,708
-<i>e nas quais José Arcadio contava</i>
-<i>seus feitos e desventuras…</i>
-
-21
-00:02:22,791 --> 00:02:24,916
-Você sempre teve um lar (maison) aqui, filho.
-
-22
-00:02:25,666 --> 00:02:27,916
-Toute cette nourriture jetée aux cochons…
-
-23
-00:02:35,166 --> 00:02:37,833
-Quando você desapareceu,
-fui atrás de você.
-
-24
-00:02:40,125 --> 00:02:43,583
-jusqu'à ne plus trouver
-aucun signe de toi nulle part.
-
-25
-00:02:44,916 --> 00:02:47,125
-e eu não soube mais onde te procurar (recherche).
-
-26
-00:02:52,500 --> 00:02:53,458
-Quem é você?
-
-27
-00:02:54,166 --> 00:02:55,791
-Eu me chamo Pietro Crespi.
-
-28
-00:02:55,875 --> 00:02:57,166
-Noivo da Rebeca.
-
-29
-00:02:59,458 --> 00:03:00,541
-E você é?
-
-30
-00:03:01,125 --> 00:03:02,208
-Ela é sua irmã.
-
-31
-00:03:10,791 --> 00:03:11,708
-Irmãozinho.
-
-32
-00:03:14,041 --> 00:03:14,958
-José Arcadio.
-
-33
-00:03:33,000 --> 00:03:34,125
-Por onde andou?
-
-34
-00:03:36,541 --> 00:03:37,375
-Por aí.
-
-35
-00:03:52,458 --> 00:03:54,916
-Quando me casei,
-me mudei pro segundo andar.
-
-36
-00:04:02,791 --> 00:04:05,625
-E Arcadio dormiu aqui
-até o dia em que saiu de casa.
-
-37
-00:04:06,750 --> 00:04:07,583
-Arcadio?
-
-38
-00:04:08,666 --> 00:04:09,500
-O seu filho.
-
-39
-00:04:13,291 --> 00:04:14,416
-Eu me lembro…
-
-40
-00:04:16,208 --> 00:04:19,083
-quand tu faisais le mur,
-tu revenais à l'aube
-
-41
-00:04:19,166 --> 00:04:21,041
-et tu me racontais tes aventures.
-
-42
-00:04:26,375 --> 00:04:28,333
-E um dia decidi te perguntar:
-
-43
-00:04:30,833 --> 00:04:33,000
-"O que sentia com isso tudo?"
-
-44
-00:04:36,833 --> 00:04:37,833
-E você disse…
-
-45
-00:04:39,875 --> 00:04:41,583
-"É como um terremoto (tremblement de terre)."
-
-46
-00:04:44,916 --> 00:04:46,625
-Tinha razão. Você se lembra?
-
-47
-00:04:48,875 --> 00:04:50,666
-Il suffit que toi, tu te rappelles.
-
-48
-00:04:54,541 --> 00:04:55,833
-Você se casou?
-
-49
-00:04:59,875 --> 00:05:00,833
-Eu me casei
-
-50
-00:05:02,041 --> 00:05:03,416
-e fiquei viúvo (veuf).
-
-51
-00:05:04,208 --> 00:05:05,166
-Fim de história.`;
+      window.addEventListener('message', handleResponse);
+      
+      // Request state from content script
+      console.log('Smart Netflix Subtitles: Requesting current state from content script...');
+      notifyContentScript({
+        type: 'NETFLIX_SUBTITLES_REQUEST',
+        action: 'GET_CURRENT_STATE'
+      });
+    });
+  }
 
   // Function to find subtitle-related properties in Netflix API objects
   function findSubtitlesProperty(obj: any): string[] | null {
@@ -302,23 +112,6 @@ Fim de história.`;
       }
     }
     return null;
-  }
-
-  // Function to update current movie ID from DOM (event-driven)
-  function updateCurrentMovieId(): void {
-    let videoId: number | null = null;
-    const videoIdElem = document.querySelector('*[data-videoid]');
-    if (videoIdElem) {
-      const dsetIdStr = videoIdElem.getAttribute('data-videoid');
-      if (dsetIdStr) {
-        videoId = +dsetIdStr; // Convert to number like in original JS version
-      }
-    }
-
-    currentMovieId = videoId;
-    if (!currentMovieId) {
-      selectedTrackId = null;
-    }
   }
 
   // Function to extract movie text tracks from Netflix API response
@@ -396,6 +189,38 @@ Fim de história.`;
     // TRIGGER SUBTITLE INJECTION - Start injection when tracks are available
     console.log('Netflix Subtitle Downloader: Triggering subtitle injection after track discovery');
     reconcileSubtitleInjection();
+
+    // AUTO-PROCESS SMART SUBTITLES - Request current state and process if enabled
+    if (usableTracks.length > 0) {
+      console.log('Smart Netflix Subtitles: Requesting current state for auto-processing...');
+      
+      // Retry mechanism for state requests
+      const tryAutoProcessing = async (retryCount = 0) => {
+        try {
+          const {enabled, settings} = await requestCurrentState();
+          
+          if (enabled && settings) {
+            console.log('Smart Netflix Subtitles: Auto-processing subtitles for movie ID:', movieId);
+            await processSmartSubtitles(settings);
+          } else {
+            console.log('Smart Netflix Subtitles: Extension disabled or no settings, skipping auto-processing');
+            console.log('Smart Netflix Subtitles: State received - enabled:', enabled, 'settings:', settings);
+          }
+        } catch (error) {
+          console.error('Smart Netflix Subtitles: Failed to get current state:', error);
+          
+          // Retry up to 2 times with increasing delay
+          if (retryCount < 2) {
+            console.log(`Smart Netflix Subtitles: Retrying state request (${retryCount + 1}/2)...`);
+            setTimeout(() => tryAutoProcessing(retryCount + 1), 1000 * (retryCount + 1));
+          } else {
+            console.log('Smart Netflix Subtitles: Max retries reached, skipping auto-processing');
+          }
+        }
+      };
+      
+      tryAutoProcessing();
+    }
   }
 
   // Function to convert WebVTT text to plain text plus "simple" tags (allowed in SRT)
@@ -564,7 +389,7 @@ Fim de história.`;
   // INJECTION FUNCTIONS (Based on Subadub implementation)
   
   // Function to create and inject track element with test WebVTT
-  function addTrackElem(videoElem: HTMLVideoElement, blob: Blob, srclang: string): void {
+  function addTrackElem(videoElem: HTMLVideoElement, blob: Blob, srclang: string, isLoading: boolean = false): void {
     console.log('Netflix Subtitle Downloader: Adding track element for injection');
     
     // Always clean up existing elements and blob URL first
@@ -590,7 +415,8 @@ Fim de história.`;
     // Create custom subtitle overlay div (based on Subadub styling)
     const customSubsElem = document.createElement('div');
     customSubsElem.id = CUSTOM_SUBS_ELEM_ID;
-    customSubsElem.style.cssText = 'position: absolute; bottom: 20vh; left: 0; right: 0; color: white; font-size: 3vw; text-align: center; user-select: text; -moz-user-select: text; z-index: 100; pointer-events: none';
+    const textColor = isLoading ? '#4CAF50' : 'white'; // Green for loading, white for normal
+    customSubsElem.style.cssText = `position: absolute; bottom: 20vh; left: 0; right: 0; color: ${textColor}; font-size: 3vw; text-align: center; user-select: text; -moz-user-select: text; z-index: 100; pointer-events: none`;
 
     // Handle cue changes for real-time subtitle display
     trackElem.addEventListener('cuechange', function(e) {
@@ -684,18 +510,6 @@ Fim de história.`;
     }
   }
 
-  // Function to update subtitle display visibility
-  function updateSubtitleDisplay(): void {
-    const subsElem = document.getElementById(CUSTOM_SUBS_ELEM_ID);
-    if (subsElem) {
-      if (showSubsState) {
-        subsElem.style.visibility = 'visible';
-      } else {
-        subsElem.style.visibility = 'hidden';
-      }
-    }
-  }
-
   // Function to convert SRT to WebVTT format (simplified)
   function convertSRTToWebVTT(srtContent: string): string {
     const lines = srtContent.split('\n');
@@ -724,9 +538,17 @@ Fim de história.`;
     return webvttContent;
   }
 
-  // Function to create test WebVTT blob from SRT content
-  function createTestWebVTTBlob(): Blob {
-    const webvttContent = convertSRTToWebVTT(SRT_CONTENT);
+  // Function to create loading WebVTT for visual feedback
+  function createLoadingWebVTT(): string {
+    return `WEBVTT
+
+00:00:00.000 --> 01:00:00.000
+Loading smart subtitles...`;
+  }
+
+  // Function to create loading WebVTT blob
+  function createLoadingWebVTTBlob(): Blob {
+    const webvttContent = createLoadingWebVTT();
     return new Blob([webvttContent], { type: 'text/vtt' });
   }
 
@@ -736,22 +558,39 @@ Fim de história.`;
     
     // Only inject when we have proper conditions (like Subadub)
     if (videoElem && currentMovieId) {
-      // For test implementation, use test WebVTT
-      const newBlob = createTestWebVTTBlob();
+      // Check if we have cached tracks for this movie
+      const cachedTracks = trackListCache.get(currentMovieId);
       
-      // More robust comparison: check if we already have a blob with the same content
-      const shouldUpdate = true; // Simplified logic
-      
-      if (shouldUpdate) {
-        console.log('Netflix Subtitle Downloader: Updating subtitle injection - new blob detected');
+      if (cachedTracks && cachedTracks.length > 0) {
+        // Use the first available track for basic subtitle injection
+        const firstTrack = cachedTracks[0];
+        const cacheKey = `${currentMovieId}/${firstTrack.id}`;
         
-        addTrackElem(videoElem, newBlob, 'en'); // Use English as default for test
+        if (webvttCache.has(cacheKey)) {
+          const cachedBlob = webvttCache.get(cacheKey)!;
+          console.log('Netflix Subtitle Downloader: Using cached subtitle blob for injection');
+          
+          // More robust comparison: check if we already have a blob with the same content
+          const shouldUpdate = currentBlobUrl === null; // Only update if no current blob
+          
+          if (shouldUpdate) {
+            console.log('Netflix Subtitle Downloader: Updating subtitle injection - new blob detected');
+            
+            addTrackElem(videoElem, cachedBlob, firstTrack.language);
+          } else {
+            console.log('Netflix Subtitle Downloader: No update needed - same blob content');
+          }
+        } else {
+          console.log('Netflix Subtitle Downloader: No cached blob available for injection');
+        }
       } else {
-        console.log('Netflix Subtitle Downloader: No update needed - same blob content');
+        console.log('Netflix Subtitle Downloader: No cached tracks available for injection');
       }
     } else {
+      console.log('Netflix Subtitle Downloader: No video element or movie ID available for injection');
+      
       // Clean up when no video or movie ID
-      if (true) { // Simplified logic
+      if (currentBlobUrl) {
         console.log('Netflix Subtitle Downloader: Cleaning up subtitle injection');
         removeTrackElem();
       }
@@ -764,18 +603,29 @@ Fim de história.`;
   async function processSmartSubtitles(settings: SmartSubtitlesSettings): Promise<void> {
     console.log('Smart Netflix Subtitles: Processing subtitles with settings:', settings);
     
-    if (isProcessingSubtitles) {
-      console.log('Smart Netflix Subtitles: Already processing, skipping request');
-      return;
-    }
-
     if (!currentMovieId) {
       throw new Error('No current movie ID available');
+    }
+
+    // Check if we already have processed subtitles for this movie
+    const cacheKey = `${currentMovieId}_${settings.targetLanguage}_${settings.vocabularyLevel}`;
+    if (processedSubtitlesCache.has(cacheKey)) {
+      console.log('Smart Netflix Subtitles: Using cached processed subtitles');
+      const cachedWebVTT = processedSubtitlesCache.get(cacheKey)!;
+      const blob = new Blob([cachedWebVTT], { type: 'text/vtt' });
+      const videoElem = document.querySelector('video');
+      if (videoElem) {
+        addTrackElem(videoElem, blob, settings.targetLanguage);
+        console.log('Smart Netflix Subtitles: Cached processed subtitles injected successfully');
+      }
+      return;
     }
 
     isProcessingSubtitles = true;
     smartSubtitlesEnabled = true;
     currentSettings = settings;
+    
+    console.log('Smart Netflix Subtitles: Updated state - enabled:', smartSubtitlesEnabled, 'settings:', currentSettings);
 
     try {
       // Get available tracks for current movie
@@ -794,6 +644,17 @@ Fim de história.`;
       if (!nativeTrack) {
         throw new Error(`Native language ${settings.nativeLanguage} not available`);
       }
+
+      // Show loading message with intelligent delay (Option 1)
+      // Wait for tracks to stabilize before showing loading message
+      setTimeout(() => {
+        const videoElem = document.querySelector('video');
+        if (videoElem) {
+          const loadingBlob = createLoadingWebVTTBlob();
+          addTrackElem(videoElem, loadingBlob, settings.targetLanguage, true);
+          console.log('Smart Netflix Subtitles: Loading message displayed (with delay)');
+        }
+      }, 1500); // 1.5 second delay to allow tracks to stabilize
 
       console.log('Smart Netflix Subtitles: Found tracks:', { targetTrack, nativeTrack });
 
@@ -823,7 +684,7 @@ Fim de história.`;
         const videoElem = document.querySelector('video');
         if (videoElem) {
           addTrackElem(videoElem, processedBlob, settings.targetLanguage);
-          console.log('Smart Netflix Subtitles: Processed subtitles injected successfully');
+          console.log('Smart Netflix Subtitles: Processed subtitles injected successfully - loading message replaced');
         }
 
         // Notify content script of success
@@ -858,6 +719,7 @@ Fim de história.`;
             const originalWebVTT = convertSRTToWebVTT(originalSrt);
             const originalBlob = new Blob([originalWebVTT], { type: 'text/vtt' });
             addTrackElem(videoElem, originalBlob, settings.targetLanguage);
+            console.log('Smart Netflix Subtitles: Original subtitles restored - loading message replaced');
           }
         }
       }
@@ -1012,43 +874,44 @@ Fim de história.`;
 
   // Set up message listener
   window.addEventListener('message', handleContentScriptMessage);
-  
-  // Set up keyboard shortcuts for subtitle control (like Subadub)
-  document.body.addEventListener('keydown', function(e) {
-    if ((e.keyCode === 83) && !e.altKey && !e.ctrlKey && !e.metaKey) { // unmodified S key
-      console.log('Netflix Subtitle Downloader: Toggle subtitle display');
-      showSubsState = !showSubsState;
-      updateSubtitleDisplay();
-    }
-  }, false);
 
-  // Event-driven video detection using MutationObserver
-  const videoObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList') {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            // Check if the added element is a video or contains a video
-            if (element.tagName === 'VIDEO' || element.querySelector('video')) {
-              console.log('Netflix Subtitle Downloader: Video element detected via MutationObserver');
-              updateCurrentMovieId();
-              reconcileSubtitleInjection();
-            }
-          }
-        }
+  // Polling-based movie ID detection (inspired by Subadub)
+  const POLL_INTERVAL_MS = 500;
+  let lastKnownMovieId: number | null = null;
+  
+  setInterval(function() {
+    let videoId: number | null = null;
+    const videoIdElem = document.querySelector('*[data-videoid]');
+    if (videoIdElem) {
+      const dsetIdStr = videoIdElem.getAttribute('data-videoid');
+      if (dsetIdStr) {
+        videoId = +dsetIdStr;
       }
     }
-  });
 
-  // Start observing DOM changes for video elements
-  videoObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+    // Check if movie ID has changed
+    if (videoId !== lastKnownMovieId) {
+      console.log('Netflix Subtitle Downloader: Movie ID changed from', lastKnownMovieId, 'to', videoId);
+      
+      // Reset state when movie changes (key fix for auto-processing)
+      lastKnownMovieId = videoId;
+      currentMovieId = videoId;
+      selectedTrackId = null;
+      isProcessingSubtitles = false; // ← CRITICAL: Reset processing state
+      
+      // Clear processed subtitles cache for new movie
+      processedSubtitlesCache.clear();
+      
+      // Reset smart subtitles state to force fresh state request
+      smartSubtitlesEnabled = false;
+      currentSettings = null;
+      
+      // Reconcile subtitle injection
+      reconcileSubtitleInjection();
+    }
+  }, POLL_INTERVAL_MS);
 
   // Initial setup - check for existing video elements
-  updateCurrentMovieId();
   reconcileSubtitleInjection();
   
   console.log('Netflix Subtitle Downloader: Page script initialized - JSON hijacking and subtitle injection active (event-driven)');

@@ -21,7 +21,7 @@
 // Subadub Copyright (c) 2018 Russel Simmons - MIT License
 // This script runs on Netflix pages and injects the page script immediately
 
-import { SubtitleTrack, ExtensionMessage, ChromeMessage, ChromeResponse } from './types/netflix';
+import { SubtitleTrack, ExtensionMessage, ChromeMessage, ChromeResponse, SmartSubtitlesSettings } from './types/netflix';
 
 console.log('Netflix Subtitle Downloader: Content script loaded');
 
@@ -109,6 +109,45 @@ function handlePageScriptMessage(event: MessageEvent): void {
         console.error('Smart Netflix Subtitles: Processing error:', event.data.data.error);
         // Forward error message to popup if needed
         break;
+    }
+  } else if (event.data.type === 'NETFLIX_SUBTITLES_REQUEST') {
+    console.log('Netflix Subtitle Downloader: Received request from page script:', event.data);
+    
+    if (event.data.action === 'GET_CURRENT_STATE') {
+      console.log('Netflix Subtitle Downloader: Getting current state from chrome.storage.local...');
+      
+      // Get current state from chrome.storage.local with better error handling
+      chrome.storage.local.get(['smartSubtitlesEnabled', 'targetLanguage', 'nativeLanguage', 'vocabularyLevel']).then(result => {
+        let enabled = false;
+        let settings: SmartSubtitlesSettings | null = null;
+        
+        console.log('Netflix Subtitle Downloader: Storage result:', result);
+        
+        if (result.smartSubtitlesEnabled && result.targetLanguage && result.nativeLanguage && result.vocabularyLevel) {
+          enabled = true;
+          settings = {
+            enabled: true,
+            targetLanguage: result.targetLanguage,
+            nativeLanguage: result.nativeLanguage,
+            vocabularyLevel: result.vocabularyLevel
+          };
+        }
+        
+        console.log('Netflix Subtitle Downloader: Sending state response - enabled:', enabled, 'settings:', settings);
+        
+        // Send response to page script
+        window.postMessage({
+          type: 'NETFLIX_SUBTITLES_STATE_RESPONSE',
+          data: { enabled, settings }
+        }, '*');
+      }).catch(error => {
+        console.error('Netflix Subtitle Downloader: Failed to get state from storage:', error);
+        // Send error response
+        window.postMessage({
+          type: 'NETFLIX_SUBTITLES_STATE_RESPONSE',
+          data: { enabled: false, settings: null }
+        }, '*');
+      });
     }
   }
 }

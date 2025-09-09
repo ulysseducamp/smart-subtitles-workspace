@@ -1,0 +1,194 @@
+.asbplayer-subtitles-container-bottom {
+    position: absolute !important;
+    transform: translate(-50%, -100%) !important;
+    display: inline-block !important;
+    z-index: 2147483646 !important;
+    pointer-events: auto !important;
+}
+
+.asbplayer-subtitles-container-top {
+    position: absolute !important;
+    transform: translate(-50%) !important;
+    display: inline-block !important;
+    z-index: 2147483646 !important;
+    pointer-events: auto !important;
+}
+
+.asbplayer-subtitles {
+    text-align: center !important;
+    color: white;
+    font-size: 24px;
+    padding-left: 10px;
+    padding-right: 10px;
+    user-select: text !important;
+    cursor: text !important;
+    line-height: normal !important;
+    white-space: pre-wrap !important;
+}
+
+.asbplayer-subtitles-blurred {
+    filter: blur(10px);
+}
+
+.asbplayer-subtitles-blurred:hover {
+    filter: none;
+}
+
+.asbplayer-notification-container-bottom {
+    position: absolute !important;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    display: inline-block;
+    z-index: 2147483646 !important;
+}
+
+.asbplayer-notification-container-top {
+    position: absolute !important;
+    left: 50%;
+    transform: translate(-50%);
+    display: inline-block;
+    z-index: 2147483646 !important;
+}
+
+.asbplayer-notification {
+    text-align: center !important;
+    color: white;
+    text-shadow:
+        0 0 2px black,
+        0 0 2px black,
+        0 0 2px black,
+        0 0 2px black;
+    font-size: 24px;
+    padding-left: 10px;
+    padding-right: 10px;
+    line-height: normal !important;
+    white-space: pre-wrap !important;
+    user-select: none;
+    pointer-events: none;
+}
+
+.asbplayer-fullscreen-subtitles {
+    text-align: center !important;
+    color: white;
+    text-shadow:
+        0 0 2px black,
+        0 0 2px black,
+        0 0 2px black,
+        0 0 2px black;
+    font-size: 36px;
+    padding-left: 10px;
+    padding-right: 10px;
+    user-select: text !important;
+    cursor: text !important;
+    line-height: normal !important;
+    white-space: pre-wrap !important;
+}
+
+.asbplayer-ui-frame {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    visibility: visible !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2147483647 !important;
+    border: 0 !important;
+    pointer-events: auto !important;
+}
+
+.asbplayer-alert {
+    position: fixed !important;
+    bottom: 8px !important;
+    width: 100dvw !important;
+    visibility: visible !important;
+    height: auto !important;
+    z-index: 2147483647 !important;
+    border: 0 !important;
+    pointer-events: auto !important;
+}
+
+.asbplayer-hide {
+    display: none !important;
+}
+
+.asbplayer-drag-zone-initial {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2147483647;
+}
+
+.asbplayer-drag-zone-dragging {
+    pointer-events: all;
+}
+
+.asbplayer-image {
+    position: relative;
+    pointer-events: none;
+}
+
+.asbplayer-image-fade-in {
+    animation-duration: 0.2s;
+    animation-name: asbplayer-fade-in;
+}
+
+@keyframes asbplayer-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.asbplayer-image-container {
+    position: absolute;
+    z-index: 2147483647;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.asbplayer-drag-image {
+    pointer-events: none;
+}
+
+.asbplayer-mouse-over-image {
+    position: absolute;
+    z-index: 2147483647;
+}
+
+.asbplayer-mouse-over-image {
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: 0.2s;
+}
+
+.asbplayer-mouse-over-image:hover {
+    opacity: 1;
+}
+
+.asbplayer-offscreen {
+    position: fixed !important;
+    left: 100% !important;
+    top: 100% !important;
+}
+
+.asbplayer-mobile-video-overlay-container-top {
+    position: absolute !important;
+    transform: translate(-50%) !important;
+    display: inline-block !important;
+    z-index: 2147483647 !important;
+    text-align: center !important;
+    pointer-events: auto !important;
+}
+
+.asbplayer-mobile-video-overlay-container-bottom {
+    position: absolute !important;
+    transform: translate(-50%, -100%) !important;
+    display: inline-block !important;
+    z-index: 2147483647 !important;
+    text-align: center !important;
+    pointer-events: auto !important;
+}
+
+.asbplayer-mobile-video-overlay {
+}

@@ -214,12 +214,12 @@ Before starting, ensure you have:
 - [x] API connection is established
 
 #### **Step 4.2: Test Language Combinations**
-- [ ] Test PT → EN processing
-- [ ] Test FR → EN processing
-- [ ] Test EN → FR processing
-- [ ] Test EN → PT processing
-- [ ] Test FR → PT processing
-- [ ] Test PT → FR processing
+- [x] Test PT → EN processing
+- [x] Test FR → EN processing
+- [x] Test EN → FR processing
+- [x] Test EN → PT processing
+- [x] Test FR → PT processing
+- [x] Test PT → FR processing
 
 **Test 4.2:**
 - [ ] Each combination processes correctly
