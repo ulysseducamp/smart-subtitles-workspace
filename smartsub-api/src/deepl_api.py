@@ -30,13 +30,9 @@ class DeepLAPI:
         Translate text using DeepL API
         Migrated from TypeScript translate method
         """
-        import time
-        start_time = time.time()
-        
         # Check cache first
         cache_key = f"{text}_{source_lang}_{target_lang}"
         if cache_key in self.cache:
-            print(f"TIMING: DeepL cache hit for '{text}' in {time.time() - start_time:.3f}s")
             return self.cache[cache_key]
         
         try:
@@ -67,14 +63,10 @@ class DeepLAPI:
             self.cache[cache_key] = translation
             self.request_count += 1
             
-            translation_time = time.time() - start_time
-            print(f"TIMING: DeepL translation '{text}' -> '{translation}' completed in {translation_time:.3f}s")
-            
             return translation
             
         except Exception as e:
-            error_time = time.time() - start_time
-            print(f"TIMING: DeepL translation error for '{text}' after {error_time:.3f}s: {e}")
+            print(f"DeepL translation error: {e}")
             return text  # Fallback to original text
     
     def get_stats(self) -> Dict[str, Any]:
