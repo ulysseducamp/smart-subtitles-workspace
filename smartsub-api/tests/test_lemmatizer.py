@@ -59,27 +59,15 @@ class TestLemmatizer(unittest.TestCase):
         self.assertIsInstance(result, list)
         print(f"Lemmatized with punctuation: {result}")
     
-    def test_pt_br_mapping(self):
-        """Test Portuguese Brazilian language mapping"""
+    def test_portuguese_lemmatization(self):
+        """Test Portuguese lemmatization with simplified 'pt' code"""
         line = "respirando assustados"
-        result = lemmatize_single_line(line, "pt-BR")
+        result = lemmatize_single_line(line, "pt")
         
         # Should return list of lemmatized words without errors
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
-        print(f"Portuguese BR lemmatized: {result}")
-    
-    def test_pt_br_variants(self):
-        """Test different pt-BR language code variants"""
-        line = "música sinistra"
-        
-        # Test different variants
-        variants = ["pt-BR", "pt-br", "pt_br"]
-        for variant in variants:
-            result = lemmatize_single_line(line, variant)
-            self.assertIsInstance(result, list)
-            self.assertEqual(len(result), 2)
-            print(f"Portuguese {variant} lemmatized: {result}")
+        print(f"Portuguese lemmatized: {result}")
     
     def test_supported_languages(self):
         """Test that all supported languages work after German removal"""
