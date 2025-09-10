@@ -66,11 +66,18 @@ export class RailwayAPIClient {
       throw new Error('Missing required subtitle data');
     }
 
+    // Map extension language codes to API language codes
+    const languageMapping: Record<string, string> = {
+      'pt-BR': 'pt',  // Map Brazilian Portuguese to Portuguese for API
+      'pt-br': 'pt',
+      'pt_br': 'pt'
+    };
+
     const requestData: RailwayAPIRequest = {
       target_srt: targetSrt,
       native_srt: nativeSrt,
-      target_language: settings.targetLanguage,
-      native_language: settings.nativeLanguage,
+      target_language: languageMapping[settings.targetLanguage] || settings.targetLanguage,
+      native_language: languageMapping[settings.nativeLanguage] || settings.nativeLanguage,
       top_n_words: settings.vocabularyLevel,
       enable_inline_translation: false // Disabled for now
     };
