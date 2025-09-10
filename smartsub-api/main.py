@@ -154,10 +154,9 @@ async def fuse_subtitles(
         
         # Get frequency list from in-memory loader
         frequency_loader = get_frequency_loader()
-        frequency_set = frequency_loader.get_frequency_set(target_language)
         
-        # Convert set to list and limit to top_n_words
-        known_words = list(frequency_set)[:top_n_words]
+        # Get top N words in frequency order (most frequent first)
+        known_words = frequency_loader.get_top_n_words(target_language, top_n_words)
         
         # Initialize fusion engine
         engine = SubtitleFusionEngine()

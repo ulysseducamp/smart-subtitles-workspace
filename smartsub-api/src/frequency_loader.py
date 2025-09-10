@@ -15,7 +15,7 @@ Features:
 """
 
 from pathlib import Path
-from typing import Dict, Set, Optional
+from typing import Dict, Set, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class FrequencyLoader:
         else:
             self.frequency_lists_dir = Path(frequency_lists_dir)
             
-        # Cache for loaded frequency sets
+        # Cache for loaded frequency sets (for O(1) lookup)
         self._frequency_sets: Dict[str, Set[str]] = {}
         
         # Language to filename mapping
@@ -118,21 +118,65 @@ class FrequencyLoader:
             logger.error(f"Error loading frequency list for {language}: {e}")
             raise
     
-    def is_word_known(self, word: str, language: str) -> bool:
+    def get_top_n_words(self, language: str, top_n: int) -> List[str]:
         """
-        Check if a word is in the frequency list for a language.
+        Get top N most frequent words for a language in frequency order.
+        Simple and efficient: reads directly from file without caching the full list.
+        
+        Args:
+            language: Language code
+            top_n: Number of top words to return
+            
+        Returns:
+            List of top N words in frequency order (most frequent first)
+        """
+        # Normalize language code
+        language = language.lower().strip()
+        
+        if language not in self._language_files:
+            raise ValueError(f"Unsupported language: {language}. Supported: {list(self._language_files.keys())}")
+        
+        filename = self._language_files[language]
+        file_path = self.frequency_lists_dir / filename
+        
+        if not file_path.exists():
+            raise FileNotFoundError(f"Frequency list file not found: {file_path}")
+        
+        try:
+            # Read only the top N words directly from file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                words = []
+                for i, line in enumerate(f):
+                    if i >= top_n:  # Stop after reading top_n words
+                        break
+                    word = line.strip().lower()
+                    if word:  # Skip empty lines
+                        words.append(word)
+            
+            logger.info(f"Loaded top {len(words)} words for {language} from {filename}")
+            return words
+            
+        except Exception as e:
+            logger.error(f"Error loading top {top_n} words for {language}: {e}")
+            raise
+    
+    def is_word_known(self, word: str, language: str, top_n: int = 2000) -> bool:
+        """
+        Check if a word is in the top N most frequent words for a language.
+        Simple and efficient: checks against top N words directly.
         
         Args:
             word: Word to check (will be normalized)
             language: Language code
+            top_n: Number of top words to consider (default: 2000)
             
         Returns:
-            True if word is in frequency list, False otherwise
+            True if word is in top N frequency list, False otherwise
         """
         try:
-            frequency_set = self.get_frequency_set(language)
+            top_words = self.get_top_n_words(language, top_n)
             normalized_word = word.strip().lower()
-            return normalized_word in frequency_set
+            return normalized_word in top_words
         except (FileNotFoundError, ValueError):
             # If language not supported or file missing, assume word is unknown
             logger.warning(f"Cannot check word '{word}' for language '{language}' - assuming unknown")
