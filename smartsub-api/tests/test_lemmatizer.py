@@ -58,6 +58,28 @@ class TestLemmatizer(unittest.TestCase):
         # Should handle punctuation gracefully
         self.assertIsInstance(result, list)
         print(f"Lemmatized with punctuation: {result}")
+    
+    def test_pt_br_mapping(self):
+        """Test Portuguese Brazilian language mapping"""
+        line = "respirando assustados"
+        result = lemmatize_single_line(line, "pt-BR")
+        
+        # Should return list of lemmatized words without errors
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 2)
+        print(f"Portuguese BR lemmatized: {result}")
+    
+    def test_pt_br_variants(self):
+        """Test different pt-BR language code variants"""
+        line = "música sinistra"
+        
+        # Test different variants
+        variants = ["pt-BR", "pt-br", "pt_br"]
+        for variant in variants:
+            result = lemmatize_single_line(line, variant)
+            self.assertIsInstance(result, list)
+            self.assertEqual(len(result), 2)
+            print(f"Portuguese {variant} lemmatized: {result}")
 
 if __name__ == '__main__':
     unittest.main()
