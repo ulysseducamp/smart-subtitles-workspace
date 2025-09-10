@@ -179,7 +179,7 @@ async def fuse_subtitles(
         stats = {
             "processing_time": "calculated_from_python_engine",
             "words_processed": len(known_words),
-            "frequency_list_size": len(frequency_set),
+            "frequency_list_size": len(known_words),
             "subtitles_processed": len(target_subs),
             "subtitles_replaced": result['replacedCount'],
             "replacement_rate": f"{(result['replacedCount'] / len(target_subs) * 100):.1f}%",
