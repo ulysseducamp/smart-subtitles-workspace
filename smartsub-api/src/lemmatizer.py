@@ -12,7 +12,6 @@ def lemmatize_single_line(line: str, lang: str) -> List[str]:
     Migrated from TypeScript lemmatizeSingleLine function
     Direct Python implementation using simplemma (no subprocess)
     """
-    # No language mapping needed - use language code directly
     
     words = line.split()
     lemmatized_words = []

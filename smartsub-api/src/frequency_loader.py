@@ -15,7 +15,7 @@ Features:
 """
 
 from pathlib import Path
-from typing import Dict, Set, List, Optional
+from typing import Dict, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -43,8 +43,6 @@ class FrequencyLoader:
         else:
             self.frequency_lists_dir = Path(frequency_lists_dir)
             
-        # Cache for loaded frequency sets (for O(1) lookup)
-        self._frequency_sets: Dict[str, Set[str]] = {}
         
         # Language to filename mapping
         self._language_files = {
@@ -56,67 +54,7 @@ class FrequencyLoader:
         
         logger.info(f"FrequencyLoader initialized with directory: {self.frequency_lists_dir}")
     
-    def get_frequency_set(self, language: str) -> Set[str]:
-        """
-        Get frequency set for a language, loading it if not already cached.
-        
-        Args:
-            language: Language code (en, fr, pt, es)
-            
-        Returns:
-            Set of words in the frequency list (normalized to lowercase)
-            
-        Raises:
-            FileNotFoundError: If frequency list file doesn't exist
-            ValueError: If language is not supported
-        """
-        # Normalize language code
-        language = language.lower().strip()
-        
-        if language not in self._language_files:
-            raise ValueError(f"Unsupported language: {language}. Supported: {list(self._language_files.keys())}")
-        
-        # Return cached set if available
-        if language in self._frequency_sets:
-            return self._frequency_sets[language]
-        
-        # Load and cache the frequency set
-        self._load_language(language)
-        return self._frequency_sets[language]
     
-    def _load_language(self, language: str) -> None:
-        """
-        Load frequency list for a language from file.
-        
-        Args:
-            language: Language code
-            
-        Raises:
-            FileNotFoundError: If frequency list file doesn't exist
-        """
-        filename = self._language_files[language]
-        file_path = self.frequency_lists_dir / filename
-        
-        if not file_path.exists():
-            raise FileNotFoundError(f"Frequency list file not found: {file_path}")
-        
-        try:
-            # Read file with UTF-8 encoding
-            with open(file_path, 'r', encoding='utf-8') as f:
-                words = set()
-                for line in f:
-                    word = line.strip().lower()
-                    if word:  # Skip empty lines
-                        words.add(word)
-            
-            # Cache the loaded set
-            self._frequency_sets[language] = words
-            
-            logger.info(f"Loaded frequency list for {language}: {len(words)} words from {filename}")
-            
-        except Exception as e:
-            logger.error(f"Error loading frequency list for {language}: {e}")
-            raise
     
     def get_top_n_words(self, language: str, top_n: int) -> List[str]:
         """
@@ -160,27 +98,6 @@ class FrequencyLoader:
             logger.error(f"Error loading top {top_n} words for {language}: {e}")
             raise
     
-    def is_word_known(self, word: str, language: str, top_n: int = 2000) -> bool:
-        """
-        Check if a word is in the top N most frequent words for a language.
-        Simple and efficient: checks against top N words directly.
-        
-        Args:
-            word: Word to check (will be normalized)
-            language: Language code
-            top_n: Number of top words to consider (default: 2000)
-            
-        Returns:
-            True if word is in top N frequency list, False otherwise
-        """
-        try:
-            top_words = self.get_top_n_words(language, top_n)
-            normalized_word = word.strip().lower()
-            return normalized_word in top_words
-        except (FileNotFoundError, ValueError):
-            # If language not supported or file missing, assume word is unknown
-            logger.warning(f"Cannot check word '{word}' for language '{language}' - assuming unknown")
-            return False
     
     def get_supported_languages(self) -> list[str]:
         """
@@ -191,14 +108,6 @@ class FrequencyLoader:
         """
         return list(self._language_files.keys())
     
-    def get_cache_stats(self) -> Dict[str, int]:
-        """
-        Get statistics about cached frequency sets.
-        
-        Returns:
-            Dictionary mapping language codes to number of cached words
-        """
-        return {lang: len(words) for lang, words in self._frequency_sets.items()}
 
 
 # Global instance for easy access

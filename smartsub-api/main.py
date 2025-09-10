@@ -112,11 +112,9 @@ async def get_frequency_lists():
         
         frequency_loader = get_frequency_loader()
         supported_languages = frequency_loader.get_supported_languages()
-        cache_stats = frequency_loader.get_cache_stats()
         
         return {
             "supported_languages": supported_languages,
-            "cache_stats": cache_stats,
             "status": "available"
         }
     except Exception as e:
