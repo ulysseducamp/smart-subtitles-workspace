@@ -16,7 +16,7 @@ This repository contains three interconnected subprojects that work together to 
 - **Adaptive Learning**: Automatically adjust subtitle difficulty based on vocabulary knowledge
 - **Seamless Netflix Integration**: Extract, process, and inject personalized subtitles in real-time
 - **Vocabulary Building**: Provide inline translations for unknown words
-- **Multi-language Support**: Support English, French, Portuguese, Spanish, German, and Italian
+- **Multi-language Support**: Support English, French, Portuguese, Spanish (German removed for simplification)
 - **Performance**: Process subtitles in under 10 seconds for episode-based workflow
 
 ### Target Users
@@ -151,7 +151,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 
 #### 3. Data Management ✅ **INTEGRATED**
 - **Frequency Lists**: In-memory loading system for vocabulary data ✅ **INTEGRATED**
-- **Multi-language Support**: English, French, Portuguese, Spanish, German ✅ **AVAILABLE**
+- **Multi-language Support**: English, French, Portuguese, Spanish ✅ **AVAILABLE** (German removed for simplification)
 - **Performance**: O(1) word lookup with startup caching ✅ **OPTIMIZED**
 
 ## 4. Key Components & Files
@@ -175,7 +175,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **`src/srt_parser.py`**: SRT parsing, generation, and word normalization ✅ **MIGRATED**
 - **`src/lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
 - **`src/frequency_loader.py`**: In-memory frequency list management system ✅ **INTEGRATED**
-- **`src/frequency_lists/`**: Static frequency list files (en, fr, pt, es, de) ✅ **INTEGRATED**
+- **`src/frequency_lists/`**: Static frequency list files (en, fr, pt, es) ✅ **INTEGRATED** (German removed for simplification)
 - **`src/deepl_api.py`**: DeepL API client for Python backend 🔄 **PLACEHOLDER, INTEGRATION PENDING**
 - **`src/inline_translation.py`**: Inline translation service 🔄 **PLACEHOLDER, INTEGRATION PENDING**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite with Railway URL ✅ **COMPLETED**
@@ -230,7 +230,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **Contraction Handling**: English contraction processing ✅ **COMPLETED**
 - **Overlapping Subtitle Merging**: Temporal alignment of complex sequences ✅ **COMPLETED**
 - **CLI Interface**: Comprehensive command-line tool ✅ **COMPLETED**
-- **Multi-language Support**: 6 languages with lemmatization ✅ **COMPLETED**
+- **Multi-language Support**: 4 languages with lemmatization (English, French, Portuguese, Spanish) ✅ **COMPLETED**
 
 #### API Backend ✅ **Phase 3 COMPLETED - Full Integration Live**
 - **FastAPI Framework**: Modern Python web framework ✅ **COMPLETED**
@@ -399,14 +399,14 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 3.1.0 (Phase 3 Complete - Full Integration + Auto-Processing, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings and Automatic Subtitle Processing, API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.2.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing and Optimized Language System - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, and Simplified Language Management (4 languages: EN, FR, PT, ES), API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with DeepL API integration and performance optimization
 
-**Current Status**: Full end-to-end integration complete with auto-processing - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction), processing subtitles with 72.2% replacement rate (343/475 subtitles processed)
+**Current Status**: Full end-to-end integration complete with auto-processing and language system refactoring - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), processing subtitles with improved accuracy
 
 
 ## 🔧 Solutions Techniques Implémentées
@@ -455,6 +455,24 @@ project-name/
 - **Réduction de 22%** : De 1179 à 918 lignes (-261 lignes)
 
 **Résultat :** Code plus propre, plus léger et plus maintenable sans perte de fonctionnalité.
+
+### Refactorisation du Système de Langues (Janvier 2025)
+
+**Problème résolu :** Incohérences dans la gestion des codes de langue (pt-BR vs pt) et complexité inutile du système de mapping.
+
+**Solution adoptée :** Refactorisation progressive en 4 étapes
+- **Étape 1** : Suppression complète de l'allemand (langue non utilisée)
+- **Étape 2** : Simplification des mappings pt-BR → pt (frontend mapping uniquement)
+- **Étape 3** : Tests et validation de chaque langue individuellement
+- **Étape 4** : Nettoyage du code mort (95 lignes supprimées)
+
+**Améliorations techniques :**
+- **Solution 1 (KISS)** : Lecture directe des top N mots depuis les fichiers (pas de cache complexe)
+- **Ordre de fréquence préservé** : Les mots les plus fréquents sont maintenant correctement reconnus
+- **Code simplifié** : Suppression des méthodes inutilisées (`get_frequency_set`, `is_word_known`, `_load_language`, `get_cache_stats`)
+- **Performance optimisée** : ~1ms de lecture vs cache complexe
+
+**Résultat :** Le mot "que" (le plus fréquent en portugais) est maintenant correctement reconnu, résolvant le problème des mots ultra-communs marqués comme "inconnus".
 
 ## ⚠️ Known Issues & Technical Debt
 

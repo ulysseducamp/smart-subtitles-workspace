@@ -294,6 +294,36 @@ class SubtitleFusionEngine:
                 debug_shown += 1
                 continue
             
+            # Handle single unknown word with inline translation
+            if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
+                if should_show_details:
+                    print("Decision: inline translation for single unknown word")
+                    print(f"Reason: 1 unknown word detected, translating '{unknown_words[0]}'")
+                
+                # Translate the unknown word
+                translated_word = deepl_api.translate(unknown_words[0], lang, native_lang)
+                
+                # Replace the word in the subtitle text
+                original_text = current_target_sub.text
+                # Simple word replacement (case-insensitive)
+                import re
+                pattern = re.compile(re.escape(unknown_words[0]), re.IGNORECASE)
+                new_text = pattern.sub(f"{unknown_words[0]} ({translated_word})", original_text)
+                
+                # Create new subtitle with inline translation
+                translated_sub = Subtitle(
+                    index=current_target_sub.index,
+                    start=current_target_sub.start,
+                    end=current_target_sub.end,
+                    text=new_text
+                )
+                
+                final_subtitles.append(translated_sub)
+                processed_target_indices.add(current_target_sub.index)
+                inline_translation_count += 1
+                debug_shown += 1
+                continue
+            
             # Handle multiple unknown words - replace with native subtitle
             if should_show_details:
                 print("Decision: replaced with native subtitle")

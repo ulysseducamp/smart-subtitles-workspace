@@ -128,7 +128,7 @@ async def fuse_subtitles(
     target_language: str = Form(...),
     native_language: str = Form(...),
     top_n_words: int = Form(2000),
-    enable_inline_translation: bool = Form(False),
+    enable_inline_translation: bool = Form(True),
     deepl_api_key: Optional[str] = Form(None),
     target_srt: UploadFile = File(...),
     native_srt: UploadFile = File(...)
@@ -159,6 +159,17 @@ async def fuse_subtitles(
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
         
+        # Initialize DeepL API (always try if key available)
+        deepl_api = None
+        from deepl_api import DeepLAPI
+        # Use API key from request or environment
+        api_key = deepl_api_key or os.getenv("DEEPL_API_KEY")
+        if api_key:
+            deepl_api = DeepLAPI(api_key)
+            logger.info("DeepL API initialized for inline translations")
+        else:
+            logger.warning("DeepL API key not provided, inline translation disabled")
+        
         # Process fusion
         result = engine.fuse_subtitles(
             target_subs=target_subs,
@@ -166,7 +177,7 @@ async def fuse_subtitles(
             known_words=known_words,
             lang=target_language,
             enable_inline_translation=enable_inline_translation,
-            deepl_api=None,  # TODO: Implement DeepL API integration
+            deepl_api=deepl_api,
             native_lang=native_language
         )
         
