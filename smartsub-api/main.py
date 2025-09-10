@@ -133,6 +133,10 @@ async def fuse_subtitles(
     target_srt: UploadFile = File(...),
     native_srt: UploadFile = File(...)
 ):
+    import time
+    start_time = time.time()
+    logger.info(f"TIMING: Starting subtitle processing at {start_time}")
+    
     try:
         # Import Python engine
         import sys
@@ -143,12 +147,16 @@ async def fuse_subtitles(
         from frequency_loader import get_frequency_loader
         
         # Read uploaded files
+        file_read_time = time.time()
         target_content = await target_srt.read()
         native_content = await native_srt.read()
+        logger.info(f"TIMING: File reading completed in {time.time() - file_read_time:.2f}s")
         
         # Parse SRT files
+        parse_time = time.time()
         target_subs = parse_srt(target_content.decode('utf-8'))
         native_subs = parse_srt(native_content.decode('utf-8'))
+        logger.info(f"TIMING: SRT parsing completed in {time.time() - parse_time:.2f}s")
         
         # Get frequency list from in-memory loader
         frequency_loader = get_frequency_loader()
@@ -174,6 +182,7 @@ async def fuse_subtitles(
             logger.warning("DeepL API key not provided, inline translation disabled")
         
         # Process fusion
+        fusion_time = time.time()
         result = engine.fuse_subtitles(
             target_subs=target_subs,
             native_subs=native_subs,
@@ -183,20 +192,28 @@ async def fuse_subtitles(
             deepl_api=deepl_api,
             native_lang=native_language
         )
+        logger.info(f"TIMING: Subtitle fusion completed in {time.time() - fusion_time:.2f}s")
         
         # Generate output SRT
+        generate_time = time.time()
         output_srt = generate_srt(result['hybrid'])
+        logger.info(f"TIMING: SRT generation completed in {time.time() - generate_time:.2f}s")
+        
+        # Calculate total processing time
+        total_time = time.time() - start_time
+        logger.info(f"TIMING: Total processing time: {total_time:.2f}s")
         
         # Prepare stats
         stats = {
-            "processing_time": "calculated_from_python_engine",
+            "processing_time": f"{total_time:.2f}s",
             "words_processed": len(known_words),
             "frequency_list_size": len(known_words),
             "subtitles_processed": len(target_subs),
             "subtitles_replaced": result['replacedCount'],
             "replacement_rate": f"{(result['replacedCount'] / len(target_subs) * 100):.1f}%",
             "target_language": target_language,
-            "native_language": native_language
+            "native_language": native_language,
+            "inline_translations": result.get('inlineTranslationCount', 0)
         }
         
         return SubtitleResponse(

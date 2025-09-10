@@ -56,7 +56,9 @@ export class RailwayAPIClient {
     nativeSrt: string,
     settings: SmartSubtitlesSettings
   ): Promise<RailwayAPIResponse> {
+    const startTime = performance.now();
     console.log('Railway API Client: Processing subtitles with settings:', settings);
+    console.log(`TIMING: Starting API request at ${startTime}`);
 
     if (!this.apiKey) {
       throw new Error('API key not configured');
@@ -127,6 +129,10 @@ export class RailwayAPIClient {
       }
 
       const result: RailwayAPIResponse = await response.json();
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+      
+      console.log(`TIMING: API request completed in ${totalTime.toFixed(2)}ms`);
       console.log('Railway API Client: Processing result:', result);
 
       if (!result.success) {
@@ -136,6 +142,9 @@ export class RailwayAPIClient {
       return result;
 
     } catch (error) {
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+      console.log(`TIMING: API request failed after ${totalTime.toFixed(2)}ms`);
       console.error('Railway API Client: Request failed:', error);
       
       if (error instanceof Error) {
