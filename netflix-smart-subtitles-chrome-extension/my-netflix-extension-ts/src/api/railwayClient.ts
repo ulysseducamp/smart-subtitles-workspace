@@ -79,7 +79,7 @@ export class RailwayAPIClient {
       target_language: languageMapping[settings.targetLanguage] || settings.targetLanguage,
       native_language: languageMapping[settings.nativeLanguage] || settings.nativeLanguage,
       top_n_words: settings.vocabularyLevel,
-      enable_inline_translation: false // Disabled for now
+      enable_inline_translation: true // Always enabled for automatic inline translations
     };
 
     const url = `${this.baseUrl}${this.endpoint}`;
@@ -96,7 +96,7 @@ export class RailwayAPIClient {
       formData.append('target_language', requestData.target_language);
       formData.append('native_language', requestData.native_language);
       formData.append('top_n_words', requestData.top_n_words.toString());
-      formData.append('enable_inline_translation', requestData.enable_inline_translation.toString());
+      // enable_inline_translation removed - API will use default value (True)
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);

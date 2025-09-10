@@ -41,11 +41,22 @@ class DeepLAPI:
             # Initialize DeepL translator
             translator = deepl.Translator(self.api_key)
             
+            # Map language codes for DeepL compatibility
+            lang_mapping = {
+                'EN': 'EN-US',  # Use US English instead of deprecated EN
+                'FR': 'FR',
+                'PT': 'PT', 
+                'ES': 'ES'
+            }
+            
+            mapped_source_lang = lang_mapping.get(source_lang.upper(), source_lang.upper())
+            mapped_target_lang = lang_mapping.get(target_lang.upper(), target_lang.upper())
+            
             # Translate text
             result = translator.translate_text(
                 text, 
-                source_lang=source_lang.upper(), 
-                target_lang=target_lang.upper()
+                source_lang=mapped_source_lang, 
+                target_lang=mapped_target_lang
             )
             
             translation = result.text
