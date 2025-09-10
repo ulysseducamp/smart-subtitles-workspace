@@ -156,6 +156,9 @@ async def fuse_subtitles(
         # Get top N words in frequency order (most frequent first)
         known_words = frequency_loader.get_top_n_words(target_language, top_n_words)
         
+        # Log received parameters for debugging
+        logger.info(f"Received parameters - enable_inline_translation: {enable_inline_translation}, target_lang: {target_language}, native_lang: {native_language}")
+        
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
         
