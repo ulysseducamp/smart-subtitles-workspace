@@ -295,6 +295,9 @@ class SubtitleFusionEngine:
                 continue
             
             # Handle single unknown word with inline translation
+            if should_show_details:
+                print(f"DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}")
+            
             if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
                 if should_show_details:
                     print("Decision: inline translation for single unknown word")
