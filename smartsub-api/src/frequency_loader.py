@@ -51,9 +51,7 @@ class FrequencyLoader:
             'en': 'en-10000.txt',
             'fr': 'fr-5000.txt', 
             'pt-br': 'pt-10000.txt',
-            'es': 'es-10000.txt',
-            'de': 'german-10000.txt',
-            'german': 'german-10000.txt'  # Alias for German
+            'es': 'es-10000.txt'
         }
         
         logger.info(f"FrequencyLoader initialized with directory: {self.frequency_lists_dir}")
@@ -63,7 +61,7 @@ class FrequencyLoader:
         Get frequency set for a language, loading it if not already cached.
         
         Args:
-            language: Language code (en, fr, pt-br, es, de, german)
+            language: Language code (en, fr, pt-br, es)
             
         Returns:
             Set of words in the frequency list (normalized to lowercase)

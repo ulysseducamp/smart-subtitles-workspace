@@ -16,8 +16,7 @@ def lemmatize_single_line(line: str, lang: str) -> List[str]:
     lang_mapping = {
         'pt-BR': 'pt',
         'pt-br': 'pt',
-        'pt_br': 'pt',
-        'german': 'de'  # Map 'german' to 'de' for consistency
+        'pt_br': 'pt'
     }
     
     # Apply language mapping if needed

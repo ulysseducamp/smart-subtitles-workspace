@@ -223,7 +223,7 @@ Before starting, ensure you have:
 
 **Test 4.2:**
 - [ ] Each combination processes correctly
-- [ ] Subtitles are injected properly
+- [x] Subtitles are injected properly
 - [ ] Processing time is acceptable (<20 seconds)
 - [ ] Quality is maintained
 

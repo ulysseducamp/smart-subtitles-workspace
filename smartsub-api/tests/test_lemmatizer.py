@@ -80,6 +80,21 @@ class TestLemmatizer(unittest.TestCase):
             self.assertIsInstance(result, list)
             self.assertEqual(len(result), 2)
             print(f"Portuguese {variant} lemmatized: {result}")
+    
+    def test_supported_languages(self):
+        """Test that all supported languages work after German removal"""
+        test_cases = [
+            ("en", "I am running quickly"),
+            ("fr", "Je suis en train de courir"),
+            ("pt", "Eu estou correndo rapidamente"),
+            ("es", "Estoy corriendo rápidamente")
+        ]
+        
+        for lang, text in test_cases:
+            result = lemmatize_single_line(text, lang)
+            self.assertIsInstance(result, list)
+            self.assertGreater(len(result), 0)
+            print(f"Language {lang} lemmatized: {result}")
 
 if __name__ == '__main__':
     unittest.main()
