@@ -297,8 +297,12 @@ Final subtitle: "{current_target_sub.text}"
             # Handle single unknown word with inline translation
             if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
                 # Find the original word corresponding to the lemmatized unknown word
-                lemma_index = lemmatized_words.index(unknown_words[0])
-                original_word = original_words[lemma_index]
+                try:
+                    lemma_index = lemmatized_words.index(unknown_words[0])
+                    original_word = original_words[lemma_index]
+                except (ValueError, IndexError):
+                    # Fallback: use the lemmatized word as original if mapping fails
+                    original_word = unknown_words[0]
                 
                 # Translate the original word (not the lemmatized form)
                 translated_word = deepl_api.translate(original_word, lang, native_lang)
