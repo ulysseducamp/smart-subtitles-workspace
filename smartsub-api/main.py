@@ -173,7 +173,10 @@ async def fuse_subtitles(
         else:
             logger.warning("DeepL API key not provided, inline translation disabled")
         
-        # Process fusion
+        # Process fusion with timing
+        import time
+        start_time = time.time()
+        
         result = engine.fuse_subtitles(
             target_subs=target_subs,
             native_subs=native_subs,
@@ -183,6 +186,9 @@ async def fuse_subtitles(
             deepl_api=deepl_api,
             native_lang=native_language
         )
+        
+        processing_time = time.time() - start_time
+        logger.info(f"Subtitle processing completed in {processing_time:.2f} seconds")
         
         # Generate output SRT
         output_srt = generate_srt(result['hybrid'])
