@@ -296,15 +296,19 @@ Final subtitle: "{current_target_sub.text}"
             
             # Handle single unknown word with inline translation
             if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
-                # Translate the unknown word
-                translated_word = deepl_api.translate(unknown_words[0], lang, native_lang)
+                # Find the original word corresponding to the lemmatized unknown word
+                lemma_index = lemmatized_words.index(unknown_words[0])
+                original_word = original_words[lemma_index]
+                
+                # Translate the original word (not the lemmatized form)
+                translated_word = deepl_api.translate(original_word, lang, native_lang)
                 
                 # Replace the word in the subtitle text
                 original_text = current_target_sub.text
-                # Simple word replacement (case-insensitive)
+                # Simple word replacement (case-insensitive) using the original word
                 import re
-                pattern = re.compile(re.escape(unknown_words[0]), re.IGNORECASE)
-                new_text = pattern.sub(f"{unknown_words[0]} ({translated_word})", original_text)
+                pattern = re.compile(re.escape(original_word), re.IGNORECASE)
+                new_text = pattern.sub(f"{original_word} ({translated_word})", original_text)
                 
                 if should_show_details:
                     print(f"""
@@ -315,7 +319,7 @@ Words lemmatised: {', '.join(lemmatized_words_list)}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
 Decision: inline translation for single unknown word
-Reason: 1 unknown word detected, translating '{unknown_words[0]}'
+Reason: 1 unknown word detected, translating original word '{original_word}' (lemmatized: '{unknown_words[0]}')
 Final subtitle: "{new_text}"
 """)
                 
