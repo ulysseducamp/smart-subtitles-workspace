@@ -190,7 +190,10 @@ async def fuse_subtitles(
         processing_time = time.time() - start_time
         logger.info(f"Subtitle processing completed in {processing_time:.2f} seconds")
         
-        # Log detailed statistics (similar to TypeScript version)
+        # Generate output SRT
+        output_srt = generate_srt(result['hybrid'])
+        
+        # Log detailed statistics AFTER all subtitle processing logs are complete
         logger.info("=== SUBTITLE PROCESSING STATISTICS ===")
         logger.info(f"Total target subtitles: {len(target_subs)}")
         logger.info(f"Total native subtitles: {len(native_subs)}")
@@ -242,9 +245,6 @@ async def fuse_subtitles(
         
         # Processing time
         logger.info(f"Operation duration: {processing_time:.2f} seconds")
-        
-        # Generate output SRT
-        output_srt = generate_srt(result['hybrid'])
         
         # Prepare stats
         stats = {
