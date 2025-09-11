@@ -76,8 +76,8 @@ def normalize_words(text: str) -> List[str]:
     text = re.sub(r'<[^>]*>', '', text)
     
     # Replace non-letter/number/space/apostrophe with spaces
-    # Use [^a-zA-Z0-9\s'] instead of \p{L}\p{N} for Python compatibility
-    text = re.sub(r'[^a-zA-Z0-9\s\']', ' ', text)
+    # Use \w to support Unicode characters (accents, etc.)
+    text = re.sub(r'[^\w\s\']', ' ', text)
     
     # Convert to lowercase and split by whitespace
     words = text.lower().split()
