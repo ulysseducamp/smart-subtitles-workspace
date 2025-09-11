@@ -75,12 +75,24 @@ def normalize_words(text: str) -> List[str]:
     # Remove HTML tags first
     text = re.sub(r'<[^>]*>', '', text)
     
-    # Replace non-letter/number/space/apostrophe with spaces
+    # Split on apostrophes BEFORE other processing to handle contractions
+    words_with_apostrophes = text.split()
+    expanded_words = []
+    for word in words_with_apostrophes:
+        if "'" in word:
+            expanded_words.extend(word.split("'"))
+        else:
+            expanded_words.append(word)
+    
+    # Join back and normalize
+    text = ' '.join(expanded_words)
+    
+    # Replace non-letter/number/space with spaces
     # Use \w to support Unicode characters (accents, etc.)
-    text = re.sub(r'[^\w\s\']', ' ', text)
+    text = re.sub(r'[^\w\s]', ' ', text)
     
     # Convert to lowercase and split by whitespace
     words = text.lower().split()
     
-    # Filter out empty strings
-    return [word for word in words if word.strip()]
+    # Filter out single letters (pronouns, articles) and empty strings
+    return [word for word in words if len(word) > 1 and word.strip()]
