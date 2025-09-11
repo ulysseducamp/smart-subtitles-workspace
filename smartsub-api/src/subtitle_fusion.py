@@ -289,6 +289,7 @@ class SubtitleFusionEngine:
                 if should_show_details:
                     print("Decision: kept in target language")
                     print("Reason: all words are known or proper nouns")
+                    print(f"Final subtitle: \"{current_target_sub.text}\"")  # Log du sous-titre final
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -321,6 +322,9 @@ class SubtitleFusionEngine:
                     text=new_text
                 )
                 
+                if should_show_details:
+                    print(f"Final subtitle: \"{new_text}\"")  # Log du sous-titre final avec traduction inline
+                
                 final_subtitles.append(translated_sub)
                 processed_target_indices.add(current_target_sub.index)
                 inline_translation_count += 1
@@ -343,6 +347,7 @@ class SubtitleFusionEngine:
                 if should_show_details:
                     print("Decision: kept in target language")
                     print("Reason: no native subtitle found")
+                    print(f"Final subtitle: \"{current_target_sub.text}\"")  # Log du sous-titre final
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -367,6 +372,7 @@ class SubtitleFusionEngine:
                 if should_show_details:
                     print("Decision: kept in target language")
                     print("Reason: no overlapping target subtitles found")
+                    print(f"Final subtitle: \"{current_target_sub.text}\"")  # Log du sous-titre final
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -383,6 +389,7 @@ class SubtitleFusionEngine:
             if should_show_details:
                 print("Decision: replaced with native subtitle")
                 print(f"Reason: {len(overlapping_target_subs)} overlapping subtitles replaced")
+                print(f"Final subtitle: \"{combined_native_sub['text']}\"")  # Log du sous-titre final remplacé
             
             final_subtitles.append(replacement_sub)
             replaced_count += len(overlapping_target_subs)
