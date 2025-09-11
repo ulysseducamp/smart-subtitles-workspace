@@ -176,8 +176,8 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **`src/lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
 - **`src/frequency_loader.py`**: In-memory frequency list management system ✅ **INTEGRATED**
 - **`src/frequency_lists/`**: Static frequency list files (en, fr, pt, es) ✅ **INTEGRATED** (German removed for simplification)
-- **`src/deepl_api.py`**: DeepL API client for Python backend 🔄 **PLACEHOLDER, INTEGRATION PENDING**
-- **`src/inline_translation.py`**: Inline translation service 🔄 **PLACEHOLDER, INTEGRATION PENDING**
+  - **`src/deepl_api.py`**: DeepL API client for Python backend ✅ **COMPLETED**
+  - **`src/inline_translation.py`**: Inline translation service ✅ **COMPLETED**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite with Railway URL ✅ **COMPLETED**
 
 ### Critical Algorithms & Functions
@@ -247,16 +247,15 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **End-to-End Integration**: Chrome extension ↔ Railway API workflow ✅ **COMPLETED**
 
 ### 🔄 Partially Implemented
-- **DeepL API Integration**: Placeholder implementation needs completion 🔄 **PENDING**
-- **Inline Translation**: Service implementation pending 🔄 **PENDING**
+- **DeepL API Integration**: ✅ **COMPLETED** - Full DeepL integration with language code mapping and error handling
+- **Inline Translation**: ✅ **COMPLETED** - Automatic inline translation for unknown words
 - **User Authentication**: Framework ready, implementation pending
-- **Performance Metrics**: Basic stats, needs enhancement
+- **Performance Metrics**: ✅ **ENHANCED** - Processing time logging implemented
 - **Error Recovery**: Basic fallbacks, needs robust handling
 
 ## 6. Pending Tasks & Roadmap
 
 ### High Priority (Phase 4 - READY)
-- **DeepL API Integration**: Complete inline translation service 🔄 **PENDING**
 - **Enhanced Error Handling**: Add robust fallback mechanisms and user feedback
 - **Performance Optimization**: Further reduce processing time and memory usage
 - **User Experience Polish**: Improve UI/UX and add advanced features
@@ -275,8 +274,6 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **Mobile Support**: React Native or PWA implementation
 
 ### Known Issues & Technical Debt
-- **DeepL API Integration**: Placeholder implementation needs completion 🔄 **PENDING**
-- **Inline Translation**: Service implementation pending 🔄 **PENDING**
 - **Error Recovery**: Limited fallback mechanisms for API failures 🔄 **IMPROVEMENT NEEDED**
 - **Performance Optimization**: Further reduce processing time and memory usage 🔄 **IMPROVEMENT NEEDED**
 
@@ -399,14 +396,14 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 3.2.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing and Optimized Language System - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, and Simplified Language Management (4 languages: EN, FR, PT, ES), API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.3.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, and DeepL API Integration - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), and Full DeepL Inline Translation Support, API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
-**Next Milestone**: Complete Phase 4 (Testing & Polish) with DeepL API integration and performance optimization
+**Next Milestone**: Complete Phase 4 (Testing & Polish) with performance optimization and enhanced error handling
 
-**Current Status**: Full end-to-end integration complete with auto-processing and language system refactoring - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), processing subtitles with improved accuracy
+**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, and DeepL API integration - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default, processing time logging implemented, processing subtitles with improved accuracy and automatic inline translations
 
 
 ## 🔧 Solutions Techniques Implémentées
@@ -474,13 +471,28 @@ project-name/
 
 **Résultat :** Le mot "que" (le plus fréquent en portugais) est maintenant correctement reconnu, résolvant le problème des mots ultra-communs marqués comme "inconnus".
 
+### Intégration DeepL API Complète (Janvier 2025)
+
+**Problème résolu :** L'intégration DeepL était un placeholder et les traductions inline ne fonctionnaient pas.
+
+**Solution adoptée :** Intégration complète DeepL avec gestion des erreurs et mapping des codes de langue
+- **API DeepL fonctionnelle** : Implémentation complète dans `deepl_api.py` avec gestion d'erreurs
+- **Mapping des codes de langue** : Résolution du problème "EN" deprecated → "EN-US"/"EN-GB"
+- **Traductions inline automatiques** : Activation par défaut, pas d'interface utilisateur nécessaire
+- **Gestion des erreurs** : Logs détaillés et fallback gracieux en cas d'échec
+- **Timeout optimisé** : Augmentation à 240 secondes pour gérer les traductions DeepL
+- **Logs de performance** : Monitoring du temps de traitement complet
+
+**Code concerné :** `smartsub-api/src/deepl_api.py`, `smartsub-api/main.py`, `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/api/railwayClient.ts`
+
+**Résultat :** Traductions inline automatiques fonctionnelles avec gestion robuste des erreurs et monitoring des performances.
+
 ## ⚠️ Known Issues & Technical Debt
 
-### DeepL API Integration (Priority: High)
-**Problem:** DeepL API integration is placeholder implementation
+### Performance Optimization (Priority: Medium)
+**Problem:** Processing time can be slow with DeepL translations
 **Impact:** 
-- Inline translation feature not functional
-- Limited vocabulary learning capabilities
-- User experience incomplete
-**Solution:** Complete DeepL API integration with proper error handling and rate limiting
-**Current Status:** End-to-end integration complete, DeepL API integration needed for full feature set
+- User experience may be affected by longer processing times
+- API timeout issues with complex subtitle sets
+**Solution:** Implement caching, batch processing, and timeout optimization
+**Current Status:** Processing time logging implemented, timeout increased to 240 seconds, further optimization needed

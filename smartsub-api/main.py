@@ -190,6 +190,59 @@ async def fuse_subtitles(
         processing_time = time.time() - start_time
         logger.info(f"Subtitle processing completed in {processing_time:.2f} seconds")
         
+        # Log detailed statistics (similar to TypeScript version)
+        logger.info("=== SUBTITLE PROCESSING STATISTICS ===")
+        logger.info(f"Total target subtitles: {len(target_subs)}")
+        logger.info(f"Total native subtitles: {len(native_subs)}")
+        
+        # Calculate kept subtitles (total - replaced)
+        kept_subtitles = len(target_subs) - result['replacedCount']
+        logger.info(f"Subtitles kept in target language: {kept_subtitles}/{len(target_subs)}")
+        
+        # Calculate percentages
+        percent_kept = (kept_subtitles / len(target_subs) * 100) if len(target_subs) > 0 else 0
+        percent_replaced = (result['replacedCount'] / len(target_subs) * 100) if len(target_subs) > 0 else 0
+        percent_inline = (result['inlineTranslationCount'] / len(target_subs) * 100) if len(target_subs) > 0 else 0
+        percent_inline_vs_kept = (result['inlineTranslationCount'] / kept_subtitles * 100) if kept_subtitles > 0 else 0
+        
+        logger.info(f"Subtitles replaced with native: {result['replacedCount']}/{len(target_subs)} ({percent_replaced:.1f}%)")
+        logger.info(f"Subtitles with inline translation: {result['inlineTranslationCount']}/{len(target_subs)} ({percent_inline:.1f}%)")
+        logger.info(f"Subs with inline translation vs kept in target language: {result['inlineTranslationCount']}/{kept_subtitles} ({percent_inline_vs_kept:.1f}%)")
+        logger.info("—")
+        
+        # DeepL statistics
+        if enable_inline_translation and deepl_api:
+            logger.info(f"Number of translation errors: {result['errorCount']}")
+            deepl_stats = deepl_api.get_stats()
+            logger.info(f"DeepL API requests made: {deepl_stats['requestCount']}")
+            logger.info(f"Translation cache size: {deepl_stats['cacheSize']}")
+            logger.info("—")
+        
+        # Translated words statistics
+        translated_words = result.get('translatedWords', {})
+        if translated_words:
+            # Get words translated multiple times
+            multiple_translated_words = [
+                f"{word} (translated {count} times)" 
+                for word, count in translated_words.items() 
+                if count > 1
+            ]
+            
+            if multiple_translated_words:
+                logger.info(f"Same word translated several times: {', '.join(multiple_translated_words)}")
+                logger.info("—")
+            
+            # Get unique words translated
+            unique_words_translated = len(translated_words)
+            unique_words_list = sorted(translated_words.keys())
+            
+            logger.info(f"Number of new words translated: {unique_words_translated}")
+            logger.info(f"New words: {', '.join(unique_words_list)}")
+            logger.info("—")
+        
+        # Processing time
+        logger.info(f"Operation duration: {processing_time:.2f} seconds")
+        
         # Generate output SRT
         output_srt = generate_srt(result['hybrid'])
         
