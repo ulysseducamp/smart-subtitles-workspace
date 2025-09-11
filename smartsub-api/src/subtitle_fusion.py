@@ -253,9 +253,6 @@ class SubtitleFusionEngine:
             # DETAIL FOR FIRST 20 SUBTITLES
             should_show_details = debug_shown < 20
             
-            if should_show_details:
-                print(f"\nSubtitle analysed: {current_target_sub.index} - \"{current_target_sub.text}\"")
-            
             # Analyze each word
             proper_nouns = []
             lemmatized_words_list = []
@@ -280,30 +277,25 @@ class SubtitleFusionEngine:
                 if not is_known and not is_proper and not is_number:
                     unknown_words.append(word)
             
-            if should_show_details:
-                print(f"Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}")
-                print(f"Words lemmatised: {', '.join(lemmatized_words_list)}")
-                print(f"Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}")
-            
             if len(unknown_words) == 0:
                 if should_show_details:
-                    print("Decision: kept in target language")
-                    print("Reason: all words are known or proper nouns")
-                    print(f"Final subtitle: \"{current_target_sub.text}\"")  # Log du sous-titre final
+                    print(f"""
+=== SUBTITLE {current_target_sub.index} ===
+Original: "{current_target_sub.text}"
+Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
+Words lemmatised: {', '.join(lemmatized_words_list)}
+Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
+Decision: kept in target language
+Reason: all words are known or proper nouns
+Final subtitle: "{current_target_sub.text}"
+""")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
                 continue
             
             # Handle single unknown word with inline translation
-            if should_show_details:
-                print(f"DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}")
-            
             if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
-                if should_show_details:
-                    print("Decision: inline translation for single unknown word")
-                    print(f"Reason: 1 unknown word detected, translating '{unknown_words[0]}'")
-                
                 # Translate the unknown word
                 translated_word = deepl_api.translate(unknown_words[0], lang, native_lang)
                 
@@ -314,6 +306,19 @@ class SubtitleFusionEngine:
                 pattern = re.compile(re.escape(unknown_words[0]), re.IGNORECASE)
                 new_text = pattern.sub(f"{unknown_words[0]} ({translated_word})", original_text)
                 
+                if should_show_details:
+                    print(f"""
+=== SUBTITLE {current_target_sub.index} ===
+Original: "{current_target_sub.text}"
+Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
+Words lemmatised: {', '.join(lemmatized_words_list)}
+Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
+DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
+Decision: inline translation for single unknown word
+Reason: 1 unknown word detected, translating '{unknown_words[0]}'
+Final subtitle: "{new_text}"
+""")
+                
                 # Create new subtitle with inline translation
                 translated_sub = Subtitle(
                     index=current_target_sub.index,
@@ -322,9 +327,6 @@ class SubtitleFusionEngine:
                     text=new_text
                 )
                 
-                if should_show_details:
-                    print(f"Final subtitle: \"{new_text}\"")  # Log du sous-titre final avec traduction inline
-                
                 final_subtitles.append(translated_sub)
                 processed_target_indices.add(current_target_sub.index)
                 inline_translation_count += 1
@@ -332,10 +334,6 @@ class SubtitleFusionEngine:
                 continue
             
             # Handle multiple unknown words - replace with native subtitle
-            if should_show_details:
-                print("Decision: replaced with native subtitle")
-                print(f"Reason: {len(unknown_words)} unknown words detected")
-            
             # Find intersecting native subtitles
             intersecting_native_subs = [
                 native_sub for native_sub in native_subs
@@ -345,9 +343,17 @@ class SubtitleFusionEngine:
             
             if len(intersecting_native_subs) == 0:
                 if should_show_details:
-                    print("Decision: kept in target language")
-                    print("Reason: no native subtitle found")
-                    print(f"Final subtitle: \"{current_target_sub.text}\"")  # Log du sous-titre final
+                    print(f"""
+=== SUBTITLE {current_target_sub.index} ===
+Original: "{current_target_sub.text}"
+Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
+Words lemmatised: {', '.join(lemmatized_words_list)}
+Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
+DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
+Decision: kept in target language
+Reason: no native subtitle found
+Final subtitle: "{current_target_sub.text}"
+""")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -370,9 +376,17 @@ class SubtitleFusionEngine:
             
             if len(overlapping_target_subs) == 0:
                 if should_show_details:
-                    print("Decision: kept in target language")
-                    print("Reason: no overlapping target subtitles found")
-                    print(f"Final subtitle: \"{current_target_sub.text}\"")  # Log du sous-titre final
+                    print(f"""
+=== SUBTITLE {current_target_sub.index} ===
+Original: "{current_target_sub.text}"
+Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
+Words lemmatised: {', '.join(lemmatized_words_list)}
+Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
+DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
+Decision: kept in target language
+Reason: no overlapping target subtitles found
+Final subtitle: "{current_target_sub.text}"
+""")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -387,9 +401,17 @@ class SubtitleFusionEngine:
             )
             
             if should_show_details:
-                print("Decision: replaced with native subtitle")
-                print(f"Reason: {len(overlapping_target_subs)} overlapping subtitles replaced")
-                print(f"Final subtitle: \"{combined_native_sub['text']}\"")  # Log du sous-titre final remplacé
+                print(f"""
+=== SUBTITLE {current_target_sub.index} ===
+Original: "{current_target_sub.text}"
+Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
+Words lemmatised: {', '.join(lemmatized_words_list)}
+Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
+DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
+Decision: replaced with native subtitle
+Reason: {len(overlapping_target_subs)} overlapping subtitles replaced
+Final subtitle: "{combined_native_sub['text']}"
+""")
             
             final_subtitles.append(replacement_sub)
             replaced_count += len(overlapping_target_subs)
