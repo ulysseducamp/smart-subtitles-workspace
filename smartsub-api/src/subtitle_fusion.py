@@ -304,17 +304,8 @@ Final subtitle: "{current_target_sub.text}"
                     # Fallback: use the lemmatized word as original if mapping fails
                     original_word = unknown_words[0]
                 
-                # Create context from previous, current, and next subtitles
-                context_parts = []
-                if previous_subtitle:
-                    context_parts.append(previous_subtitle.text)
-                context_parts.append(current_target_sub.text)
-                if next_subtitle:
-                    context_parts.append(next_subtitle.text)
-                context = " ".join(context_parts)
-                
-                # Translate the original word with context (not the lemmatized form)
-                translated_word = deepl_api.translate_with_context(original_word, context, lang, native_lang)
+                # Translate the original word (not the lemmatized form)
+                translated_word = deepl_api.translate(original_word, lang, native_lang)
                 
                 # Replace the word in the subtitle text
                 original_text = current_target_sub.text
@@ -332,8 +323,7 @@ Words lemmatised: {', '.join(lemmatized_words_list)}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
 Decision: inline translation for single unknown word
-Reason: 1 unknown word detected, translating original word '{original_word}' (lemmatized: '{unknown_words[0]}') with context
-Context: "{context}"
+Reason: 1 unknown word detected, translating original word '{original_word}' (lemmatized: '{unknown_words[0]}')
 Final subtitle: "{new_text}"
 """)
                 
