@@ -18,7 +18,6 @@ COPY main.py ./
 COPY env.example ./
 COPY test_api_key.py ./
 COPY src/ ./src/
-COPY utils/ ./utils/
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app \
