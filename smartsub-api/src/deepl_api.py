@@ -45,8 +45,7 @@ class DeepLAPI:
             lang_mapping = {
                 'EN': 'EN-US',  # Use US English instead of deprecated EN
                 'FR': 'FR',
-                'PT': 'PT', 
-                'ES': 'ES'
+                'PT': 'PT'
             }
             
             mapped_source_lang = lang_mapping.get(source_lang.upper(), source_lang.upper())

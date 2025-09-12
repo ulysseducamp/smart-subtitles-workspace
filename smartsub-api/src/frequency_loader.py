@@ -15,11 +15,10 @@ Features:
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 class FrequencyLoader:
     """
@@ -39,35 +38,44 @@ class FrequencyLoader:
         """
         if frequency_lists_dir is None:
             # Default to src/frequency_lists/ relative to this file
-            self.frequency_lists_dir = Path(__file__).parent / "frequency_lists"
+            current_file = Path(__file__)
+            self.frequency_lists_dir = current_file.parent / "frequency_lists"
         else:
-            self.frequency_lists_dir = Path(frequency_lists_dir)
+            self.frequency_lists_dir = frequency_lists_dir
             
         
         # Language to filename mapping
         self._language_files = {
             'en': 'en-10000.txt',
             'fr': 'fr-5000.txt', 
-            'pt': 'pt-10000.txt',
-            'es': 'es-10000.txt'
+            'pt': 'pt-10000.txt'
         }
         
         logger.info(f"FrequencyLoader initialized with directory: {self.frequency_lists_dir}")
+        
+        # Cache for loaded frequency lists
+        self._cache: dict[str, set[str]] = {}
     
-    
-    
-    def get_top_n_words(self, language: str, top_n: int) -> List[str]:
+    def get_top_n_words(self, language: str, top_n: int = 2000) -> set[str]:
         """
-        Get top N most frequent words for a language in frequency order.
-        Simple and efficient: reads directly from file without caching the full list.
+        Get the top N most frequent words for a language.
         
         Args:
-            language: Language code
-            top_n: Number of top words to return
+            language: Language code (e.g., 'en', 'fr', 'pt')
+            top_n: Number of top words to return (default: 2000)
             
         Returns:
-            List of top N words in frequency order (most frequent first)
+            Set of the top N most frequent words (normalized to lowercase)
+            
+        Raises:
+            ValueError: If language is not supported
+            FileNotFoundError: If frequency list file doesn't exist
         """
+        # Check cache first
+        cache_key = f"{language}_{top_n}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
         # Normalize language code
         language = language.lower().strip()
         
@@ -81,9 +89,8 @@ class FrequencyLoader:
             raise FileNotFoundError(f"Frequency list file not found: {file_path}")
         
         try:
-            # Read only the top N words directly from file
+            words = []
             with open(file_path, 'r', encoding='utf-8') as f:
-                words = []
                 for i, line in enumerate(f):
                     if i >= top_n:  # Stop after reading top_n words
                         break
@@ -92,10 +99,15 @@ class FrequencyLoader:
                         words.append(word)
             
             logger.info(f"Loaded top {len(words)} words for {language} from {filename}")
-            return words
+            
+            # Convert to set for O(1) lookup and cache
+            word_set = set(words)
+            self._cache[cache_key] = word_set
+            
+            return word_set
             
         except Exception as e:
-            logger.error(f"Error loading top {top_n} words for {language}: {e}")
+            logger.error(f"Error loading frequency list for {language}: {e}")
             raise
     
     
@@ -114,29 +126,31 @@ class FrequencyLoader:
 _frequency_loader: Optional[FrequencyLoader] = None
 
 
-def get_frequency_loader() -> FrequencyLoader:
-    """
-    Get the global frequency loader instance.
-    
-    Returns:
-        Global FrequencyLoader instance
-    """
-    global _frequency_loader
-    if _frequency_loader is None:
-        _frequency_loader = FrequencyLoader()
-    return _frequency_loader
-
-
 def initialize_frequency_loader(frequency_lists_dir: Optional[Path] = None) -> FrequencyLoader:
     """
-    Initialize the global frequency loader with optional custom directory.
+    Initialize the global frequency loader instance.
     
     Args:
         frequency_lists_dir: Optional custom directory for frequency lists
         
     Returns:
-        Initialized FrequencyLoader instance
+        The initialized FrequencyLoader instance
     """
     global _frequency_loader
     _frequency_loader = FrequencyLoader(frequency_lists_dir)
+    return _frequency_loader
+
+
+def get_frequency_loader() -> FrequencyLoader:
+    """
+    Get the global frequency loader instance.
+    
+    Returns:
+        The global FrequencyLoader instance
+        
+    Raises:
+        RuntimeError: If frequency loader hasn't been initialized
+    """
+    if _frequency_loader is None:
+        raise RuntimeError("Frequency loader not initialized. Call initialize_frequency_loader() first.")
     return _frequency_loader
