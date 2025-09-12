@@ -129,10 +129,10 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
   - **`lemmatizer.py`**: Python lemmatization using simplemma ✅ **MIGRATED**
   - **`frequency_loader.py`**: In-memory frequency list management ✅ **INTEGRATED**
   - **`deepl_api.py`**: DeepL API integration with language code mapping ✅ **COMPLETED**
-  - **`inline_translation.py`**: Inline translation service ✅ **COMPLETED**
+  - **Inline Translation**: Integrated directly in `subtitle_fusion.py` ✅ **COMPLETED**
 - **`src/frequency_lists/`**: Static frequency list files ✅ **INTEGRATED**
 - **`tests/`**: Comprehensive test suite ✅ **COMPLETED**
-- **`utils/`**: Utility functions (SRT parser, vocabulary analyzer) ✅ **COMPLETED**
+- **`utils/`**: Utility functions (removed - functionality integrated into main modules) ✅ **CLEANED**
 - **`Dockerfile`**: Python-only Docker build ✅ **SIMPLIFIED**
 - **`venv/`**: Python virtual environment ✅ **READY**
 - **`requirements.txt`**: Python dependencies ✅ **COMPLETED**
@@ -178,7 +178,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **`src/frequency_loader.py`**: In-memory frequency list management system ✅ **INTEGRATED**
 - **`src/frequency_lists/`**: Static frequency list files (en, fr, pt, es) ✅ **INTEGRATED** (German removed for simplification)
   - **`src/deepl_api.py`**: DeepL API client for Python backend ✅ **COMPLETED**
-  - **`src/inline_translation.py`**: Inline translation service ✅ **COMPLETED**
+  - **Inline Translation**: Integrated directly in `subtitle_fusion.py` ✅ **COMPLETED**
 - **`test_fuse_subtitles_endpoint.py`**: Comprehensive API testing suite with Railway URL ✅ **COMPLETED**
 
 ### Critical Algorithms & Functions
@@ -508,6 +508,25 @@ project-name/
 - **`test_lemmatizer.py`** : Tests de lemmatisation pour toutes les langues supportées (EN, FR, PT, ES)
 
 **Résultat :** Couverture de tests complète avec validation de tous les composants critiques du système.
+
+### Nettoyage du Code Obsolète (Janvier 2025)
+
+**Problème résolu :** Accumulation de code obsolète, de fichiers placeholder et de doublons après les itérations de développement.
+
+**Solution adoptée :** Nettoyage systématique des éléments obsolètes
+- **Fichiers placeholder supprimés** : `utils/srt_parser.py`, `utils/vocabulary_analyzer.py`, `src/supabase_client.py`, `src/inline_translation.py`
+- **Scripts de test obsolètes supprimés** : `test_and_save_result.py`, `test_api_diagnostic.py`, `test_detailed_analysis.py`
+- **Fichiers de résultats temporaires supprimés** : `resultat_fusion_api.srt`, `resultat_fusion_python.srt`
+- **Fichiers de test HTML supprimés** : `test-frequency-loader.html`, `test-injection.html`, `test-popup.html`
+- **Utilitaires de fréquence obsolètes supprimés** : `frequencyLists.ts`, `frequencyLoader.ts` (logique intégrée dans l'API)
+- **Dossier utils vide supprimé** : Fonctionnalité intégrée dans les modules principaux
+
+**Éléments conservés :**
+- **Assets de fréquence dans l'extension** : Nécessaires pour le fonctionnement local de l'extension Chrome
+- **Implémentations de référence** : `reference/subadub/`, `reference/easysubs-master/`, `reference/asbplayer-main/`
+- **Extension JavaScript legacy** : `my-netflix-extension/` (backup de sécurité)
+
+**Résultat :** Code plus propre, plus maintenable et sans doublons, avec conservation des éléments utiles.
 
 ## ⚠️ Known Issues & Technical Debt
 

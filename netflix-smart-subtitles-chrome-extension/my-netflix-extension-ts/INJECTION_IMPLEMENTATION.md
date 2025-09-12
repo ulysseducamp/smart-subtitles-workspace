@@ -164,9 +164,9 @@ npm run build
 4. Press 'S' key to toggle subtitle visibility
 5. Verify subtitle timing and positioning
 
-### 4. Test with Test Page
-1. Open `test-injection.html` in browser
-2. Verify injection works in isolated environment
+### 4. Test with Real Netflix Content
+1. Test with actual Netflix videos
+2. Verify injection works with real subtitle content
 3. Test keyboard controls and styling
 
 ## Console Logs to Expect
