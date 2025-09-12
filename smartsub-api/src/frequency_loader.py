@@ -15,7 +15,7 @@ Features:
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Set, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -51,12 +51,12 @@ class FrequencyLoader:
             'pt': 'pt-10000.txt'
         }
         
-        logger.info(f"FrequencyLoader initialized with directory: {self.frequency_lists_dir}")
-        
         # Cache for loaded frequency lists
-        self._cache: dict[str, set[str]] = {}
+        self._cache: dict[str, Set[str]] = {}
+        
+        logger.info(f"FrequencyLoader initialized with directory: {self.frequency_lists_dir}")
     
-    def get_top_n_words(self, language: str, top_n: int = 2000) -> set[str]:
+    def get_top_n_words(self, language: str, top_n: int = 2000) -> Set[str]:
         """
         Get the top N most frequent words for a language.
         
@@ -65,17 +65,12 @@ class FrequencyLoader:
             top_n: Number of top words to return (default: 2000)
             
         Returns:
-            Set of the top N most frequent words (normalized to lowercase)
+            Set of the top N most frequent words
             
         Raises:
             ValueError: If language is not supported
             FileNotFoundError: If frequency list file doesn't exist
         """
-        # Check cache first
-        cache_key = f"{language}_{top_n}"
-        if cache_key in self._cache:
-            return self._cache[cache_key]
-        
         # Normalize language code
         language = language.lower().strip()
         
@@ -88,6 +83,12 @@ class FrequencyLoader:
         if not file_path.exists():
             raise FileNotFoundError(f"Frequency list file not found: {file_path}")
         
+        # Check cache first
+        cache_key = f"{language}_{top_n}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
+        # Load and cache the frequency list
         try:
             words = []
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -100,10 +101,9 @@ class FrequencyLoader:
             
             logger.info(f"Loaded top {len(words)} words for {language} from {filename}")
             
-            # Convert to set for O(1) lookup and cache
+            # Convert to set for O(1) lookup
             word_set = set(words)
             self._cache[cache_key] = word_set
-            
             return word_set
             
         except Exception as e:
@@ -131,8 +131,9 @@ def initialize_frequency_loader(frequency_lists_dir: Optional[Path] = None) -> F
     Initialize the global frequency loader instance.
     
     Args:
-        frequency_lists_dir: Optional custom directory for frequency lists
-        
+        frequency_lists_dir: Path to directory containing frequency list files.
+                            Defaults to src/frequency_lists/ relative to this file.
+    
     Returns:
         The initialized FrequencyLoader instance
     """
@@ -149,7 +150,7 @@ def get_frequency_loader() -> FrequencyLoader:
         The global FrequencyLoader instance
         
     Raises:
-        RuntimeError: If frequency loader hasn't been initialized
+        RuntimeError: If the frequency loader hasn't been initialized
     """
     if _frequency_loader is None:
         raise RuntimeError("Frequency loader not initialized. Call initialize_frequency_loader() first.")
