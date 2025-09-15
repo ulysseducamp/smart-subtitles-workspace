@@ -29,15 +29,13 @@ export interface RailwayAPIRequest {
 export class RailwayAPIClient {
   private static instance: RailwayAPIClient;
   private baseUrl: string;
-  private apiKey: string;
-  private endpoint: string;
+  private proxyEndpoint: string;
   private timeout: number;
 
   private constructor() {
     // Get configuration from environment variables (injected by webpack)
     this.baseUrl = process.env.RAILWAY_API_URL || 'https://smartsub-api-production.up.railway.app';
-    this.apiKey = process.env.RAILWAY_API_KEY || '';
-    this.endpoint = process.env.FUSE_SUBTITLES_ENDPOINT || '/fuse-subtitles';
+    this.proxyEndpoint = '/proxy-railway'; // Use proxy endpoint instead of direct API
     this.timeout = 240000; // 240 seconds timeout (4 minutes) for DeepL translations
   }
 
@@ -57,10 +55,6 @@ export class RailwayAPIClient {
     settings: SmartSubtitlesSettings
   ): Promise<RailwayAPIResponse> {
     console.log('Railway API Client: Processing subtitles with settings:', settings);
-
-    if (!this.apiKey) {
-      throw new Error('API key not configured');
-    }
 
     if (!targetSrt || !nativeSrt) {
       throw new Error('Missing required subtitle data');
@@ -82,13 +76,11 @@ export class RailwayAPIClient {
       enable_inline_translation: true // Always enabled for automatic inline translations
     };
 
-    const url = `${this.baseUrl}${this.endpoint}`;
-    const params = new URLSearchParams({
-      api_key: this.apiKey
-    });
+    // Use proxy endpoint instead of direct API call
+    const url = `${this.baseUrl}${this.proxyEndpoint}`;
 
     try {
-      console.log('Railway API Client: Sending request to:', url);
+      console.log('Railway API Client: Sending request to proxy:', url);
       
       const formData = new FormData();
       formData.append('target_srt', new Blob([targetSrt], { type: 'text/plain' }), 'target.srt');
@@ -101,7 +93,8 @@ export class RailwayAPIClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await fetch(`${url}?${params}`, {
+      // No API key needed - proxy handles authentication
+      const response = await fetch(url, {
         method: 'POST',
         body: formData,
         signal: controller.signal
@@ -178,8 +171,8 @@ export class RailwayAPIClient {
   public getConfigInfo(): { baseUrl: string; hasApiKey: boolean; endpoint: string } {
     return {
       baseUrl: this.baseUrl,
-      hasApiKey: !!this.apiKey,
-      endpoint: this.endpoint
+      hasApiKey: true, // Always true since proxy handles authentication
+      endpoint: this.proxyEndpoint
     };
   }
 }

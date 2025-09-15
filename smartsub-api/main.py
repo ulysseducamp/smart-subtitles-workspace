@@ -8,6 +8,7 @@ import tempfile
 import uvicorn
 import os
 import logging
+import httpx
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -53,8 +54,8 @@ app.add_middleware(
 # API Key validation middleware
 @app.middleware("http")
 async def validate_api_key(request: Request, call_next):
-    # Skip validation for health check endpoint
-    if request.url.path == "/health":
+    # Skip validation for health check and proxy endpoints
+    if request.url.path in ["/health", "/proxy-railway"]:
         return await call_next(request)
     
     # Get API key from query parameters or headers
@@ -266,6 +267,57 @@ async def fuse_subtitles(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Proxy endpoint for Chrome extension to securely access Railway API
+@app.post("/proxy-railway")
+async def proxy_railway(request: Request):
+    """
+    Proxy endpoint that receives requests from Chrome extension and forwards them
+    to the Railway API with the API key securely stored on the server.
+    """
+    try:
+        # Get the request body
+        body = await request.body()
+        
+        # Get the Railway API key from environment
+        railway_api_key = os.getenv("RAILWAY_API_KEY")
+        if not railway_api_key:
+            raise HTTPException(
+                status_code=500, 
+                detail="Railway API key not configured on server"
+            )
+        
+        # Get the target URL from query parameters or use default
+        target_url = request.query_params.get("url", "https://smartsub-api-production.up.railway.app/fuse-subtitles")
+        
+        # Add the API key to the target URL
+        separator = "&" if "?" in target_url else "?"
+        target_url_with_key = f"{target_url}{separator}api_key={railway_api_key}"
+        
+        # Forward the request to Railway API
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(
+                target_url_with_key,
+                content=body,
+                headers={
+                    "Content-Type": request.headers.get("content-type", "application/json"),
+                    "User-Agent": "SmartSubtitles-Proxy/1.0"
+                }
+            )
+            
+            # Return the response from Railway API
+            return JSONResponse(
+                content=response.json() if response.headers.get("content-type", "").startswith("application/json") else {"data": response.text},
+                status_code=response.status_code
+            )
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Request timeout to Railway API")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Error connecting to Railway API: {str(e)}")
+    except Exception as e:
+        logger.error(f"Proxy error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal proxy error: {str(e)}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))  # Changed from 8001 to 3000 due to port blocking

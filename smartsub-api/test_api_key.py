@@ -5,10 +5,14 @@ Test script pour vérifier la validation API key
 
 import requests
 import os
+from dotenv import load_dotenv
+
+# Charger automatiquement le fichier .env
+load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:8000"
-API_KEY = "sk-smartsub-abc123def456ghi789"  # Utilisez la même clé que dans Railway
+BASE_URL = "http://localhost:3000"
+API_KEY = os.getenv("API_KEY")  # Utilise la variable d'environnement comme le reste du code
 
 def test_without_api_key():
     """Test sans API key - doit retourner 401"""
@@ -44,8 +48,11 @@ if __name__ == "__main__":
     print("🧪 Test de la validation API key")
     print("=" * 40)
     
-    # Définir la variable d'environnement pour le test
-    os.environ["API_KEY"] = API_KEY
+    # Vérifier que la clé API est disponible
+    if not API_KEY:
+        print("❌ Erreur: API_KEY non trouvée dans le fichier .env")
+        print("   Assurez-vous que le fichier .env contient: API_KEY=ta_cle_ici")
+        exit(1)
     
     test_without_api_key()
     test_with_valid_api_key()
