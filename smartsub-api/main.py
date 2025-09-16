@@ -22,8 +22,8 @@ limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="Smart Netflix Subtitles API",
-    description="FastAPI backend for bilingual adaptive subtitles",
-    version="0.1.0"
+    description="FastAPI backend for bilingual adaptive subtitles with rate limiting",
+    version="0.1.1"
 )
 
 # Add rate limiter to app state and exception handler
