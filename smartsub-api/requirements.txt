@@ -5,3 +5,4 @@ supabase==2.3.4
 simplemma==1.1.2
 deepl==1.18.0
 slowapi==0.1.9
+# Force Railway to rebuild - cache bust

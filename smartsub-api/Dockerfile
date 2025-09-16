@@ -1,5 +1,8 @@
-# Python-only Dockerfile for SmartSub API
+# Python-only Dockerfile for SmartSub API with Rate Limiting
 FROM python:3.11-slim
+
+# Force cache bust - Railway cache issue fix
+ARG CACHE_BUST=2025-09-16-09-45
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
