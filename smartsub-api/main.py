@@ -9,16 +9,26 @@ import uvicorn
 import os
 import logging
 import httpx
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="Smart Netflix Subtitles API",
     description="FastAPI backend for bilingual adaptive subtitles",
     version="0.1.0"
 )
+
+# Add rate limiter to app state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Initialize frequency loader at startup
 @app.on_event("startup")
@@ -125,7 +135,9 @@ async def get_frequency_lists():
 
 # Endpoint for subtitle fusion using Python engine
 @app.post("/fuse-subtitles", response_model=SubtitleResponse)
+@limiter.limit("10/minute")
 async def fuse_subtitles(
+    request: Request,
     target_language: str = Form(...),
     native_language: str = Form(...),
     top_n_words: int = Form(2000),
