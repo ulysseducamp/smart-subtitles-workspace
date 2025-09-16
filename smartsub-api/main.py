@@ -44,6 +44,22 @@ app = FastAPI(
     version="0.1.1"
 )
 
+# Rate limiting middleware
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Only apply rate limiting to /fuse-subtitles endpoint
+    if request.url.path == "/fuse-subtitles" and request.method == "POST":
+        client_ip = request.client.host
+        if not check_rate_limit(client_ip):
+            logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Maximum 10 requests per minute."}
+            )
+    
+    response = await call_next(request)
+    return response
+
 # Initialize frequency loader at startup
 @app.on_event("startup")
 async def startup_event():
@@ -159,15 +175,6 @@ async def fuse_subtitles(
     target_srt: UploadFile = File(...),
     native_srt: UploadFile = File(...)
 ):
-    # Rate limiting check
-    client_ip = request.client.host
-    if not check_rate_limit(client_ip):
-        logger.warning(f"Rate limit exceeded for IP: {client_ip}")
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded. Maximum 10 requests per minute."
-        )
-    
     try:
         # Import Python engine
         import sys
