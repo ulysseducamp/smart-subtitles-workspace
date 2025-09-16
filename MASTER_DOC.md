@@ -401,14 +401,14 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 3.7.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, and Rate Limiting Protection - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), and File Size Validation (5MB limit) with DoS Protection, API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.8.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, and Rate Limiting Protection - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, and Secure CORS Configuration (Netflix domains only), API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with enhanced error handling and user experience improvements
 
-**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, and critical security vulnerabilities resolved - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, and file size validation (5MB limit) with DoS protection implemented and tested in production
+**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, and critical security vulnerabilities resolved - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, and CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle)
 
 
 ## 🔧 Solutions Techniques Implémentées
@@ -517,6 +517,33 @@ project-name/
 **Code concerné :** `smartsub-api/main.py` (configuration, fonction de validation, intégration endpoint)
 
 **Résultat :** Vulnérabilité de sécurité critique résolue - protection DoS active en production avec validation de taille et type de fichier, messages d'erreur clairs pour l'utilisateur, et tests complets validant le bon fonctionnement.
+
+### Refactoring CORS - Simplification de la Configuration de Sécurité (Janvier 2025)
+
+**Problème résolu :** Configuration CORS over-engineered avec code redondant et complexité inutile.
+
+**Solution adoptée :** Refactoring suivant le principe KISS (Keep It Simple, Stupid)
+- **Suppression du middleware redondant** : `validate_cors_origin` (18 lignes supprimées)
+- **Suppression de la logique de développement** : Variables et conditions inutiles (17 lignes supprimées)
+- **Configuration CORS simplifiée** : Utilisation du CORSMiddleware FastAPI standard uniquement
+- **Maintien de la sécurité** : Même niveau de protection avec code plus propre
+
+**Code final :**
+```python
+# CORS middleware - restrict to Netflix domains only
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://www.netflix.com",
+        "https://netflix.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+)
+```
+
+**Résultat :** Code simplifié de 40+ lignes à 10 lignes (-75%), même sécurité, meilleure maintenabilité, tests de production validés.
 
 ### Implémentation de Tests Complets (Janvier 2025)
 

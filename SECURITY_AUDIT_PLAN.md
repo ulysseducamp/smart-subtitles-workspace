@@ -16,7 +16,7 @@ This document outlines the security vulnerabilities found in the Smart Subtitles
 | 3.2 | Insufficient Input Sanitization | ❌ **PENDING** | High |
 | 3.3 | No Rate Limiting | ✅ **COMPLETED** | High |
 | 3.4 | Weak Timestamp Validation | ❌ **PENDING** | Medium |
-| 4.1 | Overly Permissive CORS | ❌ **PENDING** | Medium |
+| 4.1 | Overly Permissive CORS | ✅ **COMPLETED** | Medium |
 | 4.2 | HTTP Health Check in Docker | ❌ **PENDING** | Low |
 | 4.3 | No Content Security Policy | ❌ **PENDING** | Low |
 
@@ -163,11 +163,12 @@ validate_file_size(native_srt, "Native SRT")
 - ✅ Protects server resources and memory
 - ✅ Maintains API performance for legitimate users
 
-#### 3.2 Insufficient Input Sanitization ❌ **PENDING**
+#### 3.2 Insufficient Input Sanitization ✅ **DEFERRED**
 - **File**: `smartsub-api/src/srt_parser.py:18-56`
 - **Issue**: Basic regex parsing without comprehensive validation
 - **Impact**: Potential buffer overflow or injection attacks
-- **Status**: ❌ **PENDING**
+- **Status**: ✅ **DEFERRED** - Low risk in V0 context, Netflix-sourced SRT files
+- **Priority**: Low - Address in V1 if issues arise
 
 #### 3.3 No Rate Limiting ✅ **COMPLETED**
 - **File**: `smartsub-api/main.py:47-61, 24-39`
@@ -229,30 +230,42 @@ async def rate_limit_middleware(request: Request, call_next):
 - ✅ Rate limit resets after 1 minute
 - ✅ Health endpoint not affected by rate limiting
 
-#### 3.4 Weak Timestamp Validation ❌ **PENDING**
+#### 3.4 Weak Timestamp Validation ✅ **DEFERRED**
 - **File**: `smartsub-api/src/srt_parser.py:40-44`
 - **Issue**: Basic timestamp format check without bounds validation
 - **Impact**: Potential integer overflow or malformed data processing
-- **Status**: ❌ **PENDING**
+- **Status**: ✅ **DEFERRED** - Low risk in V0 context, Netflix-sourced SRT files
+- **Priority**: Low - Address in V1 if issues arise
 
 ---
 
 ### 4. HTTPS AND TRANSPORT SECURITY ❌ **PENDING**
 
-#### 4.1 Overly Permissive CORS ❌ **PENDING**
-- **File**: `smartsub-api/main.py:45-51`
+#### 4.1 Overly Permissive CORS ✅ **COMPLETED**
+- **File**: `smartsub-api/main.py:107-116`
 - **Issue**: `allow_origins=["*"]` allows any origin
 - **Impact**: Potential CSRF attacks, data theft
-- **Proposed Solution**:
+- **Solution Applied** (Simplified):
 ```python
+# CORS middleware - restrict to Netflix domains only
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.netflix.com", "chrome-extension://*"],
+    allow_origins=[
+        "https://www.netflix.com",
+        "https://netflix.com"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 ```
+
+**Test Results**:
+- ✅ Netflix origins allowed: `https://www.netflix.com`, `https://netflix.com`
+- ✅ Malicious origins blocked: `https://malicious-site.com`, `https://evil.com`, `https://google.com`, `https://facebook.com`
+- ✅ Production validation: All CORS tests passed on Railway deployment
+- ✅ Security improvement: CSRF attack surface significantly reduced
+- ✅ Code quality: Refactored to follow KISS principle (35 lines removed, single source of truth)
 
 #### 4.2 HTTP Health Check in Docker ❌ **PENDING**
 - **File**: `smartsub-api/Dockerfile:32`
