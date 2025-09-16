@@ -9,26 +9,40 @@ import uvicorn
 import os
 import logging
 import httpx
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Simple rate limiter
+rate_limit_storage = defaultdict(list)
+RATE_LIMIT_REQUESTS = 10
+RATE_LIMIT_WINDOW = 60  # seconds
+
+def check_rate_limit(client_ip: str) -> bool:
+    """Check if client has exceeded rate limit."""
+    now = datetime.now()
+    # Clean old requests
+    rate_limit_storage[client_ip] = [
+        req_time for req_time in rate_limit_storage[client_ip]
+        if now - req_time < timedelta(seconds=RATE_LIMIT_WINDOW)
+    ]
+    
+    # Check if limit exceeded
+    if len(rate_limit_storage[client_ip]) >= RATE_LIMIT_REQUESTS:
+        return False
+    
+    # Add current request
+    rate_limit_storage[client_ip].append(now)
+    return True
 
 app = FastAPI(
     title="Smart Netflix Subtitles API",
     description="FastAPI backend for bilingual adaptive subtitles with rate limiting",
     version="0.1.1"
 )
-
-# Add rate limiter to app state and exception handler
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Initialize frequency loader at startup
 @app.on_event("startup")
@@ -134,7 +148,6 @@ async def get_frequency_lists():
 
 
 # Endpoint for subtitle fusion using Python engine
-@limiter.limit("10/minute")
 @app.post("/fuse-subtitles", response_model=SubtitleResponse)
 async def fuse_subtitles(
     request: Request,
@@ -146,6 +159,15 @@ async def fuse_subtitles(
     target_srt: UploadFile = File(...),
     native_srt: UploadFile = File(...)
 ):
+    # Rate limiting check
+    client_ip = request.client.host
+    if not check_rate_limit(client_ip):
+        logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded. Maximum 10 requests per minute."
+        )
+    
     try:
         # Import Python engine
         import sys
