@@ -243,6 +243,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **Health Checks**: Service monitoring endpoints ✅ **COMPLETED**
 - **Railway Deployment**: Live API accessible at `https://smartsub-api-production.up.railway.app` ✅ **COMPLETED**
 - **API Security**: API key validation middleware ✅ **COMPLETED**
+- **Rate Limiting Protection**: Custom in-memory rate limiter (10 requests/minute per IP) ✅ **COMPLETED**
 - **Comprehensive Testing**: Full test suite with Railway URL validation ✅ **COMPLETED**
 - **Performance**: 72.2% replacement rate (343/475 subtitles) ✅ **IMPROVED**
 - **End-to-End Integration**: Chrome extension ↔ Railway API workflow ✅ **COMPLETED**
@@ -400,14 +401,14 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 3.4.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, and Comprehensive Testing - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, and Complete Test Suite, API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.6.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, and Rate Limiting Protection - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, and Custom Rate Limiting (10 requests/minute), API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with enhanced error handling and user experience improvements
 
-**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, and comprehensive testing - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations
+**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, and critical security vulnerabilities resolved - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, and secure server-side proxy architecture implemented to protect API keys from client-side exposure
 
 
 ## 🔧 Solutions Techniques Implémentées
@@ -528,6 +529,51 @@ project-name/
 
 **Résultat :** Code plus propre, plus maintenable et sans doublons, avec conservation des éléments utiles.
 
+## 🔒 Security Implementation (January 2025)
+
+### API Key Security Enhancement ✅ **COMPLETED**
+
+**Problem Resolved:** Critical security vulnerabilities related to API key exposure in the Chrome extension and test files.
+
+**Security Issues Addressed:**
+1. **Hardcoded API Key in Test File** - API key `"sk-smartsub-abc123def456ghi789"` was hardcoded in `test_api_key.py`
+2. **Client-Side API Key Storage** - Railway API key was stored in Chrome extension and transmitted in URL parameters
+3. **API Key in URL Parameters** - API key was visible in network requests, browser dev tools, and server logs
+
+**Solution Implemented:** Server-Side Proxy Architecture
+- **Backend Enhancement**: Added `/proxy-railway` endpoint in FastAPI (`smartsub-api/main.py`)
+- **Extension Security**: Removed `RAILWAY_API_KEY` from client-side code (`railwayClient.ts`)
+- **Proxy Authentication**: API key now stored securely on server side only via `os.getenv("RAILWAY_API_KEY")`
+- **Secure Communication**: Extension calls proxy endpoint without exposing API key
+
+**Architecture Change:**
+```
+BEFORE (VULNERABLE):
+Extension Chrome → API Railway (with exposed API key)
+
+AFTER (SECURE):
+Extension Chrome → Proxy Endpoint → API Railway (with secure API key)
+```
+
+**Security Benefits:**
+- ✅ API key no longer exposed in browser extension
+- ✅ API key no longer transmitted in URL parameters  
+- ✅ API key no longer visible in network requests
+- ✅ API key no longer accessible via browser dev tools
+- ✅ Test file now uses environment variables instead of hardcoded keys
+
+**Files Modified:**
+- `smartsub-api/main.py` - Added proxy endpoint and updated middleware
+- `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/api/railwayClient.ts` - Removed client-side API key
+- `smartsub-api/test_api_key.py` - Updated to use environment variables
+- `SECURITY_AUDIT_PLAN.md` - Created comprehensive security documentation
+
+**Testing Completed:**
+- ✅ Local proxy functionality verified
+- ✅ Chrome extension integration tested
+- ✅ Railway deployment validated
+- ✅ End-to-end security audit confirmed
+
 ## ⚠️ Known Issues & Technical Debt
 
 ### Performance Optimization (Priority: Medium)
@@ -537,3 +583,85 @@ project-name/
 - API timeout issues with complex subtitle sets
 **Solution:** Implement caching, batch processing, and timeout optimization
 **Current Status:** Processing time logging implemented, timeout increased to 240 seconds, further optimization needed
+
+## 🎓 Lessons Learned & Best Practices (January 2025)
+
+### Railway Deployment & Cache Issues
+
+**Problem Encountered:** Railway's aggressive Docker caching prevented new dependencies from being installed, causing deployment issues with external libraries like `slowapi`.
+
+**Key Lessons:**
+1. **Railway Cache = Recurrent Problem**: Railway caches Docker layers aggressively, which can prevent new dependencies from being installed even when `requirements.txt` is updated
+2. **Test Locally Before Deployment**: Always test new dependencies locally before deploying to Railway to avoid deployment cycles
+3. **Railway Logs = First Thing to Check**: When deployments fail, check Railway build logs first to verify if dependencies were actually installed
+4. **Cache Busting Techniques**: Use `ARG CACHE_BUST` in Dockerfile or modify `requirements.txt` with comments to force rebuilds
+5. **Alternative Solutions**: When external libraries fail on Railway, consider custom implementations (often simpler and more reliable)
+
+**Best Practices for Railway:**
+- Monitor build logs for dependency installation
+- Use cache busting when adding new dependencies
+- Consider custom implementations for critical functionality
+- Test locally before deploying
+- Keep dependencies minimal when possible
+
+### Rate Limiting Implementation
+
+**Problem Encountered:** External rate limiting library (`slowapi`) failed to install on Railway due to cache issues.
+
+**Solution Adopted:** Custom in-memory rate limiter with HTTP middleware
+- **Advantages**: No external dependencies, full control, Railway-compatible
+- **Implementation**: ~20 lines of code vs 3 lines with external library
+- **Performance**: Better performance, no cache issues, easier debugging
+
+**Technical Implementation:**
+```python
+# Custom rate limiter - simple and reliable
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+rate_limit_storage = defaultdict(list)
+RATE_LIMIT_REQUESTS = 10
+RATE_LIMIT_WINDOW = 60  # seconds
+
+def check_rate_limit(client_ip: str) -> bool:
+    # Clean old requests and check limit
+    # Implementation details in main.py
+
+# HTTP middleware for rate limiting
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Apply rate limiting before validation
+    # Returns 429 when limit exceeded
+```
+
+**Key Insights:**
+- Custom solutions can be more reliable than external libraries
+- HTTP middleware is the correct place for rate limiting (before validation)
+- In-memory storage is sufficient for single-instance deployments
+- Always test rate limiting with proper test suites
+
+### Development Process Optimization
+
+**What Worked Well:**
+- Systematic debugging approach
+- Comprehensive testing with multiple scenarios
+- Documentation of all attempts and solutions
+- User feedback and prompt quality
+
+**Areas for Improvement:**
+- Faster diagnosis of Railway cache issues
+- Earlier consideration of alternative solutions
+- More targeted testing (fewer deployment cycles)
+
+**Prompt Quality Assessment:**
+- User prompts were excellent with clear technical questions
+- "Behave as a senior developer" provided good context
+- Specific questions about root causes were very helpful
+- Order of operations (deploy → test) was logical
+
+**Recommendations for Future:**
+- Check Railway logs immediately when deployments fail
+- Consider custom implementations for critical functionality
+- Test locally before deploying
+- Keep external dependencies minimal
+- Document lessons learned for future reference
