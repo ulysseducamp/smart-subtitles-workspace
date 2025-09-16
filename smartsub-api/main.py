@@ -134,8 +134,8 @@ async def get_frequency_lists():
 
 
 # Endpoint for subtitle fusion using Python engine
-@app.post("/fuse-subtitles", response_model=SubtitleResponse)
 @limiter.limit("10/minute")
+@app.post("/fuse-subtitles", response_model=SubtitleResponse)
 async def fuse_subtitles(
     request: Request,
     target_language: str = Form(...),
