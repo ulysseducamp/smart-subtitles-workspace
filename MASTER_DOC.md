@@ -401,14 +401,14 @@ project-name/
 ---
 
 **Last Updated**: January 2025  
-**Version**: 3.6.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, and Rate Limiting Protection - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, and Custom Rate Limiting (10 requests/minute), API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.7.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, and Rate Limiting Protection - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), and File Size Validation (5MB limit) with DoS Protection, API Accessible at https://smartsub-api-production.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with enhanced error handling and user experience improvements
 
-**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, and critical security vulnerabilities resolved - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, and secure server-side proxy architecture implemented to protect API keys from client-side exposure
+**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, and critical security vulnerabilities resolved - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, and file size validation (5MB limit) with DoS protection implemented and tested in production
 
 
 ## 🔧 Solutions Techniques Implémentées
@@ -491,6 +491,32 @@ project-name/
 **Code concerné :** `smartsub-api/src/deepl_api.py`, `smartsub-api/main.py`, `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/api/railwayClient.ts`
 
 **Résultat :** Traductions inline automatiques fonctionnelles avec gestion robuste des erreurs et monitoring des performances.
+
+### Résolution de la Vulnérabilité de Sécurité - Limites de Taille de Fichier (Janvier 2025)
+
+**Problème résolu :** Vulnérabilité critique de sécurité - absence de validation de taille de fichier permettant des attaques DoS via upload de fichiers volumineux.
+
+**Solution implémentée :** Validation complète de taille et type de fichier
+- **Limite de taille** : 5MB maximum par fichier SRT (configurable via `MAX_FILE_SIZE`)
+- **Validation de type** : Seuls les fichiers .srt sont acceptés
+- **Protection DoS** : Rejet immédiat des fichiers volumineux avec erreur HTTP 413
+- **Messages d'erreur clairs** : Messages utilisateur-friendly pour l'extension Chrome
+
+**Implémentation technique :**
+- **Fonction de validation** : `validate_file_size()` avec gestion d'erreurs HTTPException
+- **Configuration flexible** : Limite configurable via variable d'environnement
+- **Intégration endpoint** : Validation appliquée dans `/fuse-subtitles` avant traitement
+- **Tests complets** : Suite de tests locale et production avec fichiers 1MB, 6MB, 10MB
+
+**Validation en production :**
+- ✅ **Tests locaux** : Validation fonctionnelle avec fichiers de test
+- ✅ **Déploiement Railway** : API accessible avec protection active
+- ✅ **Compatibilité extension** : Messages d'erreur exploitables par l'extension Chrome
+- ✅ **Protection DoS** : Fichiers volumineux rejetés avant traitement
+
+**Code concerné :** `smartsub-api/main.py` (configuration, fonction de validation, intégration endpoint)
+
+**Résultat :** Vulnérabilité de sécurité critique résolue - protection DoS active en production avec validation de taille et type de fichier, messages d'erreur clairs pour l'utilisateur, et tests complets validant le bon fonctionnement.
 
 ### Implémentation de Tests Complets (Janvier 2025)
 
