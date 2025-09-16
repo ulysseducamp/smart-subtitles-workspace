@@ -103,14 +103,47 @@ async def startup_event():
         logger.error(f"Failed to initialize frequency loader: {e}")
         # Don't fail startup, but log the error
 
-# CORS middleware for Chrome Extension
+# CORS middleware for Chrome Extension and Netflix
+ALLOWED_ORIGINS = [
+    "https://www.netflix.com",
+    "https://netflix.com"
+]
+
+# Add development origins in development
+if os.getenv("ENVIRONMENT") == "development":
+    ALLOWED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ])
+
+# CORS middleware with restricted origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En V0, on accepte toutes les origins
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
+
+# Additional CORS validation middleware
+@app.middleware("http")
+async def validate_cors_origin(request: Request, call_next):
+    """Additional CORS validation to ensure only allowed origins are processed"""
+    origin = request.headers.get("origin")
+    
+    # Skip validation for requests without origin (like direct API calls)
+    if not origin:
+        return await call_next(request)
+    
+    # Block unauthorized origins
+    if origin not in ALLOWED_ORIGINS:
+        logger.warning(f"Blocking request from unauthorized origin: {origin}")
+        return JSONResponse(
+            content={"error": "CORS policy violation - origin not allowed"},
+            status_code=403
+        )
+    
+    return await call_next(request)
 
 # API Key validation middleware
 @app.middleware("http")
