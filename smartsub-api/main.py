@@ -16,6 +16,10 @@ from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# File size validation configuration
+MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 5 * 1024 * 1024))  # 5MB default
+ALLOWED_EXTENSIONS = {".srt"}
+
 # Simple rate limiter
 rate_limit_storage = defaultdict(list)
 RATE_LIMIT_REQUESTS = 10
@@ -37,6 +41,23 @@ def check_rate_limit(client_ip: str) -> bool:
     # Add current request
     rate_limit_storage[client_ip].append(now)
     return True
+
+def validate_file_size(file: UploadFile, file_type: str) -> None:
+    """Validate file size and type."""
+    if file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"{file_type} file too large. Maximum size: {MAX_FILE_SIZE / (1024*1024):.1f}MB"
+        )
+    
+    # Validate file extension
+    if file.filename:
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Only {', '.join(ALLOWED_EXTENSIONS)} files allowed"
+            )
 
 app = FastAPI(
     title="Smart Netflix Subtitles API",
@@ -183,6 +204,10 @@ async def fuse_subtitles(
         from subtitle_fusion import SubtitleFusionEngine
         from srt_parser import parse_srt, generate_srt
         from frequency_loader import get_frequency_loader
+        
+        # SECURITY: Validate file sizes
+        validate_file_size(target_srt, "Target SRT")
+        validate_file_size(native_srt, "Native SRT")
         
         # Read uploaded files
         target_content = await target_srt.read()

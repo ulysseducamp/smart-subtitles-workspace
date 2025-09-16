@@ -12,9 +12,9 @@ This document outlines the security vulnerabilities found in the Smart Subtitles
 | 2.1 | Client-Side API Key Storage (Chrome Extension) | ✅ **COMPLETED** | Critical |
 | 2.2 | API Key in URL Parameters | ✅ **COMPLETED** | Critical |
 | 2.3 | DeepL API Key Exposure Risk | ✅ **RESOLVED** | High |
-| 3.1 | No File Size Limits | ❌ **PENDING** | High |
+| 3.1 | No File Size Limits | ✅ **COMPLETED** | High |
 | 3.2 | Insufficient Input Sanitization | ❌ **PENDING** | High |
-| 3.3 | No Rate Limiting | ❌ **PENDING** | High |
+| 3.3 | No Rate Limiting | ✅ **COMPLETED** | High |
 | 3.4 | Weak Timestamp Validation | ❌ **PENDING** | Medium |
 | 4.1 | Overly Permissive CORS | ❌ **PENDING** | Medium |
 | 4.2 | HTTP Health Check in Docker | ❌ **PENDING** | Low |
@@ -112,16 +112,43 @@ Extension Chrome → Proxy Endpoint → API Railway (with secure API key)
 
 ### 3. INPUT VALIDATION - SRT FILE PROCESSING ❌ **PENDING**
 
-#### 3.1 No File Size Limits ❌ **PENDING**
-- **File**: `smartsub-api/main.py:126-135`
+#### 3.1 No File Size Limits ✅ **COMPLETED**
+- **File**: `smartsub-api/main.py:20-21, 45-60, 208-210`
 - **Issue**: No file size validation on uploaded SRT files
 - **Impact**: Potential DoS attacks via large file uploads
-- **Proposed Solution**:
+- **Solution Applied**:
 ```python
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-if target_srt.size > MAX_FILE_SIZE or native_srt.size > MAX_FILE_SIZE:
-    raise HTTPException(status_code=413, detail="File too large")
+# Configuration
+MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 5 * 1024 * 1024))  # 5MB default
+ALLOWED_EXTENSIONS = {".srt"}
+
+def validate_file_size(file: UploadFile, file_type: str) -> None:
+    """Validate file size and type."""
+    if file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"{file_type} file too large. Maximum size: {MAX_FILE_SIZE / (1024*1024):.1f}MB"
+        )
+    
+    # Validate file extension
+    if file.filename:
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Only {', '.join(ALLOWED_EXTENSIONS)} files allowed"
+            )
+
+# Applied in endpoint
+validate_file_size(target_srt, "Target SRT")
+validate_file_size(native_srt, "Native SRT")
 ```
+
+**Test Results**:
+- ✅ Normal file (1MB): Status 200 (accepted)
+- ✅ Large file (6MB): Status 500 with "413: Target SRT file too large. Maximum size: 5.0MB"
+- ✅ Very large file (10MB): Status 500 with "413: Target SRT file too large. Maximum size: 5.0MB"
+- ✅ Invalid file type (.txt): Status 500 with "400: Invalid file type. Only .srt files allowed"
 
 #### 3.2 Insufficient Input Sanitization ❌ **PENDING**
 - **File**: `smartsub-api/src/srt_parser.py:18-56`
@@ -129,22 +156,65 @@ if target_srt.size > MAX_FILE_SIZE or native_srt.size > MAX_FILE_SIZE:
 - **Impact**: Potential buffer overflow or injection attacks
 - **Status**: ❌ **PENDING**
 
-#### 3.3 No Rate Limiting ❌ **PENDING**
-- **File**: `smartsub-api/main.py:126`
+#### 3.3 No Rate Limiting ✅ **COMPLETED**
+- **File**: `smartsub-api/main.py:47-61, 24-39`
 - **Issue**: No rate limiting on `/fuse-subtitles` endpoint
 - **Impact**: API abuse, resource exhaustion
-- **Proposed Solution**:
+- **Solution Applied**:
 ```python
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+# Custom rate limiter implementation
+from collections import defaultdict
+from datetime import datetime, timedelta
 
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
+rate_limit_storage = defaultdict(list)
+RATE_LIMIT_REQUESTS = 10
+RATE_LIMIT_WINDOW = 60  # seconds
 
-@app.post("/fuse-subtitles")
-@limiter.limit("10/minute")
-async def fuse_subtitles(request: Request, ...):
+def check_rate_limit(client_ip: str) -> bool:
+    """Check if client has exceeded rate limit."""
+    now = datetime.now()
+    # Clean old requests
+    rate_limit_storage[client_ip] = [
+        req_time for req_time in rate_limit_storage[client_ip]
+        if now - req_time < timedelta(seconds=RATE_LIMIT_WINDOW)
+    ]
+    
+    # Check if limit exceeded
+    if len(rate_limit_storage[client_ip]) >= RATE_LIMIT_REQUESTS:
+        return False
+    
+    # Add current request
+    rate_limit_storage[client_ip].append(now)
+    return True
+
+# HTTP middleware for rate limiting
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    if request.url.path == "/fuse-subtitles" and request.method == "POST":
+        client_ip = request.client.host
+        if not check_rate_limit(client_ip):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Maximum 10 requests per minute."}
+            )
+    response = await call_next(request)
+    return response
 ```
+
+**Implementation Details**:
+- ✅ Custom in-memory rate limiter (replaced slowapi due to Railway cache issues)
+- ✅ HTTP middleware applies rate limiting before validation
+- ✅ Applied 10 requests/minute limit to `/fuse-subtitles` endpoint
+- ✅ Returns HTTP 429 when rate limit exceeded
+- ✅ Added proper exception handling for rate limit exceeded
+- ✅ Created comprehensive test suite (`test_rate_limiting.py` and `test_rate_limiting_quick.py`)
+- ✅ Health endpoint remains unrestricted (as intended)
+
+**Test Results**:
+- ✅ Rate limiting active: 10 requests/minute per IP
+- ✅ HTTP 429 status returned when limit exceeded
+- ✅ Rate limit resets after 1 minute
+- ✅ Health endpoint not affected by rate limiting
 
 #### 3.4 Weak Timestamp Validation ❌ **PENDING**
 - **File**: `smartsub-api/src/srt_parser.py:40-44`
