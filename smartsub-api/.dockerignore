@@ -1,27 +1,57 @@
-# .dockerignore for smartsub-api/Dockerfile
-# Simple approach - exclude only what we don't need
-
-# Python cache and virtual environments
+# Python
 __pycache__/
-venv/
-*.pyc
-*.pyo
-*.pyd
-
-# Build artifacts
-dist/
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
-# Logs
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing files
+test_*.py
+*_test.py
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Development files
+.env
+.env.local
+.env.test
 *.log
-
-# IDE files
+.DS_Store
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# OS files
-.DS_Store
-Thumbs.db
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Temporary files
+*.tmp
+*.temp
