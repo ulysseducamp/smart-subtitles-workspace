@@ -54,7 +54,6 @@ COPY smartsub-api/main.py ./
 COPY smartsub-api/env.example ./
 COPY smartsub-api/test_api_key.py ./
 COPY smartsub-api/src/ ./src/
-COPY smartsub-api/utils/ ./utils/
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app \
