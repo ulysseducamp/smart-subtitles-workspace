@@ -16,6 +16,9 @@ from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Batch optimization deployment verification
+BATCH_VERSION = "v1.0-batch-optimization-deployed"
+
 # File size validation configuration
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 5 * 1024 * 1024))  # 5MB default
 ALLOWED_EXTENSIONS = {".srt"}
@@ -64,6 +67,11 @@ app = FastAPI(
     description="FastAPI backend for bilingual adaptive subtitles with rate limiting",
     version="0.1.1"
 )
+
+@app.on_event("startup")
+async def verify_batch_deployment():
+    logger.info(f"🚀 DEPLOYMENT VERIFIED: {BATCH_VERSION}")
+    logger.info("🔄 Batch optimization is now active")
 
 # Rate limiting middleware
 @app.middleware("http")

@@ -227,6 +227,10 @@ class SubtitleFusionEngine:
         debug_shown = 0
         translated_words = {}
         
+        # Batch translation: collect words to translate instead of translating immediately
+        unknown_words_to_translate = set()  # Use set to avoid duplicates
+        word_to_subtitle_mapping = {}  # Map word -> subtitle for later integration
+        
         final_subtitles = []
         processed_target_indices = set()
         
@@ -295,7 +299,7 @@ Final subtitle: "{current_target_sub.text}"
                 continue
             
             # Handle single unknown word with inline translation
-            if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
+            if len(unknown_words) == 1 and enable_inline_translation and native_lang:
                 # Find the original word corresponding to the lemmatized unknown word
                 try:
                     lemma_index = lemmatized_words.index(unknown_words[0])
@@ -304,15 +308,9 @@ Final subtitle: "{current_target_sub.text}"
                     # Fallback: use the lemmatized word as original if mapping fails
                     original_word = unknown_words[0]
                 
-                # Translate the original word (not the lemmatized form)
-                translated_word = deepl_api.translate(original_word, lang, native_lang)
-                
-                # Replace the word in the subtitle text
-                original_text = current_target_sub.text
-                # Simple word replacement (case-insensitive) using the original word
-                import re
-                pattern = re.compile(re.escape(original_word), re.IGNORECASE)
-                new_text = pattern.sub(f"{original_word} ({translated_word})", original_text)
+                # BATCH TRANSLATION: Collect word for batch translation instead of translating immediately
+                unknown_words_to_translate.add(original_word)
+                word_to_subtitle_mapping[original_word] = current_target_sub
                 
                 if should_show_details:
                     print(f"""
@@ -322,23 +320,11 @@ Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
 Words lemmatised: {', '.join(lemmatized_words_list)}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
-Decision: inline translation for single unknown word
-Reason: 1 unknown word detected, translating original word '{original_word}' (lemmatized: '{unknown_words[0]}')
-Final subtitle: "{new_text}"
+Decision: inline translation for single unknown word (COLLECTED FOR BATCH)
+Reason: 1 unknown word detected, collecting original word '{original_word}' (lemmatized: '{unknown_words[0]}') for batch translation
 """)
                 
-                # Create new subtitle with inline translation
-                translated_sub = Subtitle(
-                    index=current_target_sub.index,
-                    start=current_target_sub.start,
-                    end=current_target_sub.end,
-                    text=new_text
-                )
-                
-                final_subtitles.append(translated_sub)
-                processed_target_indices.add(current_target_sub.index)
-                inline_translation_count += 1
-                debug_shown += 1
+                # Skip processing for now - will be handled in batch translation phase
                 continue
             
             # Handle multiple unknown words - replace with native subtitle
@@ -430,6 +416,59 @@ Final subtitle: "{combined_native_sub['text']}"
             debug_shown += 1
         
         # Re-index the final subtitles
+        # BATCH TRANSLATION: Translate all collected words in a single API call
+        if unknown_words_to_translate and enable_inline_translation and deepl_api and native_lang:
+            print(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words in a single API call...")
+            
+            try:
+                # Convert set to list for batch translation
+                words_list = list(unknown_words_to_translate)
+                
+                # Translate all words in a single batch request
+                translated_words_batch = deepl_api.translate_batch(words_list, lang, native_lang)
+                
+                # Create mapping of original words to translations
+                word_translations = dict(zip(words_list, translated_words_batch))
+                
+                print(f"✅ Batch translation successful! Translated {len(word_translations)} words")
+                
+                # Apply translations to subtitles
+                for original_word, translation in word_translations.items():
+                    subtitle = word_to_subtitle_mapping[original_word]
+                    
+                    # Replace the word in the subtitle text
+                    original_text = subtitle.text
+                    pattern = re.compile(re.escape(original_word), re.IGNORECASE)
+                    new_text = pattern.sub(f"{original_word} ({translation})", original_text)
+                    
+                    # Create new subtitle with inline translation
+                    translated_sub = Subtitle(
+                        index=subtitle.index,
+                        start=subtitle.start,
+                        end=subtitle.end,
+                        text=new_text
+                    )
+                    
+                    final_subtitles.append(translated_sub)
+                    inline_translation_count += 1
+                    
+                    print(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
+                
+            except Exception as e:
+                print(f"❌ Batch translation failed: {e}")
+                print("🔄 Falling back to original subtitles without inline translations")
+                # Add original subtitles without translations
+                for original_word in unknown_words_to_translate:
+                    subtitle = word_to_subtitle_mapping[original_word]
+                    final_subtitles.append(subtitle)
+        else:
+            # No DeepL API available - add original subtitles without translations
+            if unknown_words_to_translate:
+                print(f"🔄 No DeepL API available - adding {len(unknown_words_to_translate)} original subtitles without translations")
+                for original_word in unknown_words_to_translate:
+                    subtitle = word_to_subtitle_mapping[original_word]
+                    final_subtitles.append(subtitle)
+        
         re_indexed_hybrid = []
         for i, subtitle in enumerate(final_subtitles):
             re_indexed_hybrid.append(Subtitle(

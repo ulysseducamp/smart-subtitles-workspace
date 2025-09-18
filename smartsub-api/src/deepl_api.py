@@ -3,7 +3,7 @@ DeepL API integration - Python implementation
 Migrated from TypeScript deepl-api.ts
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import requests
 import time
 
@@ -42,14 +42,21 @@ class DeepLAPI:
             translator = deepl.Translator(self.api_key)
             
             # Map language codes for DeepL compatibility
-            lang_mapping = {
-                'EN': 'EN-US',  # Use US English instead of deprecated EN
+            # Note: DeepL uses different codes for source vs target languages
+            source_lang_mapping = {
+                'EN': 'EN',  # Source language uses EN, not EN-US
                 'FR': 'FR',
                 'PT': 'PT'
             }
             
-            mapped_source_lang = lang_mapping.get(source_lang.upper(), source_lang.upper())
-            mapped_target_lang = lang_mapping.get(target_lang.upper(), target_lang.upper())
+            target_lang_mapping = {
+                'EN': 'EN-US',  # Target language uses EN-US
+                'FR': 'FR',
+                'PT': 'PT'
+            }
+            
+            mapped_source_lang = source_lang_mapping.get(source_lang.upper(), source_lang.upper())
+            mapped_target_lang = target_lang_mapping.get(target_lang.upper(), target_lang.upper())
             
             # Translate text
             result = translator.translate_text(
@@ -67,6 +74,79 @@ class DeepLAPI:
         except Exception as e:
             print(f"DeepL translation error: {e}")
             return text  # Fallback to original text
+    
+    def translate_batch(self, words: List[str], source_lang: str, target_lang: str) -> List[str]:
+        """
+        Translate multiple words in a single DeepL API request
+        Optimized for batch processing to reduce API calls
+        """
+        if not words:
+            return []
+        
+        # Separate cached and uncached words
+        cached_translations = []
+        uncached_words = []
+        uncached_indices = []
+        
+        for i, word in enumerate(words):
+            cache_key = f"{word}_{source_lang}_{target_lang}"
+            if cache_key in self.cache:
+                cached_translations.append((i, self.cache[cache_key]))
+            else:
+                uncached_words.append(word)
+                uncached_indices.append(i)
+        
+        # Translate only uncached words if any
+        if uncached_words:
+            try:
+                import deepl
+                
+                # Initialize DeepL translator
+                translator = deepl.Translator(self.api_key)
+                
+                # Map language codes for DeepL compatibility
+                # Note: DeepL uses different codes for source vs target languages
+                source_lang_mapping = {
+                    'EN': 'EN',  # Source language uses EN, not EN-US
+                    'FR': 'FR',
+                    'PT': 'PT'
+                }
+                
+                target_lang_mapping = {
+                    'EN': 'EN-US',  # Target language uses EN-US
+                    'FR': 'FR',
+                    'PT': 'PT'
+                }
+                
+                mapped_source_lang = source_lang_mapping.get(source_lang.upper(), source_lang.upper())
+                mapped_target_lang = target_lang_mapping.get(target_lang.upper(), target_lang.upper())
+                
+                # Translate all uncached words in a single request
+                results = translator.translate_text(
+                    uncached_words, 
+                    source_lang=mapped_source_lang, 
+                    target_lang=mapped_target_lang
+                )
+                
+                # Cache the new translations and add to cached_translations
+                for i, result in enumerate(results):
+                    word = uncached_words[i]
+                    translation = result.text
+                    cache_key = f"{word}_{source_lang}_{target_lang}"
+                    self.cache[cache_key] = translation
+                    cached_translations.append((uncached_indices[i], translation))
+                
+                self.request_count += 1  # Count as one API request
+                
+            except Exception as e:
+                print(f"DeepL batch translation error: {e}")
+                # Fallback: return original words for uncached ones
+                for i, word in enumerate(uncached_words):
+                    cached_translations.append((uncached_indices[i], word))
+        
+        # Sort by original index and return translations in correct order
+        cached_translations.sort(key=lambda x: x[0])
+        return [translation for _, translation in cached_translations]
     
     def get_stats(self) -> Dict[str, Any]:
         """
