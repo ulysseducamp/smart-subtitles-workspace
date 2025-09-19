@@ -364,8 +364,8 @@ async def proxy_railway(request: Request):
                 detail="Railway API key not configured on server"
             )
         
-        # Get the target URL from query parameters or use default
-        target_url = request.query_params.get("url", "https://smartsub-api-production.up.railway.app/fuse-subtitles")
+        # Get the target URL from query parameters or use environment-appropriate default
+        target_url = request.query_params.get("url", f"{request.base_url}fuse-subtitles")
         
         # Add the API key to the target URL
         separator = "&" if "?" in target_url else "?"
