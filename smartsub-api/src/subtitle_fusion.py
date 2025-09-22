@@ -284,8 +284,11 @@ class SubtitleFusionEngine:
         # Créer un dictionnaire pour un accès rapide aux logs par index
         logs_by_index = {log['index']: log for log in self._debug_logs}
         
-        # Afficher les logs dans l'ordre des sous-titres finaux
-        for subtitle in final_subtitles:
+        # Trier les sous-titres par index numérique pour affichage ordonné
+        sorted_subtitles = sorted(final_subtitles, key=lambda s: int(s.index))
+        
+        # Afficher les logs dans l'ordre numérique correct
+        for subtitle in sorted_subtitles:
             if subtitle.index in logs_by_index:
                 log_entry = logs_by_index[subtitle.index]
                 
