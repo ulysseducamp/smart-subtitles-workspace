@@ -41,7 +41,7 @@ RUN node --version && npm --version
 WORKDIR /app
 
 # Copy Python requirements and install dependencies
-COPY requirements.txt ./
+COPY smartsub-api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the built Node.js CLI from stage 1
@@ -50,10 +50,10 @@ COPY --from=node-builder /app/node-cli/node_modules ./node_modules
 COPY --from=node-builder /app/node-cli/package.json ./package.json
 
 # Copy FastAPI application files individually
-COPY main.py ./
-COPY env.example ./
-COPY test_api_key.py ./
-COPY src/ ./src/
+COPY smartsub-api/main.py ./
+COPY smartsub-api/env.example ./
+COPY smartsub-api/test_api_key.py ./
+COPY smartsub-api/src/ ./src/
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app \

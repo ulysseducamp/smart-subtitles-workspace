@@ -43,25 +43,26 @@ Sous-titres avec traduction inline: 138/695 (19.9%)
 **Objectif** : Regrouper les logs en sections claires (Configuration, Traitement, Statistiques)
 
 #### 1.1 Créer la structure de logs regroupés
-- [ ] Modifier `main.py` pour afficher la section CONFIGURATION au début
-- [ ] Déplacer toutes les statistiques finales vers la fin
-- [ ] Créer des séparateurs visuels clairs entre les sections
+- [x] Modifier `main.py` pour afficher la section CONFIGURATION au début
+- [x] Déplacer toutes les statistiques finales vers la fin
+- [x] Créer des séparateurs visuels clairs entre les sections
+- [x] Unifier tous les logs avec `logger` au lieu de `print()`
 
 #### 1.2 Tester la nouvelle structure
-- [ ] Exécuter un test de traitement de sous-titres
-- [ ] Vérifier que les logs sont bien structurés
-- [ ] Valider que toutes les informations sont présentes
+- [x] Exécuter un test de traitement de sous-titres
+- [x] Vérifier que les logs sont bien structurés
+- [x] Valider que toutes les informations sont présentes
 
 ### Étape 2: Affichage du niveau choisi
 **Objectif** : Afficher clairement le nombre de mots de vocabulaire choisi
 
 #### 2.1 Ajouter l'affichage du niveau
-- [ ] Modifier `main.py` pour afficher "Niveau choisi: X mots les plus fréquents"
-- [ ] Utiliser le paramètre `top_n_words` reçu de l'utilisateur
+- [x] Modifier `main.py` pour afficher "Niveau choisi: X mots les plus fréquents"
+- [x] Utiliser le paramètre `top_n_words` reçu de l'utilisateur
 
 #### 2.2 Tester l'affichage du niveau
-- [ ] Tester avec différents niveaux (1000, 2000, 5000 mots)
-- [ ] Vérifier que l'affichage est correct
+- [x] Tester avec différents niveaux (1000, 2000, 5000 mots)
+- [x] Vérifier que l'affichage est correct
 
 ### Étape 3: Position des mots dans la liste de fréquence
 **Objectif** : Afficher le rang de chaque mot dans la liste de fréquence
@@ -99,19 +100,19 @@ Sous-titres avec traduction inline: 138/695 (19.9%)
 **Objectif** : Afficher 40 sous-titres au lieu de 20 pour une meilleure analyse
 
 #### 5.1 Modifier la limite
-- [ ] Changer `debug_shown < 20` vers `debug_shown < 40` dans `subtitle_fusion.py`
+- [x] Changer `debug_shown < 20` vers `debug_shown < 40` dans `subtitle_fusion.py`
 
 #### 5.2 Tester la nouvelle limite
-- [ ] Exécuter un test avec plus de 40 sous-titres
-- [ ] Vérifier que 40 sous-titres sont bien affichés
-- [ ] Valider que les performances restent acceptables
+- [x] Exécuter un test avec plus de 40 sous-titres
+- [x] Vérifier que 40 sous-titres sont bien affichés
+- [x] Valider que les performances restent acceptables
 
 ## Critères de validation
-- [ ] Les logs sont clairs et structurés
-- [ ] Toutes les informations importantes sont visibles
-- [ ] Les performances ne sont pas dégradées
-- [ ] Le système fonctionne avec tous les types de sous-titres
-- [ ] Les tests passent sans erreur
+- [x] Les logs sont clairs et structurés
+- [x] Toutes les informations importantes sont visibles
+- [x] Les performances ne sont pas dégradées
+- [x] Le système fonctionne avec tous les types de sous-titres
+- [x] Les tests passent sans erreur
 
 ## Fichiers à modifier
 - `smartsub-api/main.py` : Structure des logs et affichage du niveau
@@ -126,5 +127,12 @@ Sous-titres avec traduction inline: 138/695 (19.9%)
 
 ---
 **Date de création** : Janvier 2025  
-**Statut** : En attente de début d'implémentation  
-**Prochaine étape** : Étape 1.1 - Créer la structure de logs regroupés
+**Statut** : ✅ ÉTAPES 1, 2 et 5 TERMINÉES - Prêt pour l'Étape 3  
+**Prochaine étape** : Étape 3 - Position des mots dans la liste de fréquence
+
+## Résumé des réalisations
+- ✅ **Étape 1** : Restructuration complète des logs (CONFIGURATION/TRAITEMENT/STATISTIQUES)
+- ✅ **Étape 2** : Affichage du niveau choisi ("2000 mots les plus fréquents")
+- ✅ **Étape 5** : Augmentation de la limite à 40 sous-titres
+- ⏳ **Étape 3** : Position des mots dans la liste de fréquence (en attente)
+- ⏳ **Étape 4** : Affichage du sous-titre final (en attente)

@@ -9,6 +9,7 @@ import re
 import time
 import logging
 from srt_parser import Subtitle
+from frequency_loader import get_frequency_loader
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -209,6 +210,39 @@ class SubtitleFusionEngine:
 
         return intersection_end - intersection_start > 500
 
+    def _format_words_with_ranks(self, words: List[str], language: str, top_n: int = 2000) -> str:
+        """
+        Format words with their frequency ranks for logging.
+        
+        Args:
+            words: List of words to format
+            language: Language code for ranking lookup
+            top_n: Number of top words to consider
+            
+        Returns:
+            Formatted string with words and their ranks
+        """
+        if not words:
+            return "none"
+        
+        try:
+            frequency_loader = get_frequency_loader()
+            formatted_words = []
+            
+            for word in words:
+                rank = frequency_loader.get_word_rank(word, language, top_n)
+                if rank is not None:
+                    formatted_words.append(f"{word} → rang {rank}/{top_n} (connu)")
+                else:
+                    formatted_words.append(f"{word} → inconnu (hors des {top_n} premiers)")
+            
+            return ", ".join(formatted_words)
+            
+        except Exception as e:
+            # Fallback to simple format if ranking fails
+            logger.warning(f"Failed to get word ranks: {e}")
+            return ", ".join(words)
+
     def fuse_subtitles(self, 
                       target_subs: List[Subtitle],
                       native_subs: List[Subtitle], 
@@ -216,7 +250,8 @@ class SubtitleFusionEngine:
                       lang: str,
                       enable_inline_translation: bool = False,
                       deepl_api: Optional[Any] = None,
-                      native_lang: Optional[str] = None) -> Dict[str, Any]:
+                      native_lang: Optional[str] = None,
+                      top_n: int = 2000) -> Dict[str, Any]:
         """
         Main fusion algorithm - migrated from TypeScript fuseSubtitles function
         """
@@ -287,11 +322,14 @@ class SubtitleFusionEngine:
             
             if len(unknown_words) == 0:
                 if should_show_details:
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
                     logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
+Mots analysés: {words_with_ranks}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 Decision: kept in target language
 Reason: all words are known or proper nouns
@@ -317,11 +355,14 @@ Final subtitle: "{current_target_sub.text}"
                 word_to_subtitle_mapping[original_word] = current_target_sub
                 
                 if should_show_details:
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
                     logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
+Mots analysés: {words_with_ranks}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
 Decision: inline translation for single unknown word (COLLECTED FOR BATCH)
@@ -341,11 +382,14 @@ Reason: 1 unknown word detected, collecting original word '{original_word}' (lem
             
             if len(intersecting_native_subs) == 0:
                 if should_show_details:
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
                     logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
+Mots analysés: {words_with_ranks}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
 Decision: kept in target language
@@ -374,11 +418,14 @@ Final subtitle: "{current_target_sub.text}"
             
             if len(overlapping_target_subs) == 0:
                 if should_show_details:
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
                     logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
+Mots analysés: {words_with_ranks}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
 Decision: kept in target language
@@ -399,11 +446,14 @@ Final subtitle: "{current_target_sub.text}"
             )
             
             if should_show_details:
+                # Format words with ranks for better debugging
+                words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                
                 logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
+Mots analysés: {words_with_ranks}
 Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
 DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
 Decision: replaced with native subtitle

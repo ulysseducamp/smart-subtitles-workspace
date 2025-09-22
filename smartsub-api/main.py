@@ -267,7 +267,8 @@ async def fuse_subtitles(
             lang=target_language,
             enable_inline_translation=enable_inline_translation,
             deepl_api=deepl_api,
-            native_lang=native_language
+            native_lang=native_language,
+            top_n=top_n_words
         )
         
         processing_time = time.time() - start_time

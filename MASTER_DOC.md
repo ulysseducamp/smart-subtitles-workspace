@@ -400,16 +400,297 @@ project-name/
 
 ---
 
+## 8. Project Structure & Configuration
+
+### Directory Structure (Consistent Across All Branches)
+```
+smart-subtitles-workspace/
+├── smartsub-api/                    # API Backend Service
+│   ├── Dockerfile                   # Service-specific Dockerfile
+│   ├── main.py                      # FastAPI application entry point
+│   ├── src/                         # Core Python modules
+│   │   ├── subtitle_fusion.py       # Pure Python fusion algorithm
+│   │   ├── srt_parser.py            # SRT parsing and generation
+│   │   ├── lemmatizer.py            # Python lemmatization
+│   │   ├── frequency_loader.py      # In-memory frequency list management
+│   │   ├── deepl_api.py             # DeepL API integration
+│   │   └── frequency_lists/         # Static frequency list files
+│   ├── tests/                       # Test suite
+│   ├── requirements.txt             # Python dependencies
+│   └── venv/                        # Python virtual environment
+├── netflix-smart-subtitles-chrome-extension/  # Chrome Extension
+│   └── my-netflix-extension-ts/     # TypeScript version (primary)
+├── subtitles-fusion-algorithm-public/  # Legacy TypeScript algorithm
+└── reference/                       # Reference implementations
+```
+
+### Git Workflow
+- **`main`**: Production-ready stable version
+- **`develop`**: Development branch with latest features
+- **Workflow**: Develop on `develop` → Test on staging → Merge to `main` → Deploy to production
+
+### Railway Configuration
+
+#### Production Environment
+- **Project**: `smartsub-api`
+- **Environment**: `production`
+- **Branch**: `main`
+- **Root Directory**: `smartsub-api`
+- **Dockerfile Path**: `smartsub-api/Dockerfile`
+- **URL**: `https://smartsub-api-production.up.railway.app`
+
+#### Staging Environment
+- **Project**: `smartsub-api`
+- **Environment**: `staging`
+- **Branch**: `develop`
+- **Root Directory**: `smartsub-api`
+- **Dockerfile Path**: `smartsub-api/Dockerfile`
+- **URL**: `https://smartsub-api-staging.up.railway.app`
+- **Auto-deploy**: Enabled (deploys automatically on `develop` branch pushes)
+
+### Chrome Extension Build & Deployment
+
+#### Build Scripts
+- **`npm run build:staging`**: Build for staging environment (points to `smartsub-api-staging.up.railway.app`)
+- **`npm run build:production`**: Build for production environment (points to `smartsub-api-production.up.railway.app`)
+- **Configuration**: Automatic environment detection via `SMART_SUBS_ENV` variable
+
+#### Environment Configuration
+- **Environment Variable**: `SMART_SUBS_ENV` (not `NODE_ENV`)
+- **Webpack Integration**: `EnvironmentPlugin` for automatic variable injection
+- **URL Mapping**: 
+  - `staging` → `https://smartsub-api-staging.up.railway.app`
+  - `production` → `https://smartsub-api-production.up.railway.app`
+
+#### Deployment Workflow
+1. **Development**: Use `npm run build:staging` for testing
+2. **Testing**: Load extension from `dist/` folder in Chrome
+3. **Production**: Use `npm run build:production` + commit `dist/` folder to `main` branch
+4. **Distribution**: Users install from committed `dist/` folder
+
+#### Proxy Configuration
+- **Endpoint**: `/proxy-railway` (secure server-side proxy)
+- **Purpose**: Protects API keys from client-side exposure
+- **URL Construction**: Dynamic HTTPS URL with `request.headers.get('host')`
+- **Environment Detection**: Automatic staging/production routing
+
+### Environment Variables
+```bash
+# Required for all environments
+DEEPL_API_KEY=your_deepl_api_key
+RAILWAY_API_KEY=your_railway_api_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+
+# Railway-specific (auto-configured)
+RAILWAY_ENVIRONMENT=production|staging
+RAILWAY_PROJECT_ID=5b1ad44c-6637-4eaa-975e-fd12f74386a7
+RAILWAY_SERVICE_ID=service_id
+```
+
+### Deployment Process
+1. **Development**: Work on `develop` branch
+2. **Testing**: Auto-deploy to staging environment
+3. **Validation**: Test on staging environment
+4. **Production**: Merge `develop` → `main` → Auto-deploy to production
+
+### Complete Workflow (Chrome Extension + Railway)
+
+#### Development Workflow
+1. **Code Changes**: Make changes on `develop` branch
+2. **API Testing**: Railway auto-deploys to staging (`https://smartsub-api-staging.up.railway.app`)
+3. **Extension Build**: Run `npm run build:staging` in extension directory
+4. **Extension Testing**: Load extension from `dist/` folder in Chrome
+5. **End-to-End Testing**: Test complete workflow on Netflix with staging API
+
+#### Production Deployment
+1. **API Deployment**: Merge `develop` → `main` → Railway auto-deploys to production
+2. **Extension Build**: Run `npm run build:production` in extension directory
+3. **Extension Commit**: Commit `dist/` folder to `main` branch
+4. **Distribution**: Users install extension from committed `dist/` folder
+
+#### Environment Isolation
+- **Staging**: `develop` branch → `smartsub-api-staging.up.railway.app` → Extension staging build
+- **Production**: `main` branch → `smartsub-api-production.up.railway.app` → Extension production build
+- **No Cross-Contamination**: Staging extension never hits production API
+
 **Last Updated**: January 2025  
-**Version**: 3.8.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, and Rate Limiting Protection - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, and Secure CORS Configuration (Netflix domains only), API Accessible at https://smartsub-api-production.up.railway.app  
+**Version**: 3.10.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, and Proxy 301 Fix - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, and Fixed Proxy 301 Redirect Issue, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with enhanced error handling and user experience improvements
 
-**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, and critical security vulnerabilities resolved - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, and CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle)
+**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, critical security vulnerabilities resolved, staging environment setup, and proxy 301 fix - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle), staging environment configured with auto-deploy from develop branch for safe testing before production deployment, and proxy 301 redirect issue resolved with dynamic HTTPS URL construction using request.headers.get('host') for proper environment isolation
 
+
+## 🚀 Chrome Extension Development Workflows
+
+### Build & Environment Management
+
+#### Environment Configuration
+The Chrome extension uses `SMART_SUBS_ENV` (not `NODE_ENV`) for environment detection:
+
+```bash
+# Staging environment
+SMART_SUBS_ENV=staging npm run build:staging
+
+# Production environment  
+SMART_SUBS_ENV=production npm run build:production
+```
+
+#### Webpack Configuration
+Environment variables are injected via `EnvironmentPlugin`:
+
+```javascript
+// webpack.config.js
+new webpack.EnvironmentPlugin({
+  SMART_SUBS_ENV: 'staging' // default value
+})
+```
+
+#### URL Mapping
+- **Staging**: `https://smartsub-api-staging.up.railway.app`
+- **Production**: `https://smartsub-api-production.up.railway.app`
+
+### Development Workflow
+
+#### 1. Local Development
+```bash
+# 1. Make changes to extension code
+cd netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts
+
+# 2. Build for staging
+npm run build:staging
+
+# 3. Load extension in Chrome
+# - Go to chrome://extensions/
+# - Enable "Developer mode"
+# - Click "Load unpacked"
+# - Select the dist/ folder
+```
+
+#### 2. Testing with Staging API
+```bash
+# 1. Ensure Railway staging is deployed
+git push origin develop  # Auto-deploys to staging
+
+# 2. Build extension for staging
+npm run build:staging
+
+# 3. Test on Netflix
+# - Load extension in Chrome
+# - Go to Netflix
+# - Test subtitle processing
+# - Check Railway staging logs
+```
+
+#### 3. Production Deployment
+```bash
+# 1. Merge to main branch
+git checkout main
+git merge develop
+git push origin main  # Auto-deploys to production
+
+# 2. Build extension for production
+npm run build:production
+
+# 3. Commit dist/ folder to main
+git add dist/
+git commit -m "Deploy extension v3.10.0"
+git push origin main
+```
+
+### Proxy Architecture
+
+#### Server-Side Proxy (`/proxy-railway`)
+The extension uses a secure server-side proxy to protect API keys:
+
+```python
+# smartsub-api/main.py
+@app.post("/proxy-railway")
+async def proxy_railway(request: Request):
+    # Get Railway API key from server environment
+    railway_api_key = os.getenv("RAILWAY_API_KEY")
+    
+    # Construct target URL with HTTPS
+    target_url = request.query_params.get("url", 
+        f"https://{request.headers.get('host', 'smartsub-api-staging.up.railway.app')}/fuse-subtitles")
+    
+    # Forward request to Railway API
+    # API key is never exposed to client
+```
+
+#### Client-Side Integration
+```typescript
+// railwayClient.ts
+class RailwayAPIClient {
+  private baseUrl: string;
+  private proxyEndpoint = "/proxy-railway";
+  
+  constructor() {
+    // Environment-specific URL
+    this.baseUrl = process.env.SMART_SUBS_ENV === 'production' 
+      ? "https://smartsub-api-production.up.railway.app"
+      : "https://smartsub-api-staging.up.railway.app";
+  }
+  
+  async processSubtitles(targetSrt: string, nativeSrt: string, settings: any) {
+    const url = `${this.baseUrl}${this.proxyEndpoint}`;
+    // No API key in client code - handled by proxy
+  }
+}
+```
+
+### Environment Isolation
+
+#### Staging Environment
+- **Branch**: `develop`
+- **API**: `https://smartsub-api-staging.up.railway.app`
+- **Extension**: Built with `npm run build:staging`
+- **Purpose**: Development and testing
+
+#### Production Environment  
+- **Branch**: `main`
+- **API**: `https://smartsub-api-production.up.railway.app`
+- **Extension**: Built with `npm run build:production`
+- **Purpose**: User distribution
+
+#### No Cross-Contamination
+- Staging extension never hits production API
+- Production extension never hits staging API
+- Each environment is completely isolated
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Extension not loading**
+   - Check `dist/` folder exists
+   - Verify manifest.json is valid
+   - Check Chrome console for errors
+
+2. **API connection failed**
+   - Verify environment URL in built extension
+   - Check Railway deployment status
+   - Test API endpoint directly
+
+3. **301 Redirect errors**
+   - Fixed in v3.10.0 with dynamic HTTPS URL construction
+   - Ensure using latest code
+
+#### Debug Commands
+```bash
+# Check extension build
+grep -o "smartsub-api-[a-z]*\.up\.railway\.app" dist/page-script.js
+
+# Test API endpoint
+curl -s "https://smartsub-api-staging.up.railway.app/health"
+
+# Check Railway logs
+# Use Railway dashboard or CLI
+```
 
 ## 🔧 Solutions Techniques Implémentées
 
@@ -517,6 +798,40 @@ project-name/
 **Code concerné :** `smartsub-api/main.py` (configuration, fonction de validation, intégration endpoint)
 
 **Résultat :** Vulnérabilité de sécurité critique résolue - protection DoS active en production avec validation de taille et type de fichier, messages d'erreur clairs pour l'utilisateur, et tests complets validant le bon fonctionnement.
+
+### Correction du Problème de Redirection 301 - Proxy Railway (Janvier 2025)
+
+**Problème résolu :** Erreur 301 Moved Permanently lors de l'utilisation du proxy `/proxy-railway` - l'extension Chrome staging envoyait des requêtes vers l'API production au lieu de staging.
+
+**Cause racine identifiée :** URL hardcodée vers production dans le proxy staging
+```python
+# PROBLÉMATIQUE (ligne 368)
+target_url = request.query_params.get("url", "https://smartsub-api-production.up.railway.app/fuse-subtitles")
+```
+
+**Solution implémentée :** URL HTTPS dynamique avec détection d'environnement
+```python
+# SOLUTION (ligne 368-369)
+target_url = request.query_params.get("url", 
+    f"https://{request.headers.get('host', 'smartsub-api-staging.up.railway.app')}/fuse-subtitles")
+```
+
+**Avantages de la solution :**
+- ✅ **HTTPS forcé** : Évite les redirections 301 HTTP → HTTPS
+- ✅ **Host dynamique** : Utilise l'en-tête `Host` de la requête
+- ✅ **Fallback robuste** : URL par défaut si pas d'en-tête Host
+- ✅ **Simple et élégante** : Une seule ligne modifiée
+- ✅ **Sécurisée** : Respecte les principes de développement
+
+**Tests de validation :**
+- ✅ **Extension Chrome** : Pointe correctement vers `smartsub-api-staging.up.railway.app`
+- ✅ **Logs Railway** : Plus d'erreur 301, requêtes HTTPS directes
+- ✅ **Traitement réussi** : 676 sous-titres traités avec 41% de remplacement
+- ✅ **Performance** : 1 seule requête DeepL pour 172 traductions inline
+
+**Code concerné :** `smartsub-api/main.py` (ligne 368-369)
+
+**Résultat :** Problème de redirection 301 résolu - extension Chrome staging fonctionne parfaitement avec l'API Railway staging, plus de contamination entre environnements, solution simple et robuste respectant les principes KISS.
 
 ### Refactoring CORS - Simplification de la Configuration de Sécurité (Janvier 2025)
 

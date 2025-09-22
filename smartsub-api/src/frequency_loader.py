@@ -15,7 +15,7 @@ Features:
 """
 
 from pathlib import Path
-from typing import Set, Optional
+from typing import Set, Optional, Dict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,9 @@ class FrequencyLoader:
         
         # Cache for loaded frequency lists
         self._cache: dict[str, Set[str]] = {}
+        
+        # Cache for word rankings (word -> rank mapping)
+        self._ranking_cache: dict[str, Dict[str, int]] = {}
         
         logger.info(f"FrequencyLoader initialized with directory: {self.frequency_lists_dir}")
     
@@ -110,6 +113,66 @@ class FrequencyLoader:
             logger.error(f"Error loading frequency list for {language}: {e}")
             raise
     
+    
+    def get_word_rank(self, word: str, language: str, top_n: int = 2000) -> Optional[int]:
+        """
+        Get the rank (1-indexed) of a word in the frequency list.
+        
+        Args:
+            word: The word to look up
+            language: Language code (e.g., 'en', 'fr', 'pt')
+            top_n: Number of top words to consider (default: 2000)
+            
+        Returns:
+            The rank (1-indexed) of the word, or None if not in the top_n words
+            
+        Raises:
+            ValueError: If language is not supported
+            FileNotFoundError: If frequency list file doesn't exist
+        """
+        # Normalize inputs
+        word = word.lower().strip()
+        language = language.lower().strip()
+        
+        if language not in self._language_files:
+            raise ValueError(f"Unsupported language: {language}. Supported: {list(self._language_files.keys())}")
+        
+        # Check cache first
+        cache_key = f"{language}_{top_n}"
+        if cache_key not in self._ranking_cache:
+            self._build_ranking_cache(language, top_n)
+        
+        return self._ranking_cache[cache_key].get(word)
+    
+    def _build_ranking_cache(self, language: str, top_n: int) -> None:
+        """
+        Build the ranking cache for a language and top_n combination.
+        
+        Args:
+            language: Language code
+            top_n: Number of top words to consider
+        """
+        filename = self._language_files[language]
+        file_path = self.frequency_lists_dir / filename
+        
+        if not file_path.exists():
+            raise FileNotFoundError(f"Frequency list file not found: {file_path}")
+        
+        # Build ranking dictionary from file order
+        ranking_dict = {}
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                if i >= top_n:  # Stop after reading top_n words
+                    break
+                word = line.strip().lower()
+                if word:  # Skip empty lines
+                    ranking_dict[word] = i + 1  # 1-indexed ranking
+        
+        # Cache the ranking dictionary
+        cache_key = f"{language}_{top_n}"
+        self._ranking_cache[cache_key] = ranking_dict
+        
+        logger.info(f"Built ranking cache for {language} with {len(ranking_dict)} words (top {top_n})")
     
     def get_supported_languages(self) -> list[str]:
         """
