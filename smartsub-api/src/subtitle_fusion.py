@@ -22,6 +22,8 @@ class SubtitleFusionEngine:
     
     def __init__(self):
         # English contractions mapping - migrated from logic.ts
+        # Debug logs storage for ordered display
+        self._debug_logs = []
         self.english_contractions = {
             # Personal pronouns + be/have/will/would
             "you're": ["you", "are"],
@@ -247,8 +249,8 @@ class SubtitleFusionEngine:
                              words_ranks: str, unknown_words: List[str], decision: str, 
                              reason: str, final_text: str) -> None:
         """
-        Helper function pour logger les détails d'un sous-titre de manière atomique.
-        Évite les problèmes de buffering et d'interleaving des logs multilines.
+        Helper function pour stocker les détails d'un sous-titre pour affichage ordonné.
+        Les logs seront affichés à la fin dans l'ordre correct des sous-titres.
         
         Args:
             subtitle_index: Index du sous-titre
@@ -260,15 +262,43 @@ class SubtitleFusionEngine:
             reason: Raison de la décision
             final_text: Texte final du sous-titre
         """
-        logger.info(f"=== SUBTITLE {subtitle_index} ===")
-        logger.info(f"Original: \"{original_text}\"")
-        logger.info(f"Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}")
-        logger.info(f"Mots analysés: {words_ranks}")
-        logger.info(f"Unknown words: {', '.join(unknown_words) if unknown_words else 'none'}")
-        logger.info(f"Decision: {decision}")
-        logger.info(f"Reason: {reason}")
-        logger.info(f"Final subtitle: \"{final_text}\"")
-        logger.info("")
+        # Stocker les infos de debug pour affichage ordonné plus tard
+        self._debug_logs.append({
+            'index': subtitle_index,
+            'original_text': original_text,
+            'proper_nouns': proper_nouns,
+            'words_ranks': words_ranks,
+            'unknown_words': unknown_words,
+            'decision': decision,
+            'reason': reason,
+            'final_text': final_text
+        })
+
+    def _display_ordered_logs(self, final_subtitles: List[Subtitle]) -> None:
+        """
+        Affiche les logs de debug dans l'ordre correct des sous-titres finaux.
+        
+        Args:
+            final_subtitles: Liste des sous-titres finaux dans l'ordre correct
+        """
+        # Créer un dictionnaire pour un accès rapide aux logs par index
+        logs_by_index = {log['index']: log for log in self._debug_logs}
+        
+        # Afficher les logs dans l'ordre des sous-titres finaux
+        for subtitle in final_subtitles:
+            if subtitle.index in logs_by_index:
+                log_entry = logs_by_index[subtitle.index]
+                
+                # Afficher le log de manière atomique
+                logger.info(f"=== SUBTITLE {log_entry['index']} ===")
+                logger.info(f"Original: \"{log_entry['original_text']}\"")
+                logger.info(f"Proper nouns: {', '.join(log_entry['proper_nouns']) if log_entry['proper_nouns'] else 'none'}")
+                logger.info(f"Mots analysés: {log_entry['words_ranks']}")
+                logger.info(f"Unknown words: {', '.join(log_entry['unknown_words']) if log_entry['unknown_words'] else 'none'}")
+                logger.info(f"Decision: {log_entry['decision']}")
+                logger.info(f"Reason: {log_entry['reason']}")
+                logger.info(f"Final subtitle: \"{log_entry['final_text']}\"")
+                logger.info("")
 
     def fuse_subtitles(self, 
                       target_subs: List[Subtitle],
@@ -561,6 +591,12 @@ class SubtitleFusionEngine:
                 end=subtitle.end,
                 text=subtitle.text
             ))
+        
+        # Afficher les logs de debug dans l'ordre correct des sous-titres finaux
+        if self._debug_logs:
+            self._display_ordered_logs(final_subtitles)
+            # Nettoyer la liste temporaire pour éviter les fuites mémoire
+            self._debug_logs.clear()
         
         return {
             'hybrid': re_indexed_hybrid,
