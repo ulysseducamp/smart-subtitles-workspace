@@ -1,6 +1,0 @@
-# Deploy trigger file
-# This file is used to trigger a new deployment
-# Generated: 2025-01-22 13:50:00
-# Updated: 2025-01-22 13:55:00
-# Purpose: Force Railway deployment after logs fix
-# Attempt: 2
