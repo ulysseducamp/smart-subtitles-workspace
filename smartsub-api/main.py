@@ -234,8 +234,12 @@ async def fuse_subtitles(
         # Get top N words in frequency order (most frequent first)
         known_words = frequency_loader.get_top_n_words(target_language, top_n_words)
         
-        # Log received parameters for debugging
-        logger.info(f"Received parameters - enable_inline_translation: {enable_inline_translation}, target_lang: {target_language}, native_lang: {native_language}")
+        # Log configuration section
+        logger.info("=== CONFIGURATION ===")
+        logger.info(f"Niveau choisi: {top_n_words} mots les plus fréquents")
+        logger.info(f"Langue cible: {target_language}, Langue native: {native_language}")
+        logger.info(f"Traduction inline: {'activée' if enable_inline_translation else 'désactivée'}")
+        logger.info("")
         
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
@@ -252,6 +256,7 @@ async def fuse_subtitles(
             logger.warning("DeepL API key not provided, inline translation disabled")
         
         # Process fusion with timing
+        logger.info("=== TRAITEMENT DES SOUS-TITRES ===")
         import time
         start_time = time.time()
         
@@ -272,7 +277,8 @@ async def fuse_subtitles(
         output_srt = generate_srt(result['hybrid'])
         
         # Log detailed statistics AFTER all subtitle processing logs are complete
-        logger.info("=== SUBTITLE PROCESSING STATISTICS ===")
+        logger.info("")
+        logger.info("=== STATISTIQUES FINALES ===")
         logger.info(f"Total target subtitles: {len(target_subs)}")
         logger.info(f"Total native subtitles: {len(native_subs)}")
         

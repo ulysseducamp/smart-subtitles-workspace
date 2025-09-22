@@ -7,7 +7,11 @@ from typing import List, Set, Dict, Any, Optional
 from dataclasses import dataclass
 import re
 import time
+import logging
 from srt_parser import Subtitle
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 class SubtitleFusionEngine:
     """
@@ -249,7 +253,7 @@ class SubtitleFusionEngine:
             
             # Add null check for lemmatized_words
             if not lemmatized_words or not isinstance(lemmatized_words, list):
-                print(f"Warning: No lemmatized words found for subtitle {current_target_sub.index}, skipping.")
+                logger.warning(f"No lemmatized words found for subtitle {current_target_sub.index}, skipping.")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 continue
@@ -283,7 +287,7 @@ class SubtitleFusionEngine:
             
             if len(unknown_words) == 0:
                 if should_show_details:
-                    print(f"""
+                    logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
@@ -313,7 +317,7 @@ Final subtitle: "{current_target_sub.text}"
                 word_to_subtitle_mapping[original_word] = current_target_sub
                 
                 if should_show_details:
-                    print(f"""
+                    logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
@@ -337,7 +341,7 @@ Reason: 1 unknown word detected, collecting original word '{original_word}' (lem
             
             if len(intersecting_native_subs) == 0:
                 if should_show_details:
-                    print(f"""
+                    logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
@@ -370,7 +374,7 @@ Final subtitle: "{current_target_sub.text}"
             
             if len(overlapping_target_subs) == 0:
                 if should_show_details:
-                    print(f"""
+                    logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
@@ -395,7 +399,7 @@ Final subtitle: "{current_target_sub.text}"
             )
             
             if should_show_details:
-                print(f"""
+                logger.info(f"""
 === SUBTITLE {current_target_sub.index} ===
 Original: "{current_target_sub.text}"
 Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
@@ -418,7 +422,7 @@ Final subtitle: "{combined_native_sub['text']}"
         # Re-index the final subtitles
         # BATCH TRANSLATION: Translate all collected words in a single API call
         if unknown_words_to_translate and enable_inline_translation and deepl_api and native_lang:
-            print(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words in a single API call...")
+            logger.info(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words in a single API call...")
             
             try:
                 # Convert set to list for batch translation
@@ -430,7 +434,7 @@ Final subtitle: "{combined_native_sub['text']}"
                 # Create mapping of original words to translations
                 word_translations = dict(zip(words_list, translated_words_batch))
                 
-                print(f"✅ Batch translation successful! Translated {len(word_translations)} words")
+                logger.info(f"✅ Batch translation successful! Translated {len(word_translations)} words")
                 
                 # Apply translations to subtitles
                 for original_word, translation in word_translations.items():
@@ -452,11 +456,11 @@ Final subtitle: "{combined_native_sub['text']}"
                     final_subtitles.append(translated_sub)
                     inline_translation_count += 1
                     
-                    print(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
+                    logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
                 
             except Exception as e:
-                print(f"❌ Batch translation failed: {e}")
-                print("🔄 Falling back to original subtitles without inline translations")
+                logger.error(f"❌ Batch translation failed: {e}")
+                logger.info("🔄 Falling back to original subtitles without inline translations")
                 # Add original subtitles without translations
                 for original_word in unknown_words_to_translate:
                     subtitle = word_to_subtitle_mapping[original_word]
@@ -464,7 +468,7 @@ Final subtitle: "{combined_native_sub['text']}"
         else:
             # No DeepL API available - add original subtitles without translations
             if unknown_words_to_translate:
-                print(f"🔄 No DeepL API available - adding {len(unknown_words_to_translate)} original subtitles without translations")
+                logger.info(f"🔄 No DeepL API available - adding {len(unknown_words_to_translate)} original subtitles without translations")
                 for original_word in unknown_words_to_translate:
                     subtitle = word_to_subtitle_mapping[original_word]
                     final_subtitles.append(subtitle)
