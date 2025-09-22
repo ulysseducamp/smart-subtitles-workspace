@@ -583,6 +583,13 @@ class SubtitleFusionEngine:
                     subtitle = word_to_subtitle_mapping[original_word]
                     final_subtitles.append(subtitle)
         
+        # Afficher les logs de debug dans l'ordre correct des sous-titres finaux
+        # IMPORTANT: Doit être fait APRÈS que final_subtitles soit complètement construit
+        if self._debug_logs:
+            self._display_ordered_logs(final_subtitles)
+            # Nettoyer la liste temporaire pour éviter les fuites mémoire
+            self._debug_logs.clear()
+        
         re_indexed_hybrid = []
         for i, subtitle in enumerate(final_subtitles):
             re_indexed_hybrid.append(Subtitle(
@@ -591,12 +598,6 @@ class SubtitleFusionEngine:
                 end=subtitle.end,
                 text=subtitle.text
             ))
-        
-        # Afficher les logs de debug dans l'ordre correct des sous-titres finaux
-        if self._debug_logs:
-            self._display_ordered_logs(final_subtitles)
-            # Nettoyer la liste temporaire pour éviter les fuites mémoire
-            self._debug_logs.clear()
         
         return {
             'hybrid': re_indexed_hybrid,
