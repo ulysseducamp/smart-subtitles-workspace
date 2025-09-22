@@ -274,6 +274,22 @@ class SubtitleFusionEngine:
             'final_text': final_text
         })
 
+    def _safe_int_conversion(self, index_str: str) -> int:
+        """
+        Convertit un index string en int de manière sécurisée.
+        
+        Args:
+            index_str: String contenant l'index du sous-titre
+            
+        Returns:
+            int: Index converti, ou 0 si la conversion échoue
+        """
+        try:
+            return int(index_str)
+        except (ValueError, TypeError):
+            # Si conversion échoue, retourner 0 pour placer en premier
+            return 0
+
     def _display_ordered_logs(self, final_subtitles: List[Subtitle]) -> None:
         """
         Affiche les logs de debug dans l'ordre correct des sous-titres finaux.
@@ -285,7 +301,8 @@ class SubtitleFusionEngine:
         logs_by_index = {log['index']: log for log in self._debug_logs}
         
         # Trier les sous-titres par index numérique pour affichage ordonné
-        sorted_subtitles = sorted(final_subtitles, key=lambda s: int(s.index))
+        # Utiliser la conversion sécurisée pour éviter les erreurs 500
+        sorted_subtitles = sorted(final_subtitles, key=lambda s: self._safe_int_conversion(s.index))
         
         # Afficher les logs dans l'ordre numérique correct
         for subtitle in sorted_subtitles:
