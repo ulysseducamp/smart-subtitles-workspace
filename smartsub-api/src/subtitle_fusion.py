@@ -267,7 +267,7 @@ class SubtitleFusionEngine:
         translated_words = {}
         
         # Batch translation: collect words to translate instead of translating immediately
-        unknown_words_to_translate = set()  # Use set to avoid duplicates
+        unknown_words_to_translate = []  # Use list to preserve order
         word_to_subtitle_mapping = {}  # Map word -> subtitle for later integration
         
         final_subtitles = []
@@ -351,7 +351,8 @@ Final subtitle: "{current_target_sub.text}"
                     original_word = unknown_words[0]
                 
                 # BATCH TRANSLATION: Collect word for batch translation instead of translating immediately
-                unknown_words_to_translate.add(original_word)
+                if original_word not in unknown_words_to_translate:
+                    unknown_words_to_translate.append(original_word)
                 word_to_subtitle_mapping[original_word] = current_target_sub
                 
                 if should_show_details:
