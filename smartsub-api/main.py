@@ -131,7 +131,7 @@ async def validate_api_key(request: Request, call_next):
         return await call_next(request)
     
     # Get API key from query parameters or headers
-    api_key = request.query_params.get("api_key") or request.headers.get("x-api-key")
+    api_key = request.query_params.get("api_key") or request.headers.get("x-api-key") or request.headers.get("X-API-Key")
     
     # Get expected API key from environment
     expected_api_key = os.getenv("RAILWAY_API_KEY")
@@ -375,18 +375,15 @@ async def proxy_railway(request: Request):
         target_url = request.query_params.get("url", 
             f"https://{request.headers.get('host', 'smartsub-api-staging.up.railway.app')}/fuse-subtitles")
         
-        # Add the API key to the target URL
-        separator = "&" if "?" in target_url else "?"
-        target_url_with_key = f"{target_url}{separator}api_key={railway_api_key}"
-        
-        # Forward the request to Railway API
+        # Forward the request to Railway API with API key in header
         async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(
-                target_url_with_key,
+                target_url,
                 content=body,
                 headers={
                     "Content-Type": request.headers.get("content-type", "application/json"),
-                    "User-Agent": "SmartSubtitles-Proxy/1.0"
+                    "User-Agent": "SmartSubtitles-Proxy/1.0",
+                    "X-API-Key": railway_api_key
                 }
             )
             
