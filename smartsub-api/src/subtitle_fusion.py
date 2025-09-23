@@ -263,6 +263,7 @@ class SubtitleFusionEngine:
             final_text: Texte final du sous-titre
         """
         # Stocker les infos de debug pour affichage ordonné plus tard
+        # NOTE: l'affichage effectif est centralisé dans `_display_ordered_logs()`
         self._debug_logs.append({
             'index': subtitle_index,
             'original_text': original_text,
@@ -287,12 +288,13 @@ class SubtitleFusionEngine:
         try:
             return int(index_str)
         except (ValueError, TypeError):
-            # Si conversion échoue, retourner 0 pour placer en premier
+            # Si conversion échoue, retourner 0 pour placer en premier à l'affichage uniquement
             return 0
 
     def _display_ordered_logs(self, final_subtitles: List[Subtitle]) -> None:
         """
         Affiche les logs de debug dans l'ordre correct des sous-titres finaux.
+        RESPONSABILITÉ UNIQUE d'affichage des logs détaillés collectés durant le traitement.
         
         Args:
             final_subtitles: Liste des sous-titres finaux dans l'ordre correct
@@ -301,7 +303,7 @@ class SubtitleFusionEngine:
         logs_by_index = {log['index']: log for log in self._debug_logs}
         
         # Trier les sous-titres par index numérique pour affichage ordonné
-        # Utiliser la conversion sécurisée pour éviter les erreurs 500
+        # Utiliser la conversion sécurisée pour éviter les erreurs 500 si l'index n'est pas numérique
         sorted_subtitles = sorted(final_subtitles, key=lambda s: self._safe_int_conversion(s.index))
         
         # Afficher les logs dans l'ordre numérique correct
