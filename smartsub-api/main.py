@@ -134,7 +134,7 @@ async def validate_api_key(request: Request, call_next):
     api_key = request.query_params.get("api_key") or request.headers.get("x-api-key")
     
     # Get expected API key from environment
-    expected_api_key = os.getenv("API_KEY")
+    expected_api_key = os.getenv("RAILWAY_API_KEY")
     
     if not expected_api_key:
         # If no API key is configured, allow all requests (for development)
