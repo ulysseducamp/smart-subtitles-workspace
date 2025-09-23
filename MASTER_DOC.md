@@ -515,8 +515,8 @@ RAILWAY_SERVICE_ID=service_id
 - **No Cross-Contamination**: Staging extension never hits production API
 
 **Last Updated**: January 2025  
-**Version**: 3.10.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, and Proxy 301 Fix - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, and Fixed Proxy 301 Redirect Issue, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app  
+**Version**: 3.10.1 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, and Railway Logs 500 Error Fix - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, and Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
@@ -943,6 +943,64 @@ Extension Chrome → Proxy Endpoint → API Railway (with secure API key)
 - ✅ End-to-end security audit confirmed
 
 ## ⚠️ Known Issues & Technical Debt
+
+### Railway Logs Ordering Issue (Priority: High) 🔄 **IN PROGRESS**
+
+**Problem:** Subtitle processing logs are displayed in incorrect order in Railway, despite multiple correction attempts.
+
+**Current Symptoms:**
+```
+=== SUBTITLE 1 ===
+=== SUBTITLE 3 ===  
+=== SUBTITLE 4 ===
+=== SUBTITLE 12 ===
+=== SUBTITLE 27 ===
+=== SUBTITLE 28 ===
+=== SUBTITLE 31 ===
+```
+Instead of the expected order: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10...
+
+**Root Cause Analysis:**
+- **Initial Hypothesis**: `_display_ordered_logs()` called too early (before `final_subtitles` fully constructed)
+- **First Attempt**: Moved `_display_ordered_logs()` call after line 584 ✅ **COMPLETED**
+- **Result**: Still incorrect order - hypothesis was wrong
+
+- **Second Hypothesis**: `final_subtitles` contains subtitles in processing order, not numerical order
+- **Second Attempt**: Added sorting by numeric index in `_display_ordered_logs()` ✅ **COMPLETED**
+- **Result**: Caused 500 Internal Server Error due to `int(s.index)` on invalid indices
+
+- **Third Attempt**: Added `_safe_int_conversion()` method for robust index conversion ✅ **COMPLETED**
+- **Result**: Fixed 500 error, but logs still in incorrect order
+
+**Current Status (January 2025):**
+- ✅ **500 Error Fixed**: API no longer crashes with invalid subtitle indices
+- ✅ **Safe Conversion**: `_safe_int_conversion()` handles non-numeric indices gracefully
+- ❌ **Order Still Wrong**: Logs display in processing order, not numerical order
+- 🔄 **Investigation Needed**: Deeper analysis of subtitle processing flow required
+
+**Technical Details:**
+- **File**: `smartsub-api/src/subtitle_fusion.py`
+- **Method**: `_display_ordered_logs()` with `sorted(final_subtitles, key=lambda s: self._safe_int_conversion(s.index))`
+- **Issue**: Sorting works correctly, but `final_subtitles` itself contains subtitles in processing order
+- **Next Steps**: Investigate how `final_subtitles` is populated and why it's not in numerical order
+
+**Code Changes Made:**
+```python
+def _safe_int_conversion(self, index_str: str) -> int:
+    """Convertit un index string en int de manière sécurisée"""
+    try:
+        return int(index_str)
+    except (ValueError, TypeError):
+        return 0  # Placer en premier si conversion échoue
+
+# Dans _display_ordered_logs()
+sorted_subtitles = sorted(final_subtitles, key=lambda s: self._safe_int_conversion(s.index))
+```
+
+**Impact:**
+- **User Experience**: Logs are confusing and hard to follow during debugging
+- **Development**: Makes it difficult to trace subtitle processing flow
+- **Priority**: High - affects debugging and development workflow
 
 ### Performance Optimization (Priority: Medium)
 **Problem:** Processing time can be slow with DeepL translations
