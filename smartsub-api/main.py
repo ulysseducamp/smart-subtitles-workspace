@@ -388,8 +388,17 @@ async def proxy_railway(request: Request):
             )
             
             # Return the response from Railway API
+            try:
+                if response.headers.get("content-type", "").startswith("application/json"):
+                    content = response.json()
+                else:
+                    content = {"data": response.text}
+            except Exception as json_error:
+                # If JSON parsing fails, return the raw text
+                content = {"data": response.text, "json_error": str(json_error)}
+            
             return JSONResponse(
-                content=response.json() if response.headers.get("content-type", "").startswith("application/json") else {"data": response.text},
+                content=content,
                 status_code=response.status_code
             )
             
