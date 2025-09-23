@@ -2,7 +2,7 @@
 FROM python:3.11-slim
 
 # Force cache bust - Railway cache issue fix
-ARG CACHE_BUST=2025-09-16-09-45
+ARG CACHE_BUST=2025-09-18-14-45
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -19,7 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy FastAPI application files
 COPY main.py ./
 COPY env.example ./
-COPY test_api_key.py ./
 COPY src/ ./src/
 
 # Create a non-root user for security

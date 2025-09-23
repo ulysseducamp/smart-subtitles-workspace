@@ -22,7 +22,8 @@
   "description": "Download subtitles from Netflix episodes and movies. Inspired by Subadub by Russel Simmons.",
   "version": "1.0.0",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "*://www.netflix.com/*"

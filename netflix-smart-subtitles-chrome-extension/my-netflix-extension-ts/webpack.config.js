@@ -17,8 +17,8 @@
  */
 
 const path = require('path');
+const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
-const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   entry: {
@@ -44,13 +44,8 @@ module.exports = {
     extensions: ['.ts', '.js']
   },
   plugins: [
-    new Dotenv({
-      path: './.env',
-      safe: true,
-      allowEmptyValues: true,
-      systemvars: true,
-      silent: true,
-      defaults: false
+    new webpack.EnvironmentPlugin({
+      SMART_SUBS_ENV: 'development' // Valeur par défaut
     }),
     new CopyPlugin({
       patterns: [

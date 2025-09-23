@@ -7,7 +7,12 @@ from typing import List, Set, Dict, Any, Optional
 from dataclasses import dataclass
 import re
 import time
+import logging
 from srt_parser import Subtitle
+from frequency_loader import get_frequency_loader
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 class SubtitleFusionEngine:
     """
@@ -17,6 +22,8 @@ class SubtitleFusionEngine:
     
     def __init__(self):
         # English contractions mapping - migrated from logic.ts
+        # Debug logs storage for ordered display
+        self._debug_logs = []
         self.english_contractions = {
             # Personal pronouns + be/have/will/would
             "you're": ["you", "are"],
@@ -205,6 +212,116 @@ class SubtitleFusionEngine:
 
         return intersection_end - intersection_start > 500
 
+    def _format_words_with_ranks(self, words: List[str], language: str, top_n: int = 2000) -> str:
+        """
+        Format words with their frequency ranks for logging.
+        
+        Args:
+            words: List of words to format
+            language: Language code for ranking lookup
+            top_n: Number of top words to consider
+            
+        Returns:
+            Formatted string with words and their ranks
+        """
+        if not words:
+            return "none"
+        
+        try:
+            frequency_loader = get_frequency_loader()
+            formatted_words = []
+            
+            for word in words:
+                rank = frequency_loader.get_word_rank(word, language, top_n)
+                if rank is not None:
+                    formatted_words.append(f"{word} → rang {rank}/{top_n} (connu)")
+                else:
+                    formatted_words.append(f"{word} → inconnu (hors des {top_n} premiers)")
+            
+            return ", ".join(formatted_words)
+            
+        except Exception as e:
+            # Fallback to simple format if ranking fails
+            logger.warning(f"Failed to get word ranks: {e}")
+            return ", ".join(words)
+
+    def _log_subtitle_details(self, subtitle_index: str, original_text: str, proper_nouns: List[str], 
+                             words_ranks: str, unknown_words: List[str], decision: str, 
+                             reason: str, final_text: str) -> None:
+        """
+        Helper function pour stocker les détails d'un sous-titre pour affichage ordonné.
+        Les logs seront affichés à la fin dans l'ordre correct des sous-titres.
+        
+        Args:
+            subtitle_index: Index du sous-titre
+            original_text: Texte original du sous-titre
+            proper_nouns: Liste des noms propres détectés
+            words_ranks: Mots analysés avec leurs rangs
+            unknown_words: Liste des mots inconnus
+            decision: Décision prise (kept, replaced, inline translation)
+            reason: Raison de la décision
+            final_text: Texte final du sous-titre
+        """
+        # Stocker les infos de debug pour affichage ordonné plus tard
+        # NOTE: l'affichage effectif est centralisé dans `_display_ordered_logs()`
+        self._debug_logs.append({
+            'index': subtitle_index,
+            'original_text': original_text,
+            'proper_nouns': proper_nouns,
+            'words_ranks': words_ranks,
+            'unknown_words': unknown_words,
+            'decision': decision,
+            'reason': reason,
+            'final_text': final_text
+        })
+
+    def _safe_int_conversion(self, index_str: str) -> int:
+        """
+        Convertit un index string en int de manière sécurisée.
+        
+        Args:
+            index_str: String contenant l'index du sous-titre
+            
+        Returns:
+            int: Index converti, ou 0 si la conversion échoue
+        """
+        try:
+            return int(index_str)
+        except (ValueError, TypeError):
+            # Si conversion échoue, retourner 0 pour placer en premier à l'affichage uniquement
+            return 0
+
+    def _display_ordered_logs(self, final_subtitles: List[Subtitle]) -> None:
+        """
+        Affiche les logs de debug dans l'ordre correct des sous-titres finaux.
+        RESPONSABILITÉ UNIQUE d'affichage des logs détaillés collectés durant le traitement.
+        
+        Args:
+            final_subtitles: Liste des sous-titres finaux dans l'ordre correct
+        """
+        # Créer un dictionnaire pour un accès rapide aux logs par index
+        logs_by_index = {log['index']: log for log in self._debug_logs}
+        
+        # Trier les sous-titres par index numérique pour affichage ordonné
+        # Utiliser la conversion sécurisée pour éviter les erreurs 500 si l'index n'est pas numérique
+        sorted_subtitles = sorted(final_subtitles, key=lambda s: self._safe_int_conversion(s.index))
+        
+        # Afficher les logs dans l'ordre numérique correct
+        for subtitle in sorted_subtitles:
+            if subtitle.index in logs_by_index:
+                log_entry = logs_by_index[subtitle.index]
+                
+                # Afficher le log de manière atomique
+                logger.info(f"=== SUBTITLE {log_entry['index']} ===")
+                logger.info(f"Original: \"{log_entry['original_text']}\"")
+                logger.info(f"Proper nouns: {', '.join(log_entry['proper_nouns']) if log_entry['proper_nouns'] else 'none'}")
+                logger.info(f"Mots analysés: {log_entry['words_ranks']}")
+                logger.info(f"Unknown words: {', '.join(log_entry['unknown_words']) if log_entry['unknown_words'] else 'none'}")
+                logger.info(f"Decision: {log_entry['decision']}")
+                logger.info(f"Reason: {log_entry['reason']}")
+                logger.info(f"Final subtitle: \"{log_entry['final_text']}\"")
+                logger.info("")
+
     def fuse_subtitles(self, 
                       target_subs: List[Subtitle],
                       native_subs: List[Subtitle], 
@@ -212,7 +329,8 @@ class SubtitleFusionEngine:
                       lang: str,
                       enable_inline_translation: bool = False,
                       deepl_api: Optional[Any] = None,
-                      native_lang: Optional[str] = None) -> Dict[str, Any]:
+                      native_lang: Optional[str] = None,
+                      top_n: int = 2000) -> Dict[str, Any]:
         """
         Main fusion algorithm - migrated from TypeScript fuseSubtitles function
         """
@@ -226,6 +344,10 @@ class SubtitleFusionEngine:
         error_count = 0
         debug_shown = 0
         translated_words = {}
+        
+        # Batch translation: collect words to translate instead of translating immediately
+        unknown_words_to_translate = []  # Use list to preserve order
+        word_to_subtitle_mapping = {}  # Map word -> subtitle for later integration
         
         final_subtitles = []
         processed_target_indices = set()
@@ -245,7 +367,7 @@ class SubtitleFusionEngine:
             
             # Add null check for lemmatized_words
             if not lemmatized_words or not isinstance(lemmatized_words, list):
-                print(f"Warning: No lemmatized words found for subtitle {current_target_sub.index}, skipping.")
+                logger.warning(f"No lemmatized words found for subtitle {current_target_sub.index}, skipping.")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 continue
@@ -279,23 +401,27 @@ class SubtitleFusionEngine:
             
             if len(unknown_words) == 0:
                 if should_show_details:
-                    print(f"""
-=== SUBTITLE {current_target_sub.index} ===
-Original: "{current_target_sub.text}"
-Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
-Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
-Decision: kept in target language
-Reason: all words are known or proper nouns
-Final subtitle: "{current_target_sub.text}"
-""")
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
+                    # Use helper function for atomic logging
+                    self._log_subtitle_details(
+                        subtitle_index=current_target_sub.index,
+                        original_text=current_target_sub.text,
+                        proper_nouns=proper_nouns,
+                        words_ranks=words_with_ranks,
+                        unknown_words=unknown_words_list,
+                        decision="kept in target language",
+                        reason="all words are known or proper nouns",
+                        final_text=current_target_sub.text
+                    )
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
                 continue
             
             # Handle single unknown word with inline translation
-            if len(unknown_words) == 1 and enable_inline_translation and deepl_api and native_lang:
+            if len(unknown_words) == 1 and enable_inline_translation and native_lang:
                 # Find the original word corresponding to the lemmatized unknown word
                 try:
                     lemma_index = lemmatized_words.index(unknown_words[0])
@@ -304,41 +430,28 @@ Final subtitle: "{current_target_sub.text}"
                     # Fallback: use the lemmatized word as original if mapping fails
                     original_word = unknown_words[0]
                 
-                # Translate the original word (not the lemmatized form)
-                translated_word = deepl_api.translate(original_word, lang, native_lang)
-                
-                # Replace the word in the subtitle text
-                original_text = current_target_sub.text
-                # Simple word replacement (case-insensitive) using the original word
-                import re
-                pattern = re.compile(re.escape(original_word), re.IGNORECASE)
-                new_text = pattern.sub(f"{original_word} ({translated_word})", original_text)
+                # BATCH TRANSLATION: Collect word for batch translation instead of translating immediately
+                if original_word not in unknown_words_to_translate:
+                    unknown_words_to_translate.append(original_word)
+                word_to_subtitle_mapping[original_word] = current_target_sub
                 
                 if should_show_details:
-                    print(f"""
-=== SUBTITLE {current_target_sub.index} ===
-Original: "{current_target_sub.text}"
-Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
-Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
-DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
-Decision: inline translation for single unknown word
-Reason: 1 unknown word detected, translating original word '{original_word}' (lemmatized: '{unknown_words[0]}')
-Final subtitle: "{new_text}"
-""")
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
+                    # Use helper function for atomic logging
+                    self._log_subtitle_details(
+                        subtitle_index=current_target_sub.index,
+                        original_text=current_target_sub.text,
+                        proper_nouns=proper_nouns,
+                        words_ranks=words_with_ranks,
+                        unknown_words=unknown_words_list,
+                        decision="inline translation for single unknown word (COLLECTED FOR BATCH)",
+                        reason=f"1 unknown word detected, collecting original word '{original_word}' (lemmatized: '{unknown_words[0]}') for batch translation",
+                        final_text=current_target_sub.text
+                    )
                 
-                # Create new subtitle with inline translation
-                translated_sub = Subtitle(
-                    index=current_target_sub.index,
-                    start=current_target_sub.start,
-                    end=current_target_sub.end,
-                    text=new_text
-                )
-                
-                final_subtitles.append(translated_sub)
-                processed_target_indices.add(current_target_sub.index)
-                inline_translation_count += 1
-                debug_shown += 1
+                # Skip processing for now - will be handled in batch translation phase
                 continue
             
             # Handle multiple unknown words - replace with native subtitle
@@ -351,17 +464,20 @@ Final subtitle: "{new_text}"
             
             if len(intersecting_native_subs) == 0:
                 if should_show_details:
-                    print(f"""
-=== SUBTITLE {current_target_sub.index} ===
-Original: "{current_target_sub.text}"
-Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
-Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
-DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
-Decision: kept in target language
-Reason: no native subtitle found
-Final subtitle: "{current_target_sub.text}"
-""")
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
+                    # Use helper function for atomic logging
+                    self._log_subtitle_details(
+                        subtitle_index=current_target_sub.index,
+                        original_text=current_target_sub.text,
+                        proper_nouns=proper_nouns,
+                        words_ranks=words_with_ranks,
+                        unknown_words=unknown_words_list,
+                        decision="kept in target language",
+                        reason="no native subtitle found",
+                        final_text=current_target_sub.text
+                    )
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -384,17 +500,20 @@ Final subtitle: "{current_target_sub.text}"
             
             if len(overlapping_target_subs) == 0:
                 if should_show_details:
-                    print(f"""
-=== SUBTITLE {current_target_sub.index} ===
-Original: "{current_target_sub.text}"
-Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
-Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
-DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
-Decision: kept in target language
-Reason: no overlapping target subtitles found
-Final subtitle: "{current_target_sub.text}"
-""")
+                    # Format words with ranks for better debugging
+                    words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                    
+                    # Use helper function for atomic logging
+                    self._log_subtitle_details(
+                        subtitle_index=current_target_sub.index,
+                        original_text=current_target_sub.text,
+                        proper_nouns=proper_nouns,
+                        words_ranks=words_with_ranks,
+                        unknown_words=unknown_words_list,
+                        decision="kept in target language",
+                        reason="no overlapping target subtitles found",
+                        final_text=current_target_sub.text
+                    )
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 debug_shown += 1
@@ -409,17 +528,20 @@ Final subtitle: "{current_target_sub.text}"
             )
             
             if should_show_details:
-                print(f"""
-=== SUBTITLE {current_target_sub.index} ===
-Original: "{current_target_sub.text}"
-Proper nouns: {', '.join(proper_nouns) if proper_nouns else 'none'}
-Words lemmatised: {', '.join(lemmatized_words_list)}
-Unknown words: {', '.join(unknown_words_list) if unknown_words_list else 'none'}
-DEBUG: len(unknown_words)={len(unknown_words)}, enable_inline_translation={enable_inline_translation}, deepl_api={deepl_api is not None}, native_lang={native_lang}
-Decision: replaced with native subtitle
-Reason: {len(overlapping_target_subs)} overlapping subtitles replaced
-Final subtitle: "{combined_native_sub['text']}"
-""")
+                # Format words with ranks for better debugging
+                words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
+                
+                # Use helper function for atomic logging
+                self._log_subtitle_details(
+                    subtitle_index=current_target_sub.index,
+                    original_text=current_target_sub.text,
+                    proper_nouns=proper_nouns,
+                    words_ranks=words_with_ranks,
+                    unknown_words=unknown_words_list,
+                    decision="replaced with native subtitle",
+                    reason=f"{len(overlapping_target_subs)} overlapping subtitles replaced",
+                    final_text=combined_native_sub['text']
+                )
             
             final_subtitles.append(replacement_sub)
             replaced_count += len(overlapping_target_subs)
@@ -430,6 +552,66 @@ Final subtitle: "{combined_native_sub['text']}"
             debug_shown += 1
         
         # Re-index the final subtitles
+        # BATCH TRANSLATION: Translate all collected words in a single API call
+        if unknown_words_to_translate and enable_inline_translation and deepl_api and native_lang:
+            logger.info(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words in a single API call...")
+            
+            try:
+                # Convert set to list for batch translation
+                words_list = list(unknown_words_to_translate)
+                
+                # Translate all words in a single batch request
+                translated_words_batch = deepl_api.translate_batch(words_list, lang, native_lang)
+                
+                # Create mapping of original words to translations
+                word_translations = dict(zip(words_list, translated_words_batch))
+                
+                logger.info(f"✅ Batch translation successful! Translated {len(word_translations)} words")
+                
+                # Apply translations to subtitles
+                for original_word, translation in word_translations.items():
+                    subtitle = word_to_subtitle_mapping[original_word]
+                    
+                    # Replace the word in the subtitle text
+                    original_text = subtitle.text
+                    pattern = re.compile(re.escape(original_word), re.IGNORECASE)
+                    new_text = pattern.sub(f"{original_word} ({translation})", original_text)
+                    
+                    # Create new subtitle with inline translation
+                    translated_sub = Subtitle(
+                        index=subtitle.index,
+                        start=subtitle.start,
+                        end=subtitle.end,
+                        text=new_text
+                    )
+                    
+                    final_subtitles.append(translated_sub)
+                    inline_translation_count += 1
+                    
+                    logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
+                
+            except Exception as e:
+                logger.error(f"❌ Batch translation failed: {e}")
+                logger.info("🔄 Falling back to original subtitles without inline translations")
+                # Add original subtitles without translations
+                for original_word in unknown_words_to_translate:
+                    subtitle = word_to_subtitle_mapping[original_word]
+                    final_subtitles.append(subtitle)
+        else:
+            # No DeepL API available - add original subtitles without translations
+            if unknown_words_to_translate:
+                logger.info(f"🔄 No DeepL API available - adding {len(unknown_words_to_translate)} original subtitles without translations")
+                for original_word in unknown_words_to_translate:
+                    subtitle = word_to_subtitle_mapping[original_word]
+                    final_subtitles.append(subtitle)
+        
+        # Afficher les logs de debug dans l'ordre correct des sous-titres finaux
+        # IMPORTANT: Doit être fait APRÈS que final_subtitles soit complètement construit
+        if self._debug_logs:
+            self._display_ordered_logs(final_subtitles)
+            # Nettoyer la liste temporaire pour éviter les fuites mémoire
+            self._debug_logs.clear()
+        
         re_indexed_hybrid = []
         for i, subtitle in enumerate(final_subtitles):
             re_indexed_hybrid.append(Subtitle(

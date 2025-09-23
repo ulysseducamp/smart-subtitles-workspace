@@ -16,6 +16,9 @@ from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Batch optimization deployment verification
+BATCH_VERSION = "v1.0-batch-optimization-deployed"
+
 # File size validation configuration
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 5 * 1024 * 1024))  # 5MB default
 ALLOWED_EXTENSIONS = {".srt"}
@@ -64,6 +67,11 @@ app = FastAPI(
     description="FastAPI backend for bilingual adaptive subtitles with rate limiting",
     version="0.1.1"
 )
+
+@app.on_event("startup")
+async def verify_batch_deployment():
+    logger.info(f"🚀 DEPLOYMENT VERIFIED: {BATCH_VERSION}")
+    logger.info("🔄 Batch optimization is now active")
 
 # Rate limiting middleware
 @app.middleware("http")
@@ -123,10 +131,10 @@ async def validate_api_key(request: Request, call_next):
         return await call_next(request)
     
     # Get API key from query parameters or headers
-    api_key = request.query_params.get("api_key") or request.headers.get("x-api-key")
+    api_key = request.query_params.get("api_key") or request.headers.get("x-api-key") or request.headers.get("X-API-Key")
     
     # Get expected API key from environment
-    expected_api_key = os.getenv("API_KEY")
+    expected_api_key = os.getenv("RAILWAY_API_KEY")
     
     if not expected_api_key:
         # If no API key is configured, allow all requests (for development)
@@ -226,8 +234,12 @@ async def fuse_subtitles(
         # Get top N words in frequency order (most frequent first)
         known_words = frequency_loader.get_top_n_words(target_language, top_n_words)
         
-        # Log received parameters for debugging
-        logger.info(f"Received parameters - enable_inline_translation: {enable_inline_translation}, target_lang: {target_language}, native_lang: {native_language}")
+        # Log configuration section
+        logger.info("=== CONFIGURATION ===")
+        logger.info(f"Niveau choisi: {top_n_words} mots les plus fréquents")
+        logger.info(f"Langue cible: {target_language}, Langue native: {native_language}")
+        logger.info(f"Traduction inline: {'activée' if enable_inline_translation else 'désactivée'}")
+        logger.info("")
         
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
@@ -244,6 +256,7 @@ async def fuse_subtitles(
             logger.warning("DeepL API key not provided, inline translation disabled")
         
         # Process fusion with timing
+        logger.info("=== TRAITEMENT DES SOUS-TITRES ===")
         import time
         start_time = time.time()
         
@@ -254,7 +267,8 @@ async def fuse_subtitles(
             lang=target_language,
             enable_inline_translation=enable_inline_translation,
             deepl_api=deepl_api,
-            native_lang=native_language
+            native_lang=native_language,
+            top_n=top_n_words
         )
         
         processing_time = time.time() - start_time
@@ -264,7 +278,8 @@ async def fuse_subtitles(
         output_srt = generate_srt(result['hybrid'])
         
         # Log detailed statistics AFTER all subtitle processing logs are complete
-        logger.info("=== SUBTITLE PROCESSING STATISTICS ===")
+        logger.info("")
+        logger.info("=== STATISTIQUES FINALES ===")
         logger.info(f"Total target subtitles: {len(target_subs)}")
         logger.info(f"Total native subtitles: {len(native_subs)}")
         
@@ -356,27 +371,34 @@ async def proxy_railway(request: Request):
                 detail="Railway API key not configured on server"
             )
         
-        # Get the target URL from query parameters or use default
-        target_url = request.query_params.get("url", "https://smartsub-api-production.up.railway.app/fuse-subtitles")
+        # Get the target URL from query parameters or use environment-appropriate default with HTTPS
+        target_url = request.query_params.get("url", 
+            f"https://{request.headers.get('host', 'smartsub-api-staging.up.railway.app')}/fuse-subtitles")
         
-        # Add the API key to the target URL
-        separator = "&" if "?" in target_url else "?"
-        target_url_with_key = f"{target_url}{separator}api_key={railway_api_key}"
-        
-        # Forward the request to Railway API
+        # Forward the request to Railway API with API key in header
         async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(
-                target_url_with_key,
+                target_url,
                 content=body,
                 headers={
                     "Content-Type": request.headers.get("content-type", "application/json"),
-                    "User-Agent": "SmartSubtitles-Proxy/1.0"
+                    "User-Agent": "SmartSubtitles-Proxy/1.0",
+                    "X-API-Key": railway_api_key
                 }
             )
             
             # Return the response from Railway API
+            try:
+                if response.headers.get("content-type", "").startswith("application/json"):
+                    content = response.json()
+                else:
+                    content = {"data": response.text}
+            except Exception as json_error:
+                # If JSON parsing fails, return the raw text
+                content = {"data": response.text, "json_error": str(json_error)}
+            
             return JSONResponse(
-                content=response.json() if response.headers.get("content-type", "").startswith("application/json") else {"data": response.text},
+                content=content,
                 status_code=response.status_code
             )
             

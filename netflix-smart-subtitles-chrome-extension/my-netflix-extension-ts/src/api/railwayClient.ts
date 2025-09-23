@@ -33,8 +33,13 @@ export class RailwayAPIClient {
   private timeout: number;
 
   private constructor() {
-    // Get configuration from environment variables (injected by webpack)
-    this.baseUrl = process.env.RAILWAY_API_URL || 'https://smartsub-api-production.up.railway.app';
+    // Configuration automatique par environnement SMART_SUBS_ENV
+    const isProduction = process.env.SMART_SUBS_ENV === 'production';
+    
+    this.baseUrl = isProduction 
+      ? 'https://smartsub-api-production.up.railway.app'
+      : 'https://smartsub-api-staging.up.railway.app';
+      
     this.proxyEndpoint = '/proxy-railway'; // Use proxy endpoint instead of direct API
     this.timeout = 240000; // 240 seconds timeout (4 minutes) for DeepL translations
   }
