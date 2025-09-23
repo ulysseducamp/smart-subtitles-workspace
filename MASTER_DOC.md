@@ -515,14 +515,14 @@ RAILWAY_SERVICE_ID=service_id
 - **No Cross-Contamination**: Staging extension never hits production API
 
 **Last Updated**: January 2025  
-**Version**: 3.10.1 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix, Phase 4 Active)  
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, and Railway Logs 500 Error Fix - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, and Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app  
+**Version**: 3.11.0 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix + Chrome Web Store Security Compliance, Phase 4 Active)  
+**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, Railway Logs 500 Error Fix, and Chrome Web Store Security Compliance - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, PostMessage Security Hardening, Chrome Extension Permissions Compliance, API Key Header Security, and Proxy JSON Parsing Robustness, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app  
 **Maintainer**: Smart Subtitles Development Team  
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with enhanced error handling and user experience improvements
 
-**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, critical security vulnerabilities resolved, staging environment setup, and proxy 301 fix - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle), staging environment configured with auto-deploy from develop branch for safe testing before production deployment, and proxy 301 redirect issue resolved with dynamic HTTPS URL construction using request.headers.get('host') for proper environment isolation
+**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, critical security vulnerabilities resolved, staging environment setup, proxy 301 fix, and Chrome Web Store security compliance - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle), staging environment configured with auto-deploy from develop branch for safe testing before production deployment, proxy 301 redirect issue resolved with dynamic HTTPS URL construction using request.headers.get('host') for proper environment isolation, PostMessage security hardening with origin/source validation and wildcard target elimination, Chrome extension permissions compliance with "tabs" permission added, API key security enhancement with header-based authentication instead of query string exposure, and proxy JSON parsing robustness with comprehensive error handling for Chrome Web Store publication readiness
 
 
 ## 🚀 Chrome Extension Development Workflows
@@ -898,6 +898,64 @@ app.add_middleware(
 **Résultat :** Code plus propre, plus maintenable et sans doublons, avec conservation des éléments utiles.
 
 ## 🔒 Security Implementation (January 2025)
+
+### Chrome Web Store Security Compliance ✅ **COMPLETED**
+
+**Problem Resolved:** Critical security vulnerabilities that would block Chrome Web Store publication.
+
+**Security Issues Addressed:**
+1. **PostMessage Security Vulnerability** - Wildcard target origin `'*'` allowing message spoofing
+2. **Missing Chrome Extension Permissions** - `chrome.tabs` API usage without proper manifest declaration
+3. **API Key Query String Exposure** - API keys visible in URLs, logs, and network requests
+4. **Proxy JSON Parsing Errors** - Unhandled JSON parsing causing connection resets
+
+**Solutions Implemented:**
+
+#### 1. PostMessage Security Hardening ✅ **COMPLETED**
+- **Wildcard Target Elimination**: Replaced `'*'` with `window.location.origin` in all postMessage calls
+- **Origin Validation**: Added strict origin checking (`https://www.netflix.com`, `https://netflix.com`)
+- **Source Validation**: Added `event.source === window` verification
+- **Schema Validation**: Added strict message schema validation before processing
+- **Files Modified**: `content-script.ts`, `page-script.ts`
+
+#### 2. Chrome Extension Permissions Compliance ✅ **COMPLETED**
+- **Missing Permission**: Added `"tabs"` permission to `manifest.json`
+- **API Usage**: Extension uses `chrome.tabs.query()` and `chrome.tabs.sendMessage()`
+- **Compliance**: Now conforms to Chrome Web Store requirements
+- **File Modified**: `manifest.json`
+
+#### 3. API Key Header Security ✅ **COMPLETED**
+- **Query String Elimination**: Moved API key from URL parameters to `X-API-Key` header
+- **Middleware Update**: Updated authentication middleware to accept header-based keys
+- **Proxy Enhancement**: Modified proxy to forward API key via header
+- **Security Benefits**: API key no longer visible in URLs, logs, or network requests
+- **Files Modified**: `smartsub-api/main.py`
+
+#### 4. Proxy JSON Parsing Robustness ✅ **COMPLETED**
+- **Error Handling**: Added comprehensive try/catch around JSON parsing
+- **Fallback Mechanism**: Graceful fallback to raw text if JSON parsing fails
+- **Connection Stability**: Eliminated `ERR_CONNECTION_RESET` errors
+- **Files Modified**: `smartsub-api/main.py`
+
+**Security Benefits:**
+- ✅ **Chrome Web Store Ready**: All critical security vulnerabilities resolved
+- ✅ **Message Security**: PostMessage communication hardened against spoofing
+- ✅ **Permission Compliance**: Extension properly declares all required permissions
+- ✅ **API Key Protection**: Keys no longer exposed in client-side code or network requests
+- ✅ **Connection Stability**: Robust error handling prevents connection failures
+
+**Testing Completed:**
+- ✅ PostMessage security validation with malicious message simulation
+- ✅ Chrome extension permissions verification
+- ✅ API key header authentication testing
+- ✅ Proxy error handling validation
+- ✅ End-to-end extension functionality testing
+
+**Files Modified:**
+- `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/content-script.ts`
+- `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/page-script.ts`
+- `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/manifest.json`
+- `smartsub-api/main.py`
 
 ### API Key Security Enhancement ✅ **COMPLETED**
 

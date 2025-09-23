@@ -383,7 +383,7 @@ import { railwayAPIClient } from './api/railwayClient';
 
   // Function to notify content script
   function notifyContentScript(message: ExtensionMessage): void {
-    window.postMessage(message, '*');
+    window.postMessage(message, window.location.origin);
   }
 
   // INJECTION FUNCTIONS (Based on Subadub implementation)
@@ -764,6 +764,17 @@ Loading smart subtitles...`;
 
   // Function to handle messages from content script
   function handleContentScriptMessage(event: MessageEvent): void {
+    // Guard: origin + source + basic schema
+    const allowedOrigins = new Set(['https://www.netflix.com', 'https://netflix.com']);
+    if (!allowedOrigins.has(event.origin)) {
+      return;
+    }
+    if (event.source !== window) {
+      return;
+    }
+    if (!event.data || typeof event.data !== 'object' || typeof (event.data as any).type !== 'string') {
+      return;
+    }
     if (event.data.type === 'NETFLIX_SUBTITLES_REQUEST') {
       console.log('Netflix Subtitle Downloader: Received request from content script:', event.data);
       

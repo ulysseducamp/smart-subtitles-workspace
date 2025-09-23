@@ -77,6 +77,17 @@ function getNetflixTitle(): string {
 
 // Function to handle messages from page script
 function handlePageScriptMessage(event: MessageEvent): void {
+  // Guard: origin + source + basic schema
+  const allowedOrigins = new Set(['https://www.netflix.com', 'https://netflix.com']);
+  if (!allowedOrigins.has(event.origin)) {
+    return;
+  }
+  if (event.source !== window) {
+    return;
+  }
+  if (!event.data || typeof event.data !== 'object' || typeof (event.data as any).type !== 'string') {
+    return;
+  }
   if (event.data.type === 'NETFLIX_SUBTITLES') {
     console.log('Netflix Subtitle Downloader: Received message from page script:', event.data);
     
@@ -139,14 +150,14 @@ function handlePageScriptMessage(event: MessageEvent): void {
         window.postMessage({
           type: 'NETFLIX_SUBTITLES_STATE_RESPONSE',
           data: { enabled, settings }
-        }, '*');
+        }, window.location.origin);
       }).catch(error => {
         console.error('Netflix Subtitle Downloader: Failed to get state from storage:', error);
         // Send error response
         window.postMessage({
           type: 'NETFLIX_SUBTITLES_STATE_RESPONSE',
           data: { enabled: false, settings: null }
-        }, '*');
+        }, window.location.origin);
       });
     }
   }
@@ -157,7 +168,7 @@ function sendMessageToPageScript(message: Omit<ExtensionMessage, 'type'>): void 
   window.postMessage({
     type: 'NETFLIX_SUBTITLES_REQUEST',
     ...message
-  }, '*');
+  }, window.location.origin);
 }
 
 // Function to handle messages from popup
