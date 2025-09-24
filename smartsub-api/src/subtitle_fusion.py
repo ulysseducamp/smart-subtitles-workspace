@@ -158,23 +158,46 @@ class SubtitleFusionEngine:
             # Not at beginning, capitalized → proper noun
             return True
 
-    def is_word_known(self, word: str, known_words: Set[str], language: str) -> bool:
+    def is_word_known(self, word: str, known_words: Set[str], language: str, original_word: str = None, subtitle_index: str = None) -> bool:
         """
         Check if a word is known, including checking contractions for English
         """
         word_lower = word.lower()
-        
+
+        # DIAGNOSTIC LOG: Tracer chaque étape de la vérification
+        if original_word and subtitle_index:
+            try:
+                # Obtenir le rang du mot dans la liste de fréquence
+                from frequency_loader import get_frequency_loader
+                frequency_loader = get_frequency_loader()
+                word_rank = frequency_loader.get_word_rank(word_lower, language, top_n=2000)
+                rank_info = f"rang={word_rank}" if word_rank else "hors_top_2000"
+
+                logger.info(f"DIAGNOSTIC[{subtitle_index}]: mot_original='{original_word}', mot_lemmatisé='{word}', mot_recherche='{word_lower}', {rank_info}, seuil=800")
+            except Exception as e:
+                logger.warning(f"DIAGNOSTIC[{subtitle_index}]: Erreur lors de la récupération du rang pour '{word}': {e}")
+
         # First check if the word itself is known
         if word_lower in known_words:
+            if original_word and subtitle_index:
+                logger.info(f"DECISION[{subtitle_index}]: mot='{original_word}', lemmatisé='{word}', recherche='{word_lower}', connu=OUI (trouvé dans known_words)")
             return True
-        
+
         # For English, check if it's a contraction and if ALL words in the expansion are known
         if language == 'en':
             expansion = self._get_contraction_expansion(word)
             if expansion:
                 # Check if ALL words in the expansion are known
-                return all(expanded_word.lower() in known_words for expanded_word in expansion)
-        
+                all_known = all(expanded_word.lower() in known_words for expanded_word in expansion)
+                if original_word and subtitle_index:
+                    expansion_status = "tous_connus" if all_known else "certains_inconnus"
+                    logger.info(f"DECISION[{subtitle_index}]: mot='{original_word}', contraction='{word}', expansion={expansion}, {expansion_status}, connu={'OUI' if all_known else 'NON'}")
+                return all_known
+
+        # Mot inconnu
+        if original_word and subtitle_index:
+            logger.info(f"DECISION[{subtitle_index}]: mot='{original_word}', lemmatisé='{word}', recherche='{word_lower}', connu=NON (pas trouvé)")
+
         return False
 
     def _get_contraction_expansion(self, word: str) -> Optional[List[str]]:
@@ -383,27 +406,36 @@ class SubtitleFusionEngine:
             unknown_words = []
             for j, word in enumerate(lemmatized_words):
                 orig_word = original_words[j] if j < len(original_words) else word
-                is_known = self.is_word_known(word, known_words, lang)
+                is_known = self.is_word_known(word, known_words, lang, original_word=orig_word, subtitle_index=current_target_sub.index)
                 is_proper = self.is_proper_noun(orig_word, current_target_sub.text, known_words)
-                
+
                 # Check if word is a number (consists entirely of digits)
                 is_number = word.isdigit()
-                
+
                 lemmatized_words_list.append(word)
-                
+
                 if is_proper:
                     proper_nouns.append(orig_word)
                 elif not is_known and not is_number:
                     unknown_words_list.append(word)
-                
+
                 if not is_known and not is_proper and not is_number:
                     unknown_words.append(word)
             
+            # DECISION FINALE LOG: Récapitulatif de la décision pour ce sous-titre
+            total_words = len(lemmatized_words_list)
+            unknown_count = len(unknown_words)
+            proper_count = len(proper_nouns)
+            known_count = total_words - unknown_count - proper_count
+
+            logger.info(f"DECISION_FINALE[{current_target_sub.index}]: total_mots={total_words}, connus={known_count}, inconnus={unknown_count}, noms_propres={proper_count}")
+
             if len(unknown_words) == 0:
+                logger.info(f"DECISION_FINALE[{current_target_sub.index}]: GARDÉ_EN_LANGUE_CIBLE (tous mots connus/noms propres)")
                 if should_show_details:
                     # Format words with ranks for better debugging
                     words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
-                    
+
                     # Use helper function for atomic logging
                     self._log_subtitle_details(
                         subtitle_index=current_target_sub.index,
@@ -422,6 +454,7 @@ class SubtitleFusionEngine:
             
             # Handle single unknown word with inline translation
             if len(unknown_words) == 1 and enable_inline_translation and native_lang:
+                logger.info(f"DECISION_FINALE[{current_target_sub.index}]: TRADUCTION_INLINE (1 mot inconnu)")
                 # Find the original word corresponding to the lemmatized unknown word
                 try:
                     lemma_index = lemmatized_words.index(unknown_words[0])
@@ -429,7 +462,7 @@ class SubtitleFusionEngine:
                 except (ValueError, IndexError):
                     # Fallback: use the lemmatized word as original if mapping fails
                     original_word = unknown_words[0]
-                
+
                 # BATCH TRANSLATION: Collect word for batch translation instead of translating immediately
                 if original_word not in unknown_words_to_translate:
                     unknown_words_to_translate.append(original_word)
@@ -526,6 +559,8 @@ class SubtitleFusionEngine:
                 end=overlapping_target_subs[-1].end,
                 text=combined_native_sub['text']
             )
+
+            logger.info(f"DECISION_FINALE[{current_target_sub.index}]: REMPLACÉ_PAR_NATIF ({len(unknown_words)} mots inconnus)")
             
             if should_show_details:
                 # Format words with ranks for better debugging

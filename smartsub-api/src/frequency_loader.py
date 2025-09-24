@@ -117,32 +117,46 @@ class FrequencyLoader:
     def get_word_rank(self, word: str, language: str, top_n: int = 2000) -> Optional[int]:
         """
         Get the rank (1-indexed) of a word in the frequency list.
-        
+
         Args:
             word: The word to look up
             language: Language code (e.g., 'en', 'fr', 'pt')
             top_n: Number of top words to consider (default: 2000)
-            
+
         Returns:
             The rank (1-indexed) of the word, or None if not in the top_n words
-            
+
         Raises:
             ValueError: If language is not supported
             FileNotFoundError: If frequency list file doesn't exist
         """
         # Normalize inputs
+        original_word = word
         word = word.lower().strip()
         language = language.lower().strip()
-        
+
         if language not in self._language_files:
             raise ValueError(f"Unsupported language: {language}. Supported: {list(self._language_files.keys())}")
-        
+
         # Check cache first
         cache_key = f"{language}_{top_n}"
         if cache_key not in self._ranking_cache:
+            logger.info(f"RANK_DIAGNOSTIC: Cache miss pour {cache_key}, construction en cours...")
             self._build_ranking_cache(language, top_n)
-        
-        return self._ranking_cache[cache_key].get(word)
+
+        rank = self._ranking_cache[cache_key].get(word)
+
+        # DIAGNOSTIC LOG: Tracer les recherches de rang suspectes
+        if original_word in ['as', 'de', 'para', 'que', 'a', 'o', 'e', 'da', 'do', 'em', 'um', 'uma']:
+            cache_size = len(self._ranking_cache[cache_key])
+            if rank:
+                logger.info(f"RANK_DIAGNOSTIC: mot_suspect='{original_word}' → normalisé='{word}' → rang={rank}/{top_n} (cache_size={cache_size})")
+            else:
+                # Vérifier si le mot existe dans le cache avec une recherche exhaustive
+                found_variants = [k for k in self._ranking_cache[cache_key].keys() if original_word.lower() in k]
+                logger.warning(f"RANK_DIAGNOSTIC: mot_suspect='{original_word}' → normalisé='{word}' → NOT_FOUND (cache_size={cache_size}, variants_trouvés={found_variants[:5]})")
+
+        return rank
     
     def _build_ranking_cache(self, language: str, top_n: int) -> None:
         """
