@@ -11,15 +11,78 @@ import logging
 from srt_parser import Subtitle
 from frequency_loader import get_frequency_loader
 
+@dataclass
+class TokenMapping:
+    """Mapping pour maintenir l'alignement entre mots originaux et traités"""
+    original_index: int      # Index dans le texte original
+    original_word: str       # Mot original avec ponctuation
+    normalized_word: str     # Mot après normalisation (vide si filtré)
+    lemmatized_word: str     # Mot après lemmatisation (vide si filtré)
+    is_filtered: bool        # True si supprimé par normalize_words
+
 # Configure logger
 logger = logging.getLogger(__name__)
+
+def create_alignment_mapping(text: str, lang: str) -> List[TokenMapping]:
+    """
+    Crée un mapping complet avec alignement préservé entre mots originaux et traités
+
+    Args:
+        text: Texte du sous-titre (sans HTML)
+        lang: Code de langue pour la lemmatisation
+
+    Returns:
+        Liste des TokenMapping avec alignement préservé
+    """
+    from lemmatizer import lemmatize_single_line
+    from srt_parser import normalize_words
+    import re
+
+    # 1. Extraire les mots originaux
+    original_words = text.split()
+
+    # 2. Normaliser et lemmatiser
+    normalized_words = normalize_words(text)
+    normalized_line = ' '.join(normalized_words)
+    lemmatized_words = lemmatize_single_line(normalized_line, lang) if normalized_words else []
+
+    # 3. Créer le mapping avec alignement
+    mappings = []
+    normalized_idx = 0
+
+    for orig_idx, original_word in enumerate(original_words):
+        # Normaliser ce mot individuellement pour vérifier s'il est filtré
+        single_word_normalized = normalize_words(original_word)
+
+        if single_word_normalized:  # Mot non filtré
+            normalized_word = single_word_normalized[0] if single_word_normalized else ""
+            lemmatized_word = lemmatized_words[normalized_idx] if normalized_idx < len(lemmatized_words) else ""
+
+            mappings.append(TokenMapping(
+                original_index=orig_idx,
+                original_word=original_word,
+                normalized_word=normalized_word,
+                lemmatized_word=lemmatized_word,
+                is_filtered=False
+            ))
+            normalized_idx += 1
+        else:  # Mot filtré
+            mappings.append(TokenMapping(
+                original_index=orig_idx,
+                original_word=original_word,
+                normalized_word="",
+                lemmatized_word="",
+                is_filtered=True
+            ))
+
+    return mappings
 
 class SubtitleFusionEngine:
     """
     Main engine for subtitle fusion algorithm
     Migrated from TypeScript logic.ts
     """
-    
+
     def __init__(self):
         # English contractions mapping - migrated from logic.ts
         # Debug logs storage for ordered display
@@ -383,14 +446,16 @@ class SubtitleFusionEngine:
             if current_target_sub.index in processed_target_indices:
                 continue
             
-            # Lemmatize this specific subtitle individually
-            current_line = ' '.join(normalize_words(strip_html(current_target_sub.text)))
-            lemmatized_words = lemmatize_single_line(current_line, lang)
-            original_words = strip_html(current_target_sub.text).split()
-            
-            # Add null check for lemmatized_words
-            if not lemmatized_words or not isinstance(lemmatized_words, list):
-                logger.warning(f"No lemmatized words found for subtitle {current_target_sub.index}, skipping.")
+            # Create alignment mapping for this subtitle
+            subtitle_text = strip_html(current_target_sub.text)
+            token_mappings = create_alignment_mapping(subtitle_text, lang)
+
+            # Extract non-filtered mappings for processing
+            active_mappings = [mapping for mapping in token_mappings if not mapping.is_filtered]
+
+            # Add null check for active mappings
+            if not active_mappings:
+                logger.warning(f"No active mappings found for subtitle {current_target_sub.index}, skipping.")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 continue
@@ -398,29 +463,31 @@ class SubtitleFusionEngine:
             # DETAIL FOR FIRST 20 SUBTITLES
             should_show_details = debug_shown < 20
             
-            # Analyze each word
+            # Analyze each word using token mappings
             proper_nouns = []
             lemmatized_words_list = []
             unknown_words_list = []
-            
+
             unknown_words = []
-            for j, word in enumerate(lemmatized_words):
-                orig_word = original_words[j] if j < len(original_words) else word
-                is_known = self.is_word_known(word, known_words, lang, original_word=orig_word, subtitle_index=current_target_sub.index)
-                is_proper = self.is_proper_noun(orig_word, current_target_sub.text, known_words)
+            for mapping in active_mappings:
+                lemmatized_word = mapping.lemmatized_word
+                original_word = mapping.original_word
+
+                is_known = self.is_word_known(lemmatized_word, known_words, lang, original_word=original_word, subtitle_index=current_target_sub.index)
+                is_proper = self.is_proper_noun(original_word, current_target_sub.text, known_words)
 
                 # Check if word is a number (consists entirely of digits)
-                is_number = word.isdigit()
+                is_number = lemmatized_word.isdigit()
 
-                lemmatized_words_list.append(word)
+                lemmatized_words_list.append(lemmatized_word)
 
                 if is_proper:
-                    proper_nouns.append(orig_word)
+                    proper_nouns.append(original_word)
                 elif not is_known and not is_number:
-                    unknown_words_list.append(word)
+                    unknown_words_list.append(lemmatized_word)
 
                 if not is_known and not is_proper and not is_number:
-                    unknown_words.append(word)
+                    unknown_words.append(lemmatized_word)
             
             # DECISION FINALE LOG: Récapitulatif de la décision pour ce sous-titre
             total_words = len(lemmatized_words_list)
@@ -455,13 +522,15 @@ class SubtitleFusionEngine:
             # Handle single unknown word with inline translation
             if len(unknown_words) == 1 and enable_inline_translation and native_lang:
                 logger.info(f"DECISION_FINALE[{current_target_sub.index}]: TRADUCTION_INLINE (1 mot inconnu)")
-                # Find the original word corresponding to the lemmatized unknown word
-                try:
-                    lemma_index = lemmatized_words.index(unknown_words[0])
-                    original_word = original_words[lemma_index]
-                except (ValueError, IndexError):
-                    # Fallback: use the lemmatized word as original if mapping fails
-                    original_word = unknown_words[0]
+                # Find the original word corresponding to the lemmatized unknown word using mappings
+                unknown_lemma = unknown_words[0]
+                original_word = unknown_lemma  # Fallback
+
+                # Find the mapping for this unknown lemmatized word
+                for mapping in active_mappings:
+                    if mapping.lemmatized_word == unknown_lemma:
+                        original_word = mapping.original_word
+                        break
 
                 # BATCH TRANSLATION: Collect word for batch translation instead of translating immediately
                 if original_word not in unknown_words_to_translate:
