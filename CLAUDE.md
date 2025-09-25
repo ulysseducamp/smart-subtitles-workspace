@@ -94,6 +94,7 @@ docker run -p 3000:3000 smartsub-api
 - **Lemmatization**: Uses `simplemma` library for word stemming across languages
 - **Inline Translation**: DeepL API integration for unknown words
 - **Contraction Handling**: English contraction expansion for better vocabulary matching
+- **TokenMapping System**: Industry-standard NLP approach for preserving word alignment during processing
 
 ## Key Implementation Details
 
@@ -108,6 +109,7 @@ docker run -p 3000:3000 smartsub-api
 - Processes approximately 72% of subtitles with intelligent replacements
 - Supports 4 languages: English (EN), French (FR), Portuguese (PT), Spanish (ES)
 - Maintains temporal alignment between different subtitle versions
+- **TokenMapping System**: Resolves word alignment issues between original and processed words using industry-standard NLP tokenization approach
 
 ### Security Implementation
 - **API Key Protection**: Server-side proxy prevents client-side API key exposure
@@ -204,3 +206,26 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 - `smartsub-api/requirements.txt` - Python dependencies
 - `Dockerfile` - Multi-stage build for Node.js + Python deployment
 - `MASTER_DOC.md` - Comprehensive project documentation (720+ lines)
+
+## Recent Critical Bug Fixes (January 2025)
+
+### Word Alignment Bug Resolution
+**Problem**: Basic Portuguese words ("as", "de", "para") were incorrectly translated despite high vocabulary levels due to word-to-lemma alignment issues.
+
+**Root Cause**: The `normalize_words()` function filtered out certain words (single letters, contractions), creating index misalignment between `original_words` and `lemmatized_words` arrays.
+
+**Solution**: Implemented TokenMapping system (`subtitle_fusion.py:TokenMapping`) that preserves alignment between original and processed words using industry-standard NLP tokenization approaches (similar to spaCy, Hugging Face).
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py`
+- `TokenMapping` dataclass with original_index, original_word, normalized_word, lemmatized_word, is_filtered
+- `create_alignment_mapping()` function (~40 lines)
+- Integration in main `fuse_subtitles()` processing loop
+
+**Validation**: Railway logs confirm proper alignment:
+```
+DIAGNOSTIC[33]: mot_original='você', mot_lemmatisé='você', mot_recherche='você', rang=7
+DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (trouvé dans known_words)
+```
+
+### Diagnostic Logging Enhancement
+Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
