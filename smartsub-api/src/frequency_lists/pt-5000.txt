@@ -1,3 +1,4 @@
+ao
 você
 te
 o
@@ -134,6 +135,7 @@ lado
 conhecer
 tomar
 mercado
+sério
 qualquer
 fim
 abrir
