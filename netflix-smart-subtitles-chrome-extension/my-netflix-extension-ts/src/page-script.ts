@@ -206,47 +206,9 @@ import { railwayAPIClient } from './api/railwayClient';
     console.log('Netflix Subtitle Downloader: Triggering subtitle injection after track discovery');
     reconcileSubtitleInjection();
 
-    // AUTO-PROCESS SMART SUBTITLES - Request current state and process if enabled
-    if (usableTracks.length > 0) {
-      console.log('Smart Netflix Subtitles: Requesting current state for auto-processing...');
-      
-      // Retry mechanism for state requests
-      const tryAutoProcessing = async (retryCount = 0) => {
-        try {
-          const {enabled, settings} = await requestCurrentState();
-          
-          if (enabled && settings) {
-            // DIAGNOSTIC CRITIQUE: Vérifier l'état Netflix au moment du processing
-            const videoElement = document.querySelector('video');
-            const currentTime = videoElement ? Math.floor(videoElement.currentTime) : 'N/A';
-            const videoDuration = videoElement ? Math.floor(videoElement.duration) : 'N/A';
-            const titleElement = document.querySelector('[data-uia="video-title"]') || document.querySelector('.video-title');
-            const currentTitle = titleElement?.textContent || 'Unknown';
-
-            console.log(`🚀 AUTO-PROCESSING START: Movie ID ${movieId}`);
-            console.log(`📺 NETFLIX STATE AT PROCESSING: Title="${currentTitle}" Video=${currentTime}s/${videoDuration}s`);
-            console.log(`⚠️  CRITICAL: Processing movie ${movieId} while potentially watching different content!`);
-
-            await processSmartSubtitles(settings);
-          } else {
-            console.log('Smart Netflix Subtitles: Extension disabled or no settings, skipping auto-processing');
-            console.log('Smart Netflix Subtitles: State received - enabled:', enabled, 'settings:', settings);
-          }
-        } catch (error) {
-          console.error('Smart Netflix Subtitles: Failed to get current state:', error);
-          
-          // Retry up to 2 times with increasing delay
-          if (retryCount < 2) {
-            console.log(`Smart Netflix Subtitles: Retrying state request (${retryCount + 1}/2)...`);
-            setTimeout(() => tryAutoProcessing(retryCount + 1), 1000 * (retryCount + 1));
-          } else {
-            console.log('Smart Netflix Subtitles: Max retries reached, skipping auto-processing');
-          }
-        }
-      };
-      
-      tryAutoProcessing();
-    }
+    // AUTO-PROCESSING DISABLED - User must manually click "Process Subtitles" button
+    // This prevents processing Netflix preload data (which caused subtitle corruption at ~36min)
+    console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles available for manual processing');
   }
 
   // Function to convert WebVTT text to plain text plus "simple" tags (allowed in SRT)
@@ -968,7 +930,7 @@ Loading smart subtitles...`;
     if (videoId !== lastKnownMovieId) {
       console.log('Netflix Subtitle Downloader: Movie ID changed from', lastKnownMovieId, 'to', videoId);
       
-      // Reset state when movie changes (key fix for auto-processing)
+      // Reset state when movie changes
       lastKnownMovieId = videoId;
       currentMovieId = videoId;
       selectedTrackId = null;
