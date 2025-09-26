@@ -28,8 +28,11 @@ cd netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/
 # Development build with watch mode
 npm run dev
 
-# Production build
-npm run build
+# IMPORTANT: Environment-specific builds
+npm run build:staging     # ← Pour développement (pointe vers staging API)
+npm run build:production  # ← Pour utilisateurs finaux (pointe vers production API)
+
+# NEVER use npm run build directly - always specify staging or production!
 
 # Type checking
 npm run type-check
@@ -40,6 +43,12 @@ npm run clean
 # Linting
 npm run lint
 ```
+
+### Environment Workflow Rules
+- **Development/Testing**: ALWAYS use `npm run build:staging` → Extension pointe vers `smartsub-api-staging.up.railway.app`
+- **Production/Distribution**: Use `npm run build:production` → Extension pointe vers `smartsub-api-production.up.railway.app`
+- **Branch staging**: `develop` → auto-deploy to staging API
+- **Branch production**: `main` → auto-deploy to production API
 
 ### FastAPI Backend
 ```bash

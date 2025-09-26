@@ -117,7 +117,23 @@ import { railwayAPIClient } from './api/railwayClient';
   // Function to extract movie text tracks from Netflix API response
   function extractMovieTextTracks(movieObj: any): void {
     const movieId = movieObj.movieId as number;
-    console.log('Netflix Subtitle Downloader: Extracting tracks for movie ID:', movieId);
+    const elapsed = Date.now() - pollingStartTime;
+    const elapsedMinutes = Math.floor(elapsed / 60000);
+    const elapsedSeconds = Math.floor((elapsed % 60000) / 1000);
+
+    // DIAGNOSTIC SENIOR: Capturer l'état actuel de Netflix
+    const videoElement = document.querySelector('video');
+    const currentTime = videoElement ? Math.floor(videoElement.currentTime) : 'N/A';
+    const videoDuration = videoElement ? Math.floor(videoElement.duration) : 'N/A';
+    const titleElement = document.querySelector('[data-uia="video-title"]') || document.querySelector('.video-title');
+    const currentTitle = titleElement?.textContent || 'Unknown';
+
+    console.log(`🎬 DIAGNOSTIC Extract: Movie ID ${movieId} at ${elapsedMinutes}min ${elapsedSeconds}s`);
+    console.log(`📺 NETFLIX STATE: Title="${currentTitle}" Video=${currentTime}s/${videoDuration}s Previous=${currentMovieId}`);
+
+    // CRITICAL: Vérifier si on doit traiter ce nouveau movie ID
+    const shouldProcess = (currentMovieId !== movieId);
+    console.log(`🔄 PROCESSING DECISION: Should process new movieId? ${shouldProcess} (current=${currentMovieId} new=${movieId})`);
 
     // Update current movie ID when we detect new content
     currentMovieId = movieId;
@@ -200,7 +216,17 @@ import { railwayAPIClient } from './api/railwayClient';
           const {enabled, settings} = await requestCurrentState();
           
           if (enabled && settings) {
-            console.log('Smart Netflix Subtitles: Auto-processing subtitles for movie ID:', movieId);
+            // DIAGNOSTIC CRITIQUE: Vérifier l'état Netflix au moment du processing
+            const videoElement = document.querySelector('video');
+            const currentTime = videoElement ? Math.floor(videoElement.currentTime) : 'N/A';
+            const videoDuration = videoElement ? Math.floor(videoElement.duration) : 'N/A';
+            const titleElement = document.querySelector('[data-uia="video-title"]') || document.querySelector('.video-title');
+            const currentTitle = titleElement?.textContent || 'Unknown';
+
+            console.log(`🚀 AUTO-PROCESSING START: Movie ID ${movieId}`);
+            console.log(`📺 NETFLIX STATE AT PROCESSING: Title="${currentTitle}" Video=${currentTime}s/${videoDuration}s`);
+            console.log(`⚠️  CRITICAL: Processing movie ${movieId} while potentially watching different content!`);
+
             await processSmartSubtitles(settings);
           } else {
             console.log('Smart Netflix Subtitles: Extension disabled or no settings, skipping auto-processing');
@@ -418,25 +444,50 @@ import { railwayAPIClient } from './api/railwayClient';
     const textColor = isLoading ? '#4CAF50' : 'white'; // Green for loading, white for normal
     customSubsElem.style.cssText = `position: absolute; bottom: 20vh; left: 0; right: 0; color: ${textColor}; font-size: 3vw; text-align: center; user-select: text; -moz-user-select: text; z-index: 100; pointer-events: none`;
 
-    // Handle cue changes for real-time subtitle display
-    trackElem.addEventListener('cuechange', function(e) {
-      // Remove all children
-      while (customSubsElem.firstChild) {
-        customSubsElem.removeChild(customSubsElem.firstChild);
+    // Handle cue changes for real-time subtitle display - POLLING APPROACH (EasySubs inspired)
+    // Replaces cuechange events to prevent memory leaks after 36+ minutes
+    let lastCueCount = 0;
+    let lastCueText = '';
+
+    const updateSubtitleDisplay = () => {
+      const track = trackElem.track;
+      if (!track?.activeCues) return;
+
+      const currentCueCount = track.activeCues.length;
+      let currentCueText = '';
+      for (const cue of track.activeCues) {
+        currentCueText += (cue as any).text;
       }
 
-      const track = e.target as HTMLTrackElement;
-      console.log('Netflix Subtitle Downloader: Active cues:', track.track?.activeCues);
-      
-      if (track.track?.activeCues) {
-        for (const cue of track.track.activeCues) {
-          const cueElem = document.createElement('div');
-          cueElem.style.cssText = 'background: rgba(0,0,0,0.8); white-space: pre-wrap; padding: 0.2em 0.3em; margin: 10px auto; width: fit-content; width: -moz-fit-content; pointer-events: auto';
-          cueElem.innerHTML = vttTextToSimple((cue as any).text, true); // May contain simple tags like <i> etc.
-          customSubsElem.appendChild(cueElem);
+      // Only update DOM if cues actually changed (performance optimization)
+      if (currentCueCount !== lastCueCount || currentCueText !== lastCueText) {
+        console.log('Netflix Subtitle Downloader: Active cues updated via polling:', track.activeCues);
+
+        // Remove all children
+        while (customSubsElem.firstChild) {
+          customSubsElem.removeChild(customSubsElem.firstChild);
         }
+
+        // Add new cues
+        if (track.activeCues) {
+          for (const cue of track.activeCues) {
+            const cueElem = document.createElement('div');
+            cueElem.style.cssText = 'background: rgba(0,0,0,0.8); white-space: pre-wrap; padding: 0.2em 0.3em; margin: 10px auto; width: fit-content; width: -moz-fit-content; pointer-events: auto';
+            cueElem.innerHTML = vttTextToSimple((cue as any).text, true); // May contain simple tags like <i> etc.
+            customSubsElem.appendChild(cueElem);
+          }
+        }
+
+        lastCueCount = currentCueCount;
+        lastCueText = currentCueText;
       }
-    }, false);
+    };
+
+    // Polling approach - prevents TextTrack activeCues memory leak
+    const subtitlePollingInterval = setInterval(updateSubtitleDisplay, 100); // 100ms like EasySubs
+
+    // Store interval for cleanup (prevent memory leak of polling itself)
+    (trackElem as any)._subtitlePollingInterval = subtitlePollingInterval;
 
     // Append overlay to the player (Enhanced player detection - Solution C Enhanced)
     let playerElem = document.querySelector('.watch-video');
@@ -498,9 +549,15 @@ import { railwayAPIClient } from './api/railwayClient';
       URL.revokeObjectURL(currentBlobUrl);
       currentBlobUrl = null;
     }
-    
+
     const trackElem = document.getElementById(TRACK_ELEM_ID);
     if (trackElem) {
+      // Clean up polling interval to prevent memory leak
+      const pollingInterval = (trackElem as any)._subtitlePollingInterval;
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        console.log('Netflix Subtitle Downloader: Polling interval cleaned up');
+      }
       trackElem.remove();
     }
 
@@ -856,25 +913,32 @@ Loading smart subtitles...`;
   const originalParse = JSON.parse;
   JSON.parse = function(): any {
     const value = originalParse.apply(this, arguments as any);
-    
+
     // Capture subtitle data from Netflix API responses
     if (value && value.result && value.result.movieId && value.result.timedtexttracks) {
-      console.log('Netflix Subtitle Downloader: Captured Netflix API response');
+      const elapsed = Date.now() - pollingStartTime;
+      const elapsedMinutes = Math.floor(elapsed / 60000);
+      console.log(`🔍 DIAGNOSTIC Netflix JSON: Captured subtitle API response at ${elapsedMinutes}min ${Math.floor((elapsed % 60000) / 1000)}s`);
       extractMovieTextTracks(value.result);
     }
     
     // Also check for alternative response formats
     if (value && value.result && value.result.result && value.result.result.timedtexttracks) {
-      console.log('Netflix Subtitle Downloader: Captured alternative Netflix API response');
+      const elapsed = Date.now() - pollingStartTime;
+      const elapsedMinutes = Math.floor(elapsed / 60000);
+      console.log(`🔍 DIAGNOSTIC Netflix JSON: Alternative API response at ${elapsedMinutes}min ${Math.floor((elapsed % 60000) / 1000)}s`);
       extractMovieTextTracks(value.result.result);
     }
-    
+
     // Check for movies object format
     if (value && value.result && value.result.movies) {
+      const elapsed = Date.now() - pollingStartTime;
+      const elapsedMinutes = Math.floor(elapsed / 60000);
+      console.log(`🔍 DIAGNOSTIC Netflix JSON: Movies object response at ${elapsedMinutes}min ${Math.floor((elapsed % 60000) / 1000)}s`);
+
       for (const movieId in value.result.movies) {
         const movie = value.result.movies[movieId];
         if (movie && movie.timedtexttracks) {
-          console.log('Netflix Subtitle Downloader: Captured movies object response');
           extractMovieTextTracks(movie);
         }
       }
