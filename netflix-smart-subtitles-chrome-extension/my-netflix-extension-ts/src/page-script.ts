@@ -117,23 +117,7 @@ import { railwayAPIClient } from './api/railwayClient';
   // Function to extract movie text tracks from Netflix API response
   function extractMovieTextTracks(movieObj: any): void {
     const movieId = movieObj.movieId as number;
-    const elapsed = Date.now() - pollingStartTime;
-    const elapsedMinutes = Math.floor(elapsed / 60000);
-    const elapsedSeconds = Math.floor((elapsed % 60000) / 1000);
-
-    // DIAGNOSTIC SENIOR: Capturer l'état actuel de Netflix
-    const videoElement = document.querySelector('video');
-    const currentTime = videoElement ? Math.floor(videoElement.currentTime) : 'N/A';
-    const videoDuration = videoElement ? Math.floor(videoElement.duration) : 'N/A';
-    const titleElement = document.querySelector('[data-uia="video-title"]') || document.querySelector('.video-title');
-    const currentTitle = titleElement?.textContent || 'Unknown';
-
-    console.log(`🎬 DIAGNOSTIC Extract: Movie ID ${movieId} at ${elapsedMinutes}min ${elapsedSeconds}s`);
-    console.log(`📺 NETFLIX STATE: Title="${currentTitle}" Video=${currentTime}s/${videoDuration}s Previous=${currentMovieId}`);
-
-    // CRITICAL: Vérifier si on doit traiter ce nouveau movie ID
-    const shouldProcess = (currentMovieId !== movieId);
-    console.log(`🔄 PROCESSING DECISION: Should process new movieId? ${shouldProcess} (current=${currentMovieId} new=${movieId})`);
+    console.log('Netflix Subtitle Downloader: Extracting tracks for movie ID:', movieId);
 
     // Update current movie ID when we detect new content
     currentMovieId = movieId;
@@ -878,29 +862,22 @@ Loading smart subtitles...`;
 
     // Capture subtitle data from Netflix API responses
     if (value && value.result && value.result.movieId && value.result.timedtexttracks) {
-      const elapsed = Date.now() - pollingStartTime;
-      const elapsedMinutes = Math.floor(elapsed / 60000);
-      console.log(`🔍 DIAGNOSTIC Netflix JSON: Captured subtitle API response at ${elapsedMinutes}min ${Math.floor((elapsed % 60000) / 1000)}s`);
+      console.log('Netflix Subtitle Downloader: Captured Netflix API response');
       extractMovieTextTracks(value.result);
     }
     
     // Also check for alternative response formats
     if (value && value.result && value.result.result && value.result.result.timedtexttracks) {
-      const elapsed = Date.now() - pollingStartTime;
-      const elapsedMinutes = Math.floor(elapsed / 60000);
-      console.log(`🔍 DIAGNOSTIC Netflix JSON: Alternative API response at ${elapsedMinutes}min ${Math.floor((elapsed % 60000) / 1000)}s`);
+      console.log('Netflix Subtitle Downloader: Captured alternative Netflix API response');
       extractMovieTextTracks(value.result.result);
     }
 
     // Check for movies object format
     if (value && value.result && value.result.movies) {
-      const elapsed = Date.now() - pollingStartTime;
-      const elapsedMinutes = Math.floor(elapsed / 60000);
-      console.log(`🔍 DIAGNOSTIC Netflix JSON: Movies object response at ${elapsedMinutes}min ${Math.floor((elapsed % 60000) / 1000)}s`);
-
       for (const movieId in value.result.movies) {
         const movie = value.result.movies[movieId];
         if (movie && movie.timedtexttracks) {
+          console.log('Netflix Subtitle Downloader: Captured movies object response');
           extractMovieTextTracks(movie);
         }
       }
