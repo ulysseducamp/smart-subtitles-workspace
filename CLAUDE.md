@@ -88,7 +88,7 @@ docker run -p 3000:3000 smartsub-api
 - **JSON Hijacking**: Intercepts Netflix API responses by overriding `JSON.parse()`
 - **Message Passing**: Chrome extension message system for cross-context communication
 - **State Management**: Persistent settings via `chrome.storage.local`
-- **Auto-Processing**: Automatic subtitle processing on episode changes with polling mechanism
+- **Manual Processing**: User must click "Process Subtitles" button (auto-processing disabled to prevent Netflix preload corruption)
 
 ### API Backend Architecture
 - **Pure Python Fusion**: Direct function calls to Python subtitle fusion algorithm (migrated from TypeScript)
@@ -271,6 +271,28 @@ setInterval(() => {
 **Code Location**: `src/page-script.ts` lines 925-948
 
 **Testing Results**: ✅ 46+ minutes stable operation, ✅ polling logs appearing every 5 minutes, ✅ all core functionality preserved
+
+## Netflix Preload Issue Resolution (January 2025)
+
+### Problem Resolution ✅ **COMPLETED**
+**Problem**: Subtitles became incorrect at ~36 minutes consistently, requiring manual refresh to fix.
+
+**Root Cause**: Netflix preloads next episode data around 36 minutes, triggering auto-processing of wrong subtitle tracks while current episode still playing.
+
+**Solution**: Complete auto-processing removal - manual "Process Subtitles" button click required:
+
+```typescript
+// AUTO-PROCESSING DISABLED - User must manually click "Process Subtitles" button
+// This prevents processing Netflix preload data (which caused subtitle corruption at ~36min)
+console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles available for manual processing');
+```
+
+**Code Changes**:
+- Removed 40 lines of auto-processing logic from `extractMovieTextTracks()`
+- Preserved manual processing flow via popup button
+- Cleaned up debugging artifacts (70+ lines)
+
+**Testing Results**: ✅ 40+ minutes stable operation, ✅ no subtitle corruption, ✅ Netflix preload detected but ignored
 
 ### EasySubs Future Architecture Analysis
 **Decision**: Chose minimal polling solution over complex EasySubs refactor for this specific memory leak problem.

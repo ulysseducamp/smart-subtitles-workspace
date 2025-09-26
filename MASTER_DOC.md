@@ -515,14 +515,14 @@ RAILWAY_SERVICE_ID=service_id
 - **No Cross-Contamination**: Staging extension never hits production API
 
 **Last Updated**: January 2025
-**Version**: 3.11.1 (Phase 3 Complete - Full Integration + Auto-Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix + Chrome Web Store Security Compliance + Memory Leak Resolution, Phase 4 Active)
-**Status**: End-to-End Integration Complete with Auto-Processing, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, Railway Logs 500 Error Fix, Chrome Web Store Security Compliance, and Memory Leak Resolution - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Automatic Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, PostMessage Security Hardening, Chrome Extension Permissions Compliance, API Key Header Security, Proxy JSON Parsing Robustness, and Memory Leak Prevention via Minimal Polling Solution, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app
+**Version**: 3.12.0 (Phase 3 Complete - Full Integration + Manual Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix + Chrome Web Store Security Compliance + Netflix Preload Issue Resolution, Phase 4 Active)
+**Status**: End-to-End Integration Complete with Manual Processing Only, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, Railway Logs 500 Error Fix, Chrome Web Store Security Compliance, and Netflix Preload Issue Resolution - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Manual-Only Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, PostMessage Security Hardening, Chrome Extension Permissions Compliance, API Key Header Security, Proxy JSON Parsing Robustness, and Netflix Preload Corruption Prevention, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app
 **Maintainer**: Smart Subtitles Development Team
 **License**: AGPL-3.0-or-later
 
 **Next Milestone**: Complete Phase 4 (Testing & Polish) with enhanced error handling and user experience improvements
 
-**Current Status**: Full end-to-end integration complete with auto-processing, language system refactoring, DeepL API integration, comprehensive testing, critical security vulnerabilities resolved, staging environment setup, proxy 301 fix, Chrome Web Store security compliance, and memory leak prevention - Chrome extension automatically processes subtitles on episode changes, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle), staging environment configured with auto-deploy from develop branch for safe testing before production deployment, proxy 301 redirect issue resolved with dynamic HTTPS URL construction using request.headers.get('host') for proper environment isolation, PostMessage security hardening with origin/source validation and wildcard target elimination, Chrome extension permissions compliance with "tabs" permission added, API key security enhancement with header-based authentication instead of query string exposure, proxy JSON parsing robustness with comprehensive error handling for Chrome Web Store publication readiness, and memory leak prevention implemented via minimal polling solution preventing 40+ minute extension crashes requiring Cmd+Shift+R to fix
+**Current Status**: Full end-to-end integration complete with manual processing only, language system refactoring, DeepL API integration, comprehensive testing, critical security vulnerabilities resolved, staging environment setup, proxy 301 fix, Chrome Web Store security compliance, and Netflix preload issue resolution - Chrome extension requires manual "Process Subtitles" button click, settings persist across sessions, visual feedback implemented, code optimized (22% reduction + 95 lines of dead code removed), language system simplified (German removed, pt-BR→pt mapping optimized), frequency order issue resolved (common words like "que" now properly recognized), DeepL API fully integrated with language code mapping (EN→EN-US/EN-GB), inline translation automatically enabled by default with caching, processing time logging implemented, comprehensive test suite covering all core components, processing subtitles with improved accuracy and automatic inline translations, secure server-side proxy architecture implemented to protect API keys from client-side exposure, file size validation (5MB limit) with DoS protection implemented and tested in production, CORS security configuration simplified and secured (Netflix domains only, 35 lines of redundant code removed following KISS principle), staging environment configured with auto-deploy from develop branch for safe testing before production deployment, proxy 301 redirect issue resolved with dynamic HTTPS URL construction using request.headers.get('host') for proper environment isolation, PostMessage security hardening with origin/source validation and wildcard target elimination, Chrome extension permissions compliance with "tabs" permission added, API key security enhancement with header-based authentication instead of query string exposure, proxy JSON parsing robustness with comprehensive error handling for Chrome Web Store publication readiness, and Netflix preload corruption prevention via auto-processing removal preventing subtitle corruption at ~36 minutes
 
 
 ## 🚀 Chrome Extension Development Workflows
@@ -1259,6 +1259,40 @@ setInterval(() => {
 - ✅ **Polling Logs Confirmed**: "Smart Netflix Subtitles: Polling active" appears every 5 minutes
 - ✅ **Core Functionality Preserved**: JSON hijacking, Railway API, Process Subtitles all working
 - ✅ **Build Successful**: No TypeScript compilation errors
+
+### Netflix Preload Corruption Resolution (January 2025)
+
+**Problem Identified:** Subtitles became incorrect at ~36 minutes consistently, requiring manual refresh to fix.
+
+**Root Cause Analysis:**
+- **Netflix Preloading Behavior**: Netflix preloads next episode data around 36 minutes
+- **Auto-Processing Trigger**: Extension auto-processed preloaded Movie IDs while current episode still playing
+- **Subtitle Mismatch**: Next episode subtitles displayed on current episode content
+
+**Diagnostic Process:** Added temporal logging with Movie ID tracking to identify Netflix preload behavior:
+```typescript
+console.log(`🔍 DIAGNOSTIC Netflix JSON: Captured subtitle API response at ${elapsedMinutes}min ${elapsedSeconds}s`);
+console.log(`🎬 DIAGNOSTIC Extract: Movie ID ${movieId} at ${elapsedMinutes}min ${elapsedSeconds}s`);
+```
+
+**Solution Implemented:** Complete auto-processing removal - manual "Process Subtitles" button click required:
+```typescript
+// AUTO-PROCESSING DISABLED - User must manually click "Process Subtitles" button
+// This prevents processing Netflix preload data (which caused subtitle corruption at ~36min)
+console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles available for manual processing');
+```
+
+**Code Changes:**
+- Removed 40 lines of auto-processing logic from `extractMovieTextTracks()`
+- Removed retry mechanisms and state polling for automatic processing
+- Preserved manual processing flow via popup button
+- Cleaned up debugging artifacts (70+ lines)
+
+**Testing Results:**
+- ✅ **40+ Minutes Stable**: No subtitle corruption during extended viewing
+- ✅ **Netflix Preload Detected**: Extension logs show preload detection but no processing
+- ✅ **Manual Control Maintained**: Users click "Process Subtitles" when desired
+- ✅ **Bundle Size Reduced**: 2.2KB reduction from cleanup + auto-processing removal
 
 ### EasySubs Architecture Analysis & Future Roadmap
 
