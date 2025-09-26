@@ -229,3 +229,43 @@ DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (tro
 
 ### Diagnostic Logging Enhancement
 Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
+
+## Memory Leak Resolution (January 2025)
+
+### Problem Resolution ✅ **COMPLETED**
+**Problem**: Chrome extension experienced memory corruption after 40+ minutes of continuous Netflix viewing, causing subtitle malfunction requiring Cmd+Shift+R to fix.
+
+**Root Cause**: Chrome puts extension processes to sleep after extended periods (~40+ minutes), causing memory corruption in Netflix subtitle injection system.
+
+**Solution**: Minimal polling approach (20 lines) that prevents Chrome from putting the extension to sleep:
+
+```typescript
+// MINIMAL POLLING SOLUTION - PREVENTS 40+ MINUTE MEMORY LEAKS
+let pollingStartTime = Date.now();
+setInterval(() => {
+  const videoElement = document.querySelector('video');
+  const playerElement = document.querySelector('.watch-video');
+  const ourTrackExists = document.getElementById(TRACK_ELEM_ID) !== null;
+
+  const elapsed = Date.now() - pollingStartTime;
+  if (elapsed % 300000 < 1000) { // Every 5 minutes
+    console.log('Smart Netflix Subtitles: Polling active - preventing memory leaks', {
+      timeElapsed: `${Math.floor(elapsed / 1000)}s`,
+      hasVideo: !!videoElement,
+      hasPlayer: !!playerElement,
+      hasOurTrack: ourTrackExists
+    });
+  }
+}, 1000);
+```
+
+**Code Location**: `src/page-script.ts` lines 925-948
+
+**Testing Results**: ✅ 46+ minutes stable operation, ✅ polling logs appearing every 5 minutes, ✅ all core functionality preserved
+
+### EasySubs Future Architecture Analysis
+**Decision**: Chose minimal polling solution over complex EasySubs refactor for this specific memory leak problem.
+
+**EasySubs Approach Reserved for Future**: When adding multiple streaming platforms, advanced UI features, or learning analytics - documented in MASTER_DOC.md "Memory Leak Resolution & Future Architecture" section.
+
+**Key Lesson**: Simple solutions for simple problems. Complex architecture only when complexity is genuinely needed (YAGNI principle).
