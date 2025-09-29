@@ -39,6 +39,25 @@ const STORAGE_KEYS = {
   VOCABULARY_LEVEL: 'vocabularyLevel'
 } as const;
 
+// Supported languages mapping (Netflix code -> DeepL code)
+// 13 safe languages (no RTL/Chinese/Next-gen)
+const SUPPORTED_NATIVE_LANGUAGES: Record<string, string> = {
+  'en': 'English',
+  'fr': 'French',
+  'es': 'Spanish',
+  'de': 'German',
+  'it': 'Italian',
+  'pt': 'Portuguese',
+  'pt-BR': 'Portuguese (Brazil)',
+  'pl': 'Polish',
+  'nl': 'Dutch',
+  'sv': 'Swedish',
+  'da': 'Danish',
+  'cs': 'Czech',
+  'ja': 'Japanese',
+  'ko': 'Korean'
+};
+
 // Get DOM elements
 const smartSubtitlesToggle = document.getElementById('smart-subtitles-toggle') as HTMLInputElement;
 const targetLanguageSelect = document.getElementById('target-language') as HTMLSelectElement;
@@ -179,14 +198,14 @@ function validateForm(): boolean {
 // Function to update form state based on toggle
 function updateFormState(): void {
   const isEnabled = smartSubtitlesToggle.checked;
-  
+
   targetLanguageSelect.disabled = !isEnabled;
   nativeLanguageSelect.disabled = !isEnabled;
   vocabularyLevelSelect.disabled = !isEnabled;
   processBtn.disabled = !isEnabled || isProcessing;
 
   currentSettings.enabled = isEnabled;
-  
+
   // Save settings when toggle changes
   saveSettings();
 
@@ -194,6 +213,76 @@ function updateFormState(): void {
     clearStatus();
     hideLoading();
   }
+}
+
+// Function to load available native languages from Netflix
+async function loadAvailableNativeLanguages(): Promise<void> {
+  try {
+    // Get the current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }) as ChromeTab[];
+
+    if (!tab) {
+      console.log('Smart Netflix Subtitles: No active tab found for language detection');
+      return;
+    }
+
+    // Check if on Netflix page
+    if (!tab.url?.includes('netflix.com')) {
+      console.log('Smart Netflix Subtitles: Not on Netflix page, using default languages');
+      populateNativeLanguageDropdown([]);
+      return;
+    }
+
+    // Request available subtitle tracks from content script
+    const response = await chrome.tabs.sendMessage(tab.id!, {
+      action: 'getAvailableSubtitleTracks'
+    } as ChromeMessage) as ChromeResponse;
+
+    if (response && response.success && response.availableLanguages) {
+      populateNativeLanguageDropdown(response.availableLanguages);
+    } else {
+      console.log('Smart Netflix Subtitles: No subtitle tracks found, using default languages');
+      populateNativeLanguageDropdown([]);
+    }
+  } catch (error) {
+    console.error('Smart Netflix Subtitles: Error loading available languages:', error);
+    populateNativeLanguageDropdown([]);
+  }
+}
+
+// Function to populate native language dropdown
+function populateNativeLanguageDropdown(availableLanguages: string[]): void {
+  // Clear existing options except the first one
+  nativeLanguageSelect.innerHTML = '<option value="">Select a language</option>';
+
+  // Get languages that are both available on Netflix and supported by extension
+  const supportedAndAvailable: Array<{code: string, name: string, available: boolean}> = [];
+
+  // Add all supported languages, mark availability
+  Object.keys(SUPPORTED_NATIVE_LANGUAGES).forEach(code => {
+    const isAvailable = availableLanguages.includes(code);
+    supportedAndAvailable.push({
+      code,
+      name: SUPPORTED_NATIVE_LANGUAGES[code],
+      available: isAvailable
+    });
+  });
+
+  // Sort by name for better UX
+  supportedAndAvailable.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Add options to dropdown
+  supportedAndAvailable.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang.code;
+    option.textContent = lang.available ? lang.name : `${lang.name} (Undetected)`;
+    option.disabled = !lang.available;
+    if (!lang.available) {
+      option.style.color = '#999';
+      option.style.fontStyle = 'italic';
+    }
+    nativeLanguageSelect.appendChild(option);
+  });
 }
 
 // Function to update process button state
@@ -486,18 +575,21 @@ async function handleDownloadClick(): Promise<void> {
 // Function to initialize the popup
 async function initializePopup(): Promise<void> {
   console.log('Smart Netflix Subtitles: Initializing popup...');
-  
+
   // Set initial state
   disableAllControls();
   clearStatus();
   hideLoading();
-  
+
   // Load saved settings first
   await loadSettings();
-  
+
+  // Load available native languages from Netflix
+  await loadAvailableNativeLanguages();
+
   // Update form state based on loaded settings
   updateFormState();
-  
+
   // Check Netflix page when popup opens
   checkNetflixPage();
   

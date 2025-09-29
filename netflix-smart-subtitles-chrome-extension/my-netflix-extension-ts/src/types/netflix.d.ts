@@ -102,7 +102,7 @@ export interface ChromeTab {
 }
 
 export interface ChromeMessage {
-  action: 'checkNetflixPage' | 'getSubtitles' | 'downloadSubtitle' | 'processSmartSubtitles';
+  action: 'checkNetflixPage' | 'getSubtitles' | 'downloadSubtitle' | 'processSmartSubtitles' | 'getAvailableSubtitleTracks';
   trackId?: string;
   settings?: SmartSubtitlesSettings;
 }
@@ -124,4 +124,5 @@ export interface ChromeResponse {
   movieId?: number;
   message?: string;
   error?: string;
+  availableLanguages?: string[];
 }

@@ -25,6 +25,63 @@ import { SubtitleTrack, ExtensionMessage, ChromeMessage, ChromeResponse, SmartSu
 
 console.log('Netflix Subtitle Downloader: Content script loaded');
 
+// Netflix BCP47 language code variants mapping to base language codes
+const NETFLIX_LANGUAGE_VARIANTS: Record<string, string> = {
+  // Spanish variants
+  'es-ES': 'es',    // Spain Spanish
+  'es-419': 'es',   // Latin American Spanish
+  'es-MX': 'es',    // Mexican Spanish
+  'es-AR': 'es',    // Argentine Spanish
+
+  // Portuguese variants
+  'pt-BR': 'pt',    // Brazilian Portuguese
+  'pt-PT': 'pt',    // European Portuguese
+
+  // English variants
+  'en-US': 'en',    // American English
+  'en-GB': 'en',    // British English
+  'en-CA': 'en',    // Canadian English
+  'en-AU': 'en',    // Australian English
+
+  // French variants
+  'fr-FR': 'fr',    // France French
+  'fr-CA': 'fr',    // Canadian French
+
+  // German variants
+  'de-DE': 'de',    // German Germany
+  'de-AT': 'de',    // Austrian German
+
+  // Italian variants
+  'it-IT': 'it',    // Italian Italy
+
+  // Dutch variants
+  'nl-NL': 'nl',    // Netherlands Dutch
+  'nl-BE': 'nl',    // Belgian Dutch
+
+  // Polish variants
+  'pl-PL': 'pl',    // Polish Poland
+
+  // Swedish variants
+  'sv-SE': 'sv',    // Swedish Sweden
+
+  // Danish variants
+  'da-DK': 'da',    // Danish Denmark
+
+  // Czech variants
+  'cs-CZ': 'cs',    // Czech Republic
+
+  // Japanese variants
+  'ja-JP': 'ja',    // Japanese Japan
+
+  // Korean variants
+  'ko-KR': 'ko',    // Korean Republic of Korea
+};
+
+// Function to normalize Netflix BCP47 language codes to base language codes
+function normalizeLanguageCode(code: string): string {
+  return NETFLIX_LANGUAGE_VARIANTS[code] || code;
+}
+
 // Subtitle data storage
 let availableTracks: SubtitleTrack[] = [];
 let currentMovieId: number | null = null;
@@ -220,10 +277,25 @@ function handlePopupMessage(
       action: 'processSmartSubtitles',
       settings: request.settings
     });
-    
+
     sendResponse({
       success: true,
       message: 'Smart subtitles processing started'
+    });
+  } else if (request.action === 'getAvailableSubtitleTracks') {
+    // Return available subtitle language codes for native language dropdown
+
+    // Extract language codes from available tracks
+    const availableLanguages = availableTracks.map(track => track.language).filter(Boolean);
+
+    // Normalize BCP47 variants to base language codes (es-ES → es, pt-BR → pt)
+    const normalizedLanguages = availableLanguages.map(normalizeLanguageCode);
+
+    const uniqueLanguages = [...new Set(normalizedLanguages)]; // Remove duplicates
+
+    sendResponse({
+      success: true,
+      availableLanguages: uniqueLanguages
     });
   } else {
     console.log('Netflix Subtitle Downloader: Unknown message action:', request.action);
