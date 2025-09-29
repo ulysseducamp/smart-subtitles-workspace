@@ -7,6 +7,41 @@ from typing import Dict, Any, Optional, List
 import requests
 import time
 
+# DeepL language mappings - Single source of truth
+# 13 safe languages (no RTL/Chinese/Next-gen)
+DEEPL_LANGUAGE_MAPPINGS = {
+    'source': {
+        'EN': 'EN',  # Source language uses EN, not EN-US
+        'FR': 'FR',
+        'ES': 'ES',
+        'DE': 'DE',
+        'IT': 'IT',
+        'PT': 'PT',
+        'PL': 'PL',
+        'NL': 'NL',
+        'SV': 'SV',
+        'DA': 'DA',
+        'CS': 'CS',
+        'JA': 'JA',
+        'KO': 'KO'
+    },
+    'target': {
+        'EN': 'EN-US',  # Target language uses EN-US
+        'FR': 'FR',
+        'ES': 'ES',
+        'DE': 'DE',
+        'IT': 'IT',
+        'PT': 'PT',
+        'PL': 'PL',
+        'NL': 'NL',
+        'SV': 'SV',
+        'DA': 'DA',
+        'CS': 'CS',
+        'JA': 'JA',
+        'KO': 'KO'
+    }
+}
+
 class DeepLAPI:
     """
     DeepL API client for translation services
@@ -41,22 +76,9 @@ class DeepLAPI:
             # Initialize DeepL translator
             translator = deepl.Translator(self.api_key)
             
-            # Map language codes for DeepL compatibility
-            # Note: DeepL uses different codes for source vs target languages
-            source_lang_mapping = {
-                'EN': 'EN',  # Source language uses EN, not EN-US
-                'FR': 'FR',
-                'PT': 'PT'
-            }
-            
-            target_lang_mapping = {
-                'EN': 'EN-US',  # Target language uses EN-US
-                'FR': 'FR',
-                'PT': 'PT'
-            }
-            
-            mapped_source_lang = source_lang_mapping.get(source_lang.upper(), source_lang.upper())
-            mapped_target_lang = target_lang_mapping.get(target_lang.upper(), target_lang.upper())
+            # Map language codes for DeepL compatibility using global mappings
+            mapped_source_lang = DEEPL_LANGUAGE_MAPPINGS['source'].get(source_lang.upper(), source_lang.upper())
+            mapped_target_lang = DEEPL_LANGUAGE_MAPPINGS['target'].get(target_lang.upper(), target_lang.upper())
             
             # Translate text
             result = translator.translate_text(
@@ -104,22 +126,9 @@ class DeepLAPI:
                 # Initialize DeepL translator
                 translator = deepl.Translator(self.api_key)
                 
-                # Map language codes for DeepL compatibility
-                # Note: DeepL uses different codes for source vs target languages
-                source_lang_mapping = {
-                    'EN': 'EN',  # Source language uses EN, not EN-US
-                    'FR': 'FR',
-                    'PT': 'PT'
-                }
-                
-                target_lang_mapping = {
-                    'EN': 'EN-US',  # Target language uses EN-US
-                    'FR': 'FR',
-                    'PT': 'PT'
-                }
-                
-                mapped_source_lang = source_lang_mapping.get(source_lang.upper(), source_lang.upper())
-                mapped_target_lang = target_lang_mapping.get(target_lang.upper(), target_lang.upper())
+                # Map language codes for DeepL compatibility using global mappings
+                mapped_source_lang = DEEPL_LANGUAGE_MAPPINGS['source'].get(source_lang.upper(), source_lang.upper())
+                mapped_target_lang = DEEPL_LANGUAGE_MAPPINGS['target'].get(target_lang.upper(), target_lang.upper())
                 
                 # Translate all uncached words in a single request
                 results = translator.translate_text(

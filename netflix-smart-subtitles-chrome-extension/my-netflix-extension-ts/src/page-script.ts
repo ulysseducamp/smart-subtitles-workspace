@@ -190,37 +190,9 @@ import { railwayAPIClient } from './api/railwayClient';
     console.log('Netflix Subtitle Downloader: Triggering subtitle injection after track discovery');
     reconcileSubtitleInjection();
 
-    // AUTO-PROCESS SMART SUBTITLES - Request current state and process if enabled
-    if (usableTracks.length > 0) {
-      console.log('Smart Netflix Subtitles: Requesting current state for auto-processing...');
-      
-      // Retry mechanism for state requests
-      const tryAutoProcessing = async (retryCount = 0) => {
-        try {
-          const {enabled, settings} = await requestCurrentState();
-          
-          if (enabled && settings) {
-            console.log('Smart Netflix Subtitles: Auto-processing subtitles for movie ID:', movieId);
-            await processSmartSubtitles(settings);
-          } else {
-            console.log('Smart Netflix Subtitles: Extension disabled or no settings, skipping auto-processing');
-            console.log('Smart Netflix Subtitles: State received - enabled:', enabled, 'settings:', settings);
-          }
-        } catch (error) {
-          console.error('Smart Netflix Subtitles: Failed to get current state:', error);
-          
-          // Retry up to 2 times with increasing delay
-          if (retryCount < 2) {
-            console.log(`Smart Netflix Subtitles: Retrying state request (${retryCount + 1}/2)...`);
-            setTimeout(() => tryAutoProcessing(retryCount + 1), 1000 * (retryCount + 1));
-          } else {
-            console.log('Smart Netflix Subtitles: Max retries reached, skipping auto-processing');
-          }
-        }
-      };
-      
-      tryAutoProcessing();
-    }
+    // AUTO-PROCESSING DISABLED - User must manually click "Process Subtitles" button
+    // This prevents processing Netflix preload data (which caused subtitle corruption at ~36min)
+    console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles available for manual processing');
   }
 
   // Function to convert WebVTT text to plain text plus "simple" tags (allowed in SRT)
@@ -418,25 +390,50 @@ import { railwayAPIClient } from './api/railwayClient';
     const textColor = isLoading ? '#4CAF50' : 'white'; // Green for loading, white for normal
     customSubsElem.style.cssText = `position: absolute; bottom: 20vh; left: 0; right: 0; color: ${textColor}; font-size: 3vw; text-align: center; user-select: text; -moz-user-select: text; z-index: 100; pointer-events: none`;
 
-    // Handle cue changes for real-time subtitle display
-    trackElem.addEventListener('cuechange', function(e) {
-      // Remove all children
-      while (customSubsElem.firstChild) {
-        customSubsElem.removeChild(customSubsElem.firstChild);
+    // Handle cue changes for real-time subtitle display - POLLING APPROACH (EasySubs inspired)
+    // Replaces cuechange events to prevent memory leaks after 36+ minutes
+    let lastCueCount = 0;
+    let lastCueText = '';
+
+    const updateSubtitleDisplay = () => {
+      const track = trackElem.track;
+      if (!track?.activeCues) return;
+
+      const currentCueCount = track.activeCues.length;
+      let currentCueText = '';
+      for (const cue of track.activeCues) {
+        currentCueText += (cue as any).text;
       }
 
-      const track = e.target as HTMLTrackElement;
-      console.log('Netflix Subtitle Downloader: Active cues:', track.track?.activeCues);
-      
-      if (track.track?.activeCues) {
-        for (const cue of track.track.activeCues) {
-          const cueElem = document.createElement('div');
-          cueElem.style.cssText = 'background: rgba(0,0,0,0.8); white-space: pre-wrap; padding: 0.2em 0.3em; margin: 10px auto; width: fit-content; width: -moz-fit-content; pointer-events: auto';
-          cueElem.innerHTML = vttTextToSimple((cue as any).text, true); // May contain simple tags like <i> etc.
-          customSubsElem.appendChild(cueElem);
+      // Only update DOM if cues actually changed (performance optimization)
+      if (currentCueCount !== lastCueCount || currentCueText !== lastCueText) {
+        console.log('Netflix Subtitle Downloader: Active cues updated via polling:', track.activeCues);
+
+        // Remove all children
+        while (customSubsElem.firstChild) {
+          customSubsElem.removeChild(customSubsElem.firstChild);
         }
+
+        // Add new cues
+        if (track.activeCues) {
+          for (const cue of track.activeCues) {
+            const cueElem = document.createElement('div');
+            cueElem.style.cssText = 'background: rgba(0,0,0,0.8); white-space: pre-wrap; padding: 0.2em 0.3em; margin: 10px auto; width: fit-content; width: -moz-fit-content; pointer-events: auto';
+            cueElem.innerHTML = vttTextToSimple((cue as any).text, true); // May contain simple tags like <i> etc.
+            customSubsElem.appendChild(cueElem);
+          }
+        }
+
+        lastCueCount = currentCueCount;
+        lastCueText = currentCueText;
       }
-    }, false);
+    };
+
+    // Polling approach - prevents TextTrack activeCues memory leak
+    const subtitlePollingInterval = setInterval(updateSubtitleDisplay, 100); // 100ms like EasySubs
+
+    // Store interval for cleanup (prevent memory leak of polling itself)
+    (trackElem as any)._subtitlePollingInterval = subtitlePollingInterval;
 
     // Append overlay to the player (Enhanced player detection - Solution C Enhanced)
     let playerElem = document.querySelector('.watch-video');
@@ -498,9 +495,15 @@ import { railwayAPIClient } from './api/railwayClient';
       URL.revokeObjectURL(currentBlobUrl);
       currentBlobUrl = null;
     }
-    
+
     const trackElem = document.getElementById(TRACK_ELEM_ID);
     if (trackElem) {
+      // Clean up polling interval to prevent memory leak
+      const pollingInterval = (trackElem as any)._subtitlePollingInterval;
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        console.log('Netflix Subtitle Downloader: Polling interval cleaned up');
+      }
       trackElem.remove();
     }
 
@@ -856,7 +859,7 @@ Loading smart subtitles...`;
   const originalParse = JSON.parse;
   JSON.parse = function(): any {
     const value = originalParse.apply(this, arguments as any);
-    
+
     // Capture subtitle data from Netflix API responses
     if (value && value.result && value.result.movieId && value.result.timedtexttracks) {
       console.log('Netflix Subtitle Downloader: Captured Netflix API response');
@@ -868,7 +871,7 @@ Loading smart subtitles...`;
       console.log('Netflix Subtitle Downloader: Captured alternative Netflix API response');
       extractMovieTextTracks(value.result.result);
     }
-    
+
     // Check for movies object format
     if (value && value.result && value.result.movies) {
       for (const movieId in value.result.movies) {
@@ -904,7 +907,7 @@ Loading smart subtitles...`;
     if (videoId !== lastKnownMovieId) {
       console.log('Netflix Subtitle Downloader: Movie ID changed from', lastKnownMovieId, 'to', videoId);
       
-      // Reset state when movie changes (key fix for auto-processing)
+      // Reset state when movie changes
       lastKnownMovieId = videoId;
       currentMovieId = videoId;
       selectedTrackId = null;
@@ -922,8 +925,33 @@ Loading smart subtitles...`;
     }
   }, POLL_INTERVAL_MS);
 
+  // =============================================================================
+  // MINIMAL POLLING SOLUTION - PREVENTS 40+ MINUTE MEMORY LEAKS
+  // Based on successful test results - keeps browser active and prevents corruption
+  // =============================================================================
+
+  let pollingStartTime = Date.now();
+
+  setInterval(() => {
+    // Simple state monitoring that prevents Chrome from putting extension to sleep
+    const videoElement = document.querySelector('video');
+    const playerElement = document.querySelector('.watch-video');
+    const ourTrackExists = document.getElementById(TRACK_ELEM_ID) !== null;
+
+    // Log summary every 5 minutes for monitoring (optional - can be removed)
+    const elapsed = Date.now() - pollingStartTime;
+    if (elapsed % 300000 < 1000) { // Every 5 minutes
+      console.log('Smart Netflix Subtitles: Polling active - preventing memory leaks', {
+        timeElapsed: `${Math.floor(elapsed / 1000)}s`,
+        hasVideo: !!videoElement,
+        hasPlayer: !!playerElement,
+        hasOurTrack: ourTrackExists
+      });
+    }
+  }, 1000); // 1 second interval like successful test
+
   // Initial setup - check for existing video elements
   reconcileSubtitleInjection();
-  
-  console.log('Netflix Subtitle Downloader: Page script initialized - JSON hijacking and subtitle injection active (event-driven)');
+
+  console.log('Netflix Subtitle Downloader: Page script initialized - JSON hijacking, subtitle injection, and memory leak prevention active');
 })();

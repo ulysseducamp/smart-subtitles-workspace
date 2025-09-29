@@ -28,8 +28,11 @@ cd netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/
 # Development build with watch mode
 npm run dev
 
-# Production build
-npm run build
+# IMPORTANT: Environment-specific builds
+npm run build:staging     # ← Pour développement (pointe vers staging API)
+npm run build:production  # ← Pour utilisateurs finaux (pointe vers production API)
+
+# NEVER use npm run build directly - always specify staging or production!
 
 # Type checking
 npm run type-check
@@ -40,6 +43,12 @@ npm run clean
 # Linting
 npm run lint
 ```
+
+### Environment Workflow Rules
+- **Development/Testing**: ALWAYS use `npm run build:staging` → Extension pointe vers `smartsub-api-staging.up.railway.app`
+- **Production/Distribution**: Use `npm run build:production` → Extension pointe vers `smartsub-api-production.up.railway.app`
+- **Branch staging**: `develop` → auto-deploy to staging API
+- **Branch production**: `main` → auto-deploy to production API
 
 ### FastAPI Backend
 ```bash
@@ -79,7 +88,7 @@ docker run -p 3000:3000 smartsub-api
 - **JSON Hijacking**: Intercepts Netflix API responses by overriding `JSON.parse()`
 - **Message Passing**: Chrome extension message system for cross-context communication
 - **State Management**: Persistent settings via `chrome.storage.local`
-- **Auto-Processing**: Automatic subtitle processing on episode changes with polling mechanism
+- **Manual Processing**: User must click "Process Subtitles" button (auto-processing disabled to prevent Netflix preload corruption)
 
 ### API Backend Architecture
 - **Pure Python Fusion**: Direct function calls to Python subtitle fusion algorithm (migrated from TypeScript)
@@ -94,6 +103,7 @@ docker run -p 3000:3000 smartsub-api
 - **Lemmatization**: Uses `simplemma` library for word stemming across languages
 - **Inline Translation**: DeepL API integration for unknown words
 - **Contraction Handling**: English contraction expansion for better vocabulary matching
+- **TokenMapping System**: Industry-standard NLP approach for preserving word alignment during processing
 
 ## Key Implementation Details
 
@@ -108,6 +118,7 @@ docker run -p 3000:3000 smartsub-api
 - Processes approximately 72% of subtitles with intelligent replacements
 - Supports 4 languages: English (EN), French (FR), Portuguese (PT), Spanish (ES)
 - Maintains temporal alignment between different subtitle versions
+- **TokenMapping System**: Resolves word alignment issues between original and processed words using industry-standard NLP tokenization approach
 
 ### Security Implementation
 - **API Key Protection**: Server-side proxy prevents client-side API key exposure
@@ -117,10 +128,10 @@ docker run -p 3000:3000 smartsub-api
 
 ## Supported Languages
 
-- **English (EN)**: Full support with contraction handling
-- **French (FR)**: Lemmatization and frequency-based vocabulary
-- **Portuguese (PT)**: Simplified pt-BR → pt mapping
-- **Spanish (ES)**: Complete frequency list integration
+- **13 Safe Languages**: English, French, Spanish, German, Italian, Portuguese, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean
+- **BCP47 Normalization**: Netflix regional variants (es-ES, pt-BR, etc.) automatically mapped to base languages
+- **Dynamic Detection**: Extension detects available Netflix subtitle languages in real-time
+- **DeepL Integration**: All supported languages have proper DeepL API mapping for translations
 
 ## Testing
 
@@ -204,3 +215,96 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 - `smartsub-api/requirements.txt` - Python dependencies
 - `Dockerfile` - Multi-stage build for Node.js + Python deployment
 - `MASTER_DOC.md` - Comprehensive project documentation (720+ lines)
+
+## Recent Critical Bug Fixes (January 2025)
+
+### Multi-Language Support Extension ✅ **COMPLETED**
+**Feature**: Extended native language support from 3 to 13 languages with BCP47 normalization.
+- **Implementation**: Extended DeepL mappings, added Netflix BCP47 variant mapping (es-ES→es, pt-BR→pt)
+- **UI Enhancement**: Dynamic native language dropdown with "(Undetected)" state and help text
+- **Error Reduction**: Removed false-positive error messages due to Netflix lazy loading
+
+**Code Location**: `deepl_api.py`, `content-script.ts`, `popup.ts`, `popup.html`
+
+### Word Alignment Bug Resolution
+**Problem**: Basic Portuguese words ("as", "de", "para") were incorrectly translated despite high vocabulary levels due to word-to-lemma alignment issues.
+
+**Root Cause**: The `normalize_words()` function filtered out certain words (single letters, contractions), creating index misalignment between `original_words` and `lemmatized_words` arrays.
+
+**Solution**: Implemented TokenMapping system (`subtitle_fusion.py:TokenMapping`) that preserves alignment between original and processed words using industry-standard NLP tokenization approaches (similar to spaCy, Hugging Face).
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py`
+- `TokenMapping` dataclass with original_index, original_word, normalized_word, lemmatized_word, is_filtered
+- `create_alignment_mapping()` function (~40 lines)
+- Integration in main `fuse_subtitles()` processing loop
+
+**Validation**: Railway logs confirm proper alignment:
+```
+DIAGNOSTIC[33]: mot_original='você', mot_lemmatisé='você', mot_recherche='você', rang=7
+DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (trouvé dans known_words)
+```
+
+### Diagnostic Logging Enhancement
+Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
+
+## Memory Leak Resolution (January 2025)
+
+### Problem Resolution ✅ **COMPLETED**
+**Problem**: Chrome extension experienced memory corruption after 40+ minutes of continuous Netflix viewing, causing subtitle malfunction requiring Cmd+Shift+R to fix.
+
+**Root Cause**: Chrome puts extension processes to sleep after extended periods (~40+ minutes), causing memory corruption in Netflix subtitle injection system.
+
+**Solution**: Minimal polling approach (20 lines) that prevents Chrome from putting the extension to sleep:
+
+```typescript
+// MINIMAL POLLING SOLUTION - PREVENTS 40+ MINUTE MEMORY LEAKS
+let pollingStartTime = Date.now();
+setInterval(() => {
+  const videoElement = document.querySelector('video');
+  const playerElement = document.querySelector('.watch-video');
+  const ourTrackExists = document.getElementById(TRACK_ELEM_ID) !== null;
+
+  const elapsed = Date.now() - pollingStartTime;
+  if (elapsed % 300000 < 1000) { // Every 5 minutes
+    console.log('Smart Netflix Subtitles: Polling active - preventing memory leaks', {
+      timeElapsed: `${Math.floor(elapsed / 1000)}s`,
+      hasVideo: !!videoElement,
+      hasPlayer: !!playerElement,
+      hasOurTrack: ourTrackExists
+    });
+  }
+}, 1000);
+```
+
+**Code Location**: `src/page-script.ts` lines 925-948
+
+**Testing Results**: ✅ 46+ minutes stable operation, ✅ polling logs appearing every 5 minutes, ✅ all core functionality preserved
+
+## Netflix Preload Issue Resolution (January 2025)
+
+### Problem Resolution ✅ **COMPLETED**
+**Problem**: Subtitles became incorrect at ~36 minutes consistently, requiring manual refresh to fix.
+
+**Root Cause**: Netflix preloads next episode data around 36 minutes, triggering auto-processing of wrong subtitle tracks while current episode still playing.
+
+**Solution**: Complete auto-processing removal - manual "Process Subtitles" button click required:
+
+```typescript
+// AUTO-PROCESSING DISABLED - User must manually click "Process Subtitles" button
+// This prevents processing Netflix preload data (which caused subtitle corruption at ~36min)
+console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles available for manual processing');
+```
+
+**Code Changes**:
+- Removed 40 lines of auto-processing logic from `extractMovieTextTracks()`
+- Preserved manual processing flow via popup button
+- Cleaned up debugging artifacts (70+ lines)
+
+**Testing Results**: ✅ 40+ minutes stable operation, ✅ no subtitle corruption, ✅ Netflix preload detected but ignored
+
+### EasySubs Future Architecture Analysis
+**Decision**: Chose minimal polling solution over complex EasySubs refactor for this specific memory leak problem.
+
+**EasySubs Approach Reserved for Future**: When adding multiple streaming platforms, advanced UI features, or learning analytics - documented in MASTER_DOC.md "Memory Leak Resolution & Future Architecture" section.
+
+**Key Lesson**: Simple solutions for simple problems. Complex architecture only when complexity is genuinely needed (YAGNI principle).
