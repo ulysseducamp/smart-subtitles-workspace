@@ -16,7 +16,7 @@ This repository contains three interconnected subprojects that work together to 
 - **Adaptive Learning**: Automatically adjust subtitle difficulty based on vocabulary knowledge
 - **Seamless Netflix Integration**: Extract, process, and inject personalized subtitles in real-time
 - **Vocabulary Building**: Provide inline translations for unknown words
-- **Multi-language Support**: Support English, French, Portuguese, Spanish (German removed for simplification)
+- **Multi-language Support**: Support 13 languages including English, French, Portuguese, Spanish, German, Italian, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean
 - **Performance**: Process subtitles in under 10 seconds for episode-based workflow
 
 ### Target Users
@@ -152,7 +152,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 
 #### 3. Data Management ✅ **INTEGRATED**
 - **Frequency Lists**: In-memory loading system for vocabulary data ✅ **INTEGRATED**
-- **Multi-language Support**: English, French, Portuguese, Spanish ✅ **AVAILABLE** (German removed for simplification)
+- **Multi-language Support**: 13 languages including English, French, Portuguese, Spanish, German, Italian, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean ✅ **AVAILABLE**
 - **Performance**: O(1) word lookup with startup caching ✅ **OPTIMIZED**
 
 ## 4. Key Components & Files
@@ -231,7 +231,7 @@ Subtitle Fusion Algorithm (Pure Python) ✅ MIGRATED TO PYTHON
 - **Contraction Handling**: English contraction processing ✅ **COMPLETED**
 - **Overlapping Subtitle Merging**: Temporal alignment of complex sequences ✅ **COMPLETED**
 - **CLI Interface**: Comprehensive command-line tool ✅ **COMPLETED**
-- **Multi-language Support**: 4 languages with lemmatization (English, French, Portuguese, Spanish) ✅ **COMPLETED**
+- **Multi-language Support**: 13 languages with DeepL integration and BCP47 normalization ✅ **COMPLETED**
 
 #### API Backend ✅ **Phase 3 COMPLETED - Full Integration Live**
 - **FastAPI Framework**: Modern Python web framework ✅ **COMPLETED**
@@ -1215,6 +1215,22 @@ async def rate_limit_middleware(request: Request, call_next):
 - Document lessons learned for future reference
 
 ## 🧠 Memory Leak Resolution & Future Architecture (January 2025)
+
+### Multi-Language Native Support Extension ✅ **COMPLETED** (January 2025)
+
+**Feature Implemented:** Extended native language support from 3 languages to 13 languages with comprehensive BCP47 normalization.
+
+**Technical Implementation:**
+- **DeepL API Mapping**: Extended language mappings from 3 to 13 safe languages (English, French, Spanish, German, Italian, Portuguese, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean)
+- **BCP47 Normalization**: Added Netflix language variant mapping (es-ES→es, pt-BR→pt, etc.) with O(1) hash table lookup
+- **Dynamic UI**: Chrome extension popup now populates native language dropdown based on Netflix subtitle availability
+- **Error Handling**: Removed false-positive error messages due to Netflix lazy loading behavior
+
+**Code Changes:**
+- `deepl_api.py`: Extended DEEPL_LANGUAGE_MAPPINGS to 13 languages
+- `content-script.ts`: Added NETFLIX_LANGUAGE_VARIANTS mapping and normalizeLanguageCode() function
+- `popup.ts`: Extended SUPPORTED_NATIVE_LANGUAGES, dynamic dropdown population
+- `popup.html`: Added permanent help text for "(Undetected)" languages
 
 ### Memory Leak Problem Resolution ✅ **COMPLETED**
 

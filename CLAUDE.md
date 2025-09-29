@@ -128,10 +128,10 @@ docker run -p 3000:3000 smartsub-api
 
 ## Supported Languages
 
-- **English (EN)**: Full support with contraction handling
-- **French (FR)**: Lemmatization and frequency-based vocabulary
-- **Portuguese (PT)**: Simplified pt-BR → pt mapping
-- **Spanish (ES)**: Complete frequency list integration
+- **13 Safe Languages**: English, French, Spanish, German, Italian, Portuguese, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean
+- **BCP47 Normalization**: Netflix regional variants (es-ES, pt-BR, etc.) automatically mapped to base languages
+- **Dynamic Detection**: Extension detects available Netflix subtitle languages in real-time
+- **DeepL Integration**: All supported languages have proper DeepL API mapping for translations
 
 ## Testing
 
@@ -217,6 +217,14 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 - `MASTER_DOC.md` - Comprehensive project documentation (720+ lines)
 
 ## Recent Critical Bug Fixes (January 2025)
+
+### Multi-Language Support Extension ✅ **COMPLETED**
+**Feature**: Extended native language support from 3 to 13 languages with BCP47 normalization.
+- **Implementation**: Extended DeepL mappings, added Netflix BCP47 variant mapping (es-ES→es, pt-BR→pt)
+- **UI Enhancement**: Dynamic native language dropdown with "(Undetected)" state and help text
+- **Error Reduction**: Removed false-positive error messages due to Netflix lazy loading
+
+**Code Location**: `deepl_api.py`, `content-script.ts`, `popup.ts`, `popup.html`
 
 ### Word Alignment Bug Resolution
 **Problem**: Basic Portuguese words ("as", "de", "para") were incorrectly translated despite high vocabulary levels due to word-to-lemma alignment issues.
