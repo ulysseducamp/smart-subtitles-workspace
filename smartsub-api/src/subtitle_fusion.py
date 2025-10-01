@@ -34,17 +34,17 @@ def create_alignment_mapping(text: str, lang: str) -> List[TokenMapping]:
     Returns:
         Liste des TokenMapping avec alignement préservé
     """
-    from lemmatizer import lemmatize_single_line
+    from lemmatizer import smart_lemmatize_line
     from srt_parser import normalize_words
     import re
 
     # 1. Extraire les mots originaux
     original_words = text.split()
 
-    # 2. Normaliser et lemmatiser
+    # 2. Normaliser et lemmatiser intelligemment
     normalized_words = normalize_words(text)
     normalized_line = ' '.join(normalized_words)
-    lemmatized_words = lemmatize_single_line(normalized_line, lang) if normalized_words else []
+    lemmatized_words = smart_lemmatize_line(normalized_line, lang) if normalized_words else []
 
     # 3. Créer le mapping avec alignement
     mappings = []
