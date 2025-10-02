@@ -244,6 +244,22 @@ DIAGNOSTIC[33]: mot_original='você', mot_lemmatisé='você', mot_recherche='voc
 DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (trouvé dans known_words)
 ```
 
+### Portuguese Lemmatization Bug Resolution ✅ **COMPLETED** (January 2025)
+**Problem**: Portuguese word "uma" (rank 26) incorrectly lemmatized to non-existent "umar" by simplemma, causing false unknown word detection.
+
+**Root Cause**: Known issue in Portuguese NLP tools (spaCy Issue #1718, simplemma) where function words are incorrectly lemmatized.
+
+**Solution**: Smart conditional lemmatization based on frequency ranking - top 200 frequent words preserved in original form.
+
+**Implementation**:
+- `smart_lemmatize_line()` and `should_lemmatize_word()` in `lemmatizer.py`
+- Modified `create_alignment_mapping()` to use smart lemmatization
+- Universal solution for all languages with 200-word threshold
+
+**Results**: "uma" preserved as "uma" instead of lemmatized to "umar", function words correctly recognized.
+
+**Code Location**: `smartsub-api/src/lemmatizer.py`, `smartsub-api/src/subtitle_fusion.py`
+
 ### Diagnostic Logging Enhancement
 Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
 

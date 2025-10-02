@@ -515,8 +515,8 @@ RAILWAY_SERVICE_ID=service_id
 - **No Cross-Contamination**: Staging extension never hits production API
 
 **Last Updated**: January 2025
-**Version**: 3.12.0 (Phase 3 Complete - Full Integration + Manual Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix + Chrome Web Store Security Compliance + Netflix Preload Issue Resolution, Phase 4 Active)
-**Status**: End-to-End Integration Complete with Manual Processing Only, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, Railway Logs 500 Error Fix, Chrome Web Store Security Compliance, and Netflix Preload Issue Resolution - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Manual-Only Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, PostMessage Security Hardening, Chrome Extension Permissions Compliance, API Key Header Security, Proxy JSON Parsing Robustness, and Netflix Preload Corruption Prevention, Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app
+**Version**: 3.13.0 (Phase 3 Complete - Full Integration + Manual Processing + Language System Refactoring + DeepL Integration + Comprehensive Testing + Security Enhancement + Rate Limiting Implementation + File Size Validation + CORS Security Fix + Staging Environment Setup + Proxy 301 Fix + Railway Logs 500 Error Fix + Chrome Web Store Security Compliance + Netflix Preload Issue Resolution + Lemmatization Bug Resolution, Phase 4 Active)
+**Status**: End-to-End Integration Complete with Manual Processing Only, Optimized Language System, DeepL API Integration, Comprehensive Testing, Critical Security Vulnerabilities Resolved, Rate Limiting Protection, Staging Environment, Proxy 301 Fix, Railway Logs 500 Error Fix, Chrome Web Store Security Compliance, Netflix Preload Issue Resolution, and Portuguese Lemmatization Bug Resolution - Chrome Extension ↔ Railway API Workflow Operational with Persistent Settings, Manual-Only Subtitle Processing, Simplified Language Management (4 languages: EN, FR, PT, ES), Full DeepL Inline Translation Support, Complete Test Suite, Secure API Key Management, Custom Rate Limiting (10 requests/minute), File Size Validation (5MB limit) with DoS Protection, Secure CORS Configuration (Netflix domains only), Staging Environment for Safe Testing, Fixed Proxy 301 Redirect Issue, Resolved Railway Logs 500 Internal Server Error with Safe Index Conversion, PostMessage Security Hardening, Chrome Extension Permissions Compliance, API Key Header Security, Proxy JSON Parsing Robustness, Netflix Preload Corruption Prevention, and Smart Lemmatization Implementation (frequency-based conditional lemmatization resolving "uma"→"umar" bug for Portuguese function words), Production API Accessible at https://smartsub-api-production.up.railway.app, Staging API Accessible at https://smartsub-api-staging.up.railway.app
 **Maintainer**: Smart Subtitles Development Team
 **License**: AGPL-3.0-or-later
 
@@ -820,6 +820,34 @@ DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (tro
 **Code concerné :** `smartsub-api/src/subtitle_fusion.py` - Ajout de la classe `TokenMapping` et de la fonction `create_alignment_mapping()`, modification de la boucle principale de `fuse_subtitles()`
 
 **Résultat :** Bug d'alignement 100% résolu - les mots portugais basiques sont maintenant correctement identifiés comme connus, plus de traductions erronées, alignement parfait entre mots originaux et formes lemmatisées dans tous les cas.
+
+### Portuguese Lemmatization Bug Resolution - "uma" → "umar" Issue (January 2025)
+
+**Problem Resolution ✅ **COMPLETED**
+**Problem**: Portuguese word "uma" (rank 26, very frequent) incorrectly lemmatized to non-existent "umar" by simplemma library, causing false unknown word detection and erroneous translations.
+
+**Root Cause**: Known issue in Portuguese NLP tools (spaCy GitHub Issue #1718, Stanza, simplemma) where articles and function words are incorrectly lemmatized. Research confirmed this as a standard problem requiring frequency-based conditional lemmatization.
+
+**Solution Implemented**: Smart conditional lemmatization based on frequency ranking
+- **Function words preservation**: Top 200 frequent words preserved in original form (no lemmatization)
+- **Threshold-based logic**: `should_lemmatize_word()` checks frequency rank before lemmatization
+- **Universal approach**: Works for all languages automatically with same 200-word threshold
+- **NLP best practice**: Follows senior developer research findings that function words should not be lemmatized
+
+**Implementation**:
+- `smart_lemmatize_line()` in `lemmatizer.py` replaces `lemmatize_single_line()` (~25 lines)
+- `should_lemmatize_word()` with frequency lookup and auto-initialization (~20 lines)
+- Modified `create_alignment_mapping()` to use smart lemmatization (1 line change)
+
+**Results**:
+- "uma" (rank 26) → preserved as "uma" instead of lemmatized to "umar" ✅
+- High-frequency function words (de, que, para, uma) preserved correctly ✅
+- Rare words still lemmatized normally for vocabulary matching ✅
+- Solution applies universally to all supported languages ✅
+
+**Testing**: Validated in real conditions with Portuguese-Brazilian + French + 800-word threshold. Bug completely resolved.
+
+**Code Changes**: `smartsub-api/src/lemmatizer.py`, `smartsub-api/src/subtitle_fusion.py`
 
 ### Intégration DeepL API Complète (Janvier 2025)
 
