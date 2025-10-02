@@ -48,7 +48,7 @@ class FrequencyLoader:
         self._language_files = {
             'en': 'en-10000.txt',
             'fr': 'fr-5000.txt', 
-            'pt': 'pt-5000.txt'
+            'pt': 'pt-10000-lemmatized-top200preserved.txt'
         }
         
         # Cache for loaded frequency lists
