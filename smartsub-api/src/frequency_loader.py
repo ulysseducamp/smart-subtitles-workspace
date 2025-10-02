@@ -141,21 +141,9 @@ class FrequencyLoader:
         # Check cache first
         cache_key = f"{language}_{top_n}"
         if cache_key not in self._ranking_cache:
-            logger.info(f"RANK_DIAGNOSTIC: Cache miss pour {cache_key}, construction en cours...")
             self._build_ranking_cache(language, top_n)
 
         rank = self._ranking_cache[cache_key].get(word)
-
-        # DIAGNOSTIC LOG: Tracer les recherches de rang suspectes
-        if original_word in ['as', 'de', 'para', 'que', 'a', 'o', 'e', 'da', 'do', 'em', 'um', 'uma']:
-            cache_size = len(self._ranking_cache[cache_key])
-            if rank:
-                logger.info(f"RANK_DIAGNOSTIC: mot_suspect='{original_word}' → normalisé='{word}' → rang={rank}/{top_n} (cache_size={cache_size})")
-            else:
-                # Vérifier si le mot existe dans le cache avec une recherche exhaustive
-                found_variants = [k for k in self._ranking_cache[cache_key].keys() if original_word.lower() in k]
-                logger.warning(f"RANK_DIAGNOSTIC: mot_suspect='{original_word}' → normalisé='{word}' → NOT_FOUND (cache_size={cache_size}, variants_trouvés={found_variants[:5]})")
-
         return rank
     
     def _build_ranking_cache(self, language: str, top_n: int) -> None:

@@ -227,23 +227,8 @@ class SubtitleFusionEngine:
         """
         word_lower = word.lower()
 
-        # DIAGNOSTIC LOG: Tracer chaque étape de la vérification
-        if original_word and subtitle_index:
-            try:
-                # Obtenir le rang du mot dans la liste de fréquence
-                from frequency_loader import get_frequency_loader
-                frequency_loader = get_frequency_loader()
-                word_rank = frequency_loader.get_word_rank(word_lower, language, top_n=2000)
-                rank_info = f"rang={word_rank}" if word_rank else "hors_top_2000"
-
-                logger.info(f"DIAGNOSTIC[{subtitle_index}]: mot_original='{original_word}', mot_lemmatisé='{word}', mot_recherche='{word_lower}', {rank_info}, seuil=800")
-            except Exception as e:
-                logger.warning(f"DIAGNOSTIC[{subtitle_index}]: Erreur lors de la récupération du rang pour '{word}': {e}")
-
         # First check if the word itself is known
         if word_lower in known_words:
-            if original_word and subtitle_index:
-                logger.info(f"DECISION[{subtitle_index}]: mot='{original_word}', lemmatisé='{word}', recherche='{word_lower}', connu=OUI (trouvé dans known_words)")
             return True
 
         # For English, check if it's a contraction and if ALL words in the expansion are known
@@ -252,14 +237,7 @@ class SubtitleFusionEngine:
             if expansion:
                 # Check if ALL words in the expansion are known
                 all_known = all(expanded_word.lower() in known_words for expanded_word in expansion)
-                if original_word and subtitle_index:
-                    expansion_status = "tous_connus" if all_known else "certains_inconnus"
-                    logger.info(f"DECISION[{subtitle_index}]: mot='{original_word}', contraction='{word}', expansion={expansion}, {expansion_status}, connu={'OUI' if all_known else 'NON'}")
                 return all_known
-
-        # Mot inconnu
-        if original_word and subtitle_index:
-            logger.info(f"DECISION[{subtitle_index}]: mot='{original_word}', lemmatisé='{word}', recherche='{word_lower}', connu=NON (pas trouvé)")
 
         return False
 
