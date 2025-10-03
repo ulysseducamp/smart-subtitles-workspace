@@ -7,6 +7,7 @@ from typing import List, Dict, Optional
 from pydantic import BaseModel
 from openai import OpenAI
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +44,14 @@ class OpenAITranslator:
     Supports full episode context for better translation quality
     """
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini", timeout: float = 15.0):
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini", timeout: float = 90.0):
         """
         Initialize OpenAI translator
 
         Args:
             api_key: OpenAI API key
             model: Model to use (default: gpt-4o-mini)
-            timeout: Request timeout in seconds (default: 15.0)
+            timeout: Request timeout in seconds (default: 90.0)
         """
         self.client = OpenAI(api_key=api_key, timeout=timeout)
         self.model = model
@@ -76,10 +77,17 @@ class OpenAITranslator:
         Returns:
             Dictionary mapping original words to translations
         """
+        # ⏱️ Start global timing
+        start_time_global = time.time()
+        logger.info(f"🚀 [OPENAI] Starting translation batch")
+        logger.info(f"   [OPENAI] Total words requested: {len(words_to_translate)}")
+
         if not words_to_translate:
+            logger.info(f"   [OPENAI] No words to translate, returning empty dict")
             return {}
 
-        # Check cache for all words
+        # ⏱️ Cache check timing
+        start_cache_check = time.time()
         cache_key_prefix = f"{source_lang}_{target_lang}_"
         cached_translations = {}
         uncached_words = []
@@ -91,24 +99,36 @@ class OpenAITranslator:
             else:
                 uncached_words.append(word)
 
+        cache_check_duration = time.time() - start_cache_check
+        logger.info(f"   [OPENAI] Cache check completed in {cache_check_duration:.3f}s")
+        logger.info(f"   [OPENAI] Cached: {len(cached_translations)} words, Uncached: {len(uncached_words)} words")
+
         # If all words are cached, return immediately
         if not uncached_words:
-            logger.info(f"✅ All {len(words_to_translate)} words found in cache")
+            total_duration = time.time() - start_time_global
+            logger.info(f"✅ [OPENAI] All {len(words_to_translate)} words found in cache (total: {total_duration:.3f}s)")
             return cached_translations
 
-        logger.info(f"🔄 Translating {len(uncached_words)} words with OpenAI (GPT-4o mini)")
-        logger.info(f"   Context size: {len(episode_context)} characters")
+        logger.info(f"🔄 [OPENAI] Translating {len(uncached_words)} words with GPT-4o mini")
+        logger.info(f"   [OPENAI] Context size: {len(episode_context)} characters (~{len(episode_context.split())} words)")
+        logger.info(f"   [OPENAI] Words to translate: {', '.join(uncached_words[:10])}{'...' if len(uncached_words) > 10 else ''}")
 
         try:
-            # Build optimized prompt with episode context
+            # ⏱️ Prompt building timing
+            start_prompt_build = time.time()
             prompt = self._build_translation_prompt(
                 episode_context=episode_context,
                 words_to_translate=uncached_words,
                 source_lang=source_lang,
                 target_lang=target_lang
             )
+            prompt_build_duration = time.time() - start_prompt_build
+            logger.info(f"   [OPENAI] Prompt built in {prompt_build_duration:.3f}s (length: {len(prompt)} chars)")
 
-            # Call OpenAI with Structured Outputs (guarantees JSON format)
+            # ⏱️ API call timing
+            logger.info(f"   [OPENAI] Sending API request to OpenAI...")
+            start_api_call = time.time()
+
             response = self.client.beta.chat.completions.parse(
                 model=self.model,
                 messages=[
@@ -125,18 +145,26 @@ class OpenAITranslator:
                 temperature=0.3  # Low temperature for consistent translations
             )
 
-            # Extract translations from structured response
-            # The parsed data is in response.choices[0].message.parsed
+            api_call_duration = time.time() - start_api_call
+            logger.info(f"   [OPENAI] ✅ API response received in {api_call_duration:.3f}s")
+
+            # ⏱️ Response parsing timing
+            start_parsing = time.time()
             parsed_data = response.choices[0].message.parsed
             new_translations = {
                 item.word: item.translation
                 for item in parsed_data.translations
             }
+            parsing_duration = time.time() - start_parsing
+            logger.info(f"   [OPENAI] Response parsed in {parsing_duration:.3f}s")
 
-            # Cache new translations
+            # ⏱️ Cache update timing
+            start_cache_update = time.time()
             for word, translation in new_translations.items():
                 cache_key = f"{cache_key_prefix}{word}"
                 self.cache[cache_key] = translation
+            cache_update_duration = time.time() - start_cache_update
+            logger.info(f"   [OPENAI] Cache updated in {cache_update_duration:.3f}s")
 
             # Combine cached and new translations
             all_translations = {**cached_translations, **new_translations}
@@ -152,15 +180,26 @@ class OpenAITranslator:
             # Calculate cost (GPT-4o mini pricing: $0.150/1M input, $0.600/1M output)
             cost = (input_tokens * 0.150 / 1_000_000) + (output_tokens * 0.600 / 1_000_000)
 
-            logger.info(f"✅ OpenAI translation successful!")
-            logger.info(f"   Words translated: {len(new_translations)} (cached: {len(cached_translations)})")
-            logger.info(f"   Tokens: {input_tokens} input + {output_tokens} output = {total_tokens} total")
-            logger.info(f"   Cost: ${cost:.6f}")
+            # ⏱️ Total timing
+            total_duration = time.time() - start_time_global
+
+            logger.info(f"✅ [OPENAI] Translation successful!")
+            logger.info(f"   [OPENAI] Words translated: {len(new_translations)} (cached: {len(cached_translations)})")
+            logger.info(f"   [OPENAI] Tokens: {input_tokens} input + {output_tokens} output = {total_tokens} total")
+            logger.info(f"   [OPENAI] Cost: ${cost:.6f}")
+            logger.info(f"   [OPENAI] ⏱️ TIMING BREAKDOWN:")
+            logger.info(f"      - Cache check: {cache_check_duration:.3f}s")
+            logger.info(f"      - Prompt build: {prompt_build_duration:.3f}s")
+            logger.info(f"      - API call: {api_call_duration:.3f}s ⚡")
+            logger.info(f"      - Response parsing: {parsing_duration:.3f}s")
+            logger.info(f"      - Cache update: {cache_update_duration:.3f}s")
+            logger.info(f"      - TOTAL: {total_duration:.3f}s")
 
             return all_translations
 
         except Exception as e:
-            logger.error(f"❌ OpenAI translation failed: {e}")
+            total_duration = time.time() - start_time_global
+            logger.error(f"❌ [OPENAI] Translation failed after {total_duration:.3f}s: {e}")
             raise  # Re-raise to allow fallback handling
 
     def _build_translation_prompt(
