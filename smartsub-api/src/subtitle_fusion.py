@@ -654,7 +654,7 @@ class SubtitleFusionEngine:
             debug_shown += 1
         
         # Re-index the final subtitles
-        # BATCH TRANSLATION: Translate all collected words with full episode context
+        # BATCH TRANSLATION: Translate all collected words with LOCAL context (one subtitle per word)
         if unknown_words_to_translate and enable_inline_translation and native_lang:
             logger.info(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words...")
 
@@ -662,17 +662,24 @@ class SubtitleFusionEngine:
             words_list = list(unknown_words_to_translate)
             word_translations = {}
 
-            # Strategy 1: Try OpenAI with full episode context (best quality)
+            # Strategy 1: Try OpenAI with LOCAL context (one subtitle per word)
             if openai_translator:
                 try:
-                    logger.info(f"🤖 Using OpenAI GPT-4o mini with full episode context...")
+                    logger.info(f"🤖 Using OpenAI GPT-4o mini with LOCAL context (one subtitle per word)...")
 
-                    # Generate episode context (full SRT format)
-                    episode_context = self._generate_episode_context(target_subs)
+                    # Build word-to-subtitle context mapping
+                    word_contexts = {}
+                    for word in words_list:
+                        if word in word_to_subtitle_mapping:
+                            subtitle = word_to_subtitle_mapping[word]
+                            # Use only the subtitle text where the word appears (no HTML, no timing)
+                            word_contexts[word] = strip_html(subtitle.text)
 
-                    # Translate with OpenAI
+                    logger.info(f"   📝 Context mapping built: {len(word_contexts)} words with subtitle context")
+
+                    # Translate with OpenAI using local context
                     word_translations = openai_translator.translate_batch_with_context(
-                        episode_context=episode_context,
+                        word_contexts=word_contexts,
                         words_to_translate=words_list,
                         source_lang=lang,
                         target_lang=native_lang

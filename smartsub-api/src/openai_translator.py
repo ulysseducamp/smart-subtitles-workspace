@@ -60,16 +60,16 @@ class OpenAITranslator:
 
     def translate_batch_with_context(
         self,
-        episode_context: str,
+        word_contexts: Dict[str, str],
         words_to_translate: List[str],
         source_lang: str,
         target_lang: str
     ) -> Dict[str, str]:
         """
-        Translate multiple words with full episode context in a single API call
+        Translate multiple words with LOCAL context (one subtitle per word) in a single API call
 
         Args:
-            episode_context: Full SRT subtitle file content for context
+            word_contexts: Dictionary mapping each word to the subtitle text where it appears
             words_to_translate: List of words to translate
             source_lang: Source language code (e.g., 'PT', 'EN')
             target_lang: Target language code (e.g., 'FR', 'EN')
@@ -110,14 +110,14 @@ class OpenAITranslator:
             return cached_translations
 
         logger.info(f"🔄 [OPENAI] Translating {len(uncached_words)} words with GPT-4o mini")
-        logger.info(f"   [OPENAI] Context size: {len(episode_context)} characters (~{len(episode_context.split())} words)")
+        logger.info(f"   [OPENAI] Using LOCAL context: {len(word_contexts)} words with individual subtitle contexts")
         logger.info(f"   [OPENAI] Words to translate: {', '.join(uncached_words[:10])}{'...' if len(uncached_words) > 10 else ''}")
 
         try:
             # ⏱️ Prompt building timing
             start_prompt_build = time.time()
             prompt = self._build_translation_prompt(
-                episode_context=episode_context,
+                word_contexts=word_contexts,
                 words_to_translate=uncached_words,
                 source_lang=source_lang,
                 target_lang=target_lang
@@ -204,37 +204,41 @@ class OpenAITranslator:
 
     def _build_translation_prompt(
         self,
-        episode_context: str,
+        word_contexts: Dict[str, str],
         words_to_translate: List[str],
         source_lang: str,
         target_lang: str
     ) -> str:
-        """Build optimized translation prompt with episode context"""
+        """Build optimized translation prompt with LOCAL context (one subtitle per word)"""
 
         source_name = LANGUAGE_NAMES.get(source_lang.upper(), source_lang)
         target_name = LANGUAGE_NAMES.get(target_lang.upper(), target_lang)
 
-        # Create word list for prompt
-        words_list = ", ".join(f'"{word}"' for word in words_to_translate)
+        # Build context list showing each word with its subtitle
+        context_lines = []
+        for word in words_to_translate:
+            if word in word_contexts:
+                context_lines.append(f'- "{word}" appears in: "{word_contexts[word]}"')
+            else:
+                context_lines.append(f'- "{word}" (no context available)')
+
+        contexts_section = "\n".join(context_lines)
 
         prompt = f"""You are translating subtitles for a language learning application.
 
 TASK: Translate {len(words_to_translate)} {source_name} words to {target_name}.
 
-EPISODE CONTEXT (full subtitles):
-{episode_context}
-
-WORDS TO TRANSLATE:
-{words_list}
+WORD CONTEXTS (each word with its subtitle):
+{contexts_section}
 
 TRANSLATION RULES:
-1. Use the episode context to understand the narrative, characters, and tone
+1. Use the subtitle context to understand how the word is used
 2. Provide natural translations as a native speaker would say
 3. Keep translations concise (1-3 words maximum)
 4. Consider the specific context where each word appears
 5. Maintain consistency across all translations
 
-Translate each word accurately based on the full episode context."""
+Translate each word accurately based on its subtitle context."""
 
         return prompt
 
