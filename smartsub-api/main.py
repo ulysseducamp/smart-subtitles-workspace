@@ -244,17 +244,29 @@ async def fuse_subtitles(
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
         
-        # Initialize DeepL API (always try if key available)
+        # Initialize OpenAI translator (priority for context-aware translation)
+        openai_translator = None
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key and enable_inline_translation:
+            from openai_translator import OpenAITranslator
+            openai_translator = OpenAITranslator(api_key=openai_api_key)
+            logger.info("✅ OpenAI GPT-4o mini initialized for context-aware translations")
+
+        # Initialize DeepL API (fallback for OpenAI)
         deepl_api = None
         from deepl_api import DeepLAPI
         # Use API key from request or environment
         api_key = deepl_api_key or os.getenv("DEEPL_API_KEY")
         if api_key:
             deepl_api = DeepLAPI(api_key)
-            logger.info("DeepL API initialized for inline translations")
+            if openai_translator:
+                logger.info("✅ DeepL API initialized as fallback")
+            else:
+                logger.info("✅ DeepL API initialized for inline translations")
         else:
-            logger.warning("DeepL API key not provided, inline translation disabled")
-        
+            if not openai_translator:
+                logger.warning("⚠️  No translation API available (OpenAI and DeepL), inline translation disabled")
+
         # Process fusion with timing
         logger.info("=== TRAITEMENT DES SOUS-TITRES ===")
         import time
@@ -267,6 +279,7 @@ async def fuse_subtitles(
             lang=target_language,
             enable_inline_translation=enable_inline_translation,
             deepl_api=deepl_api,
+            openai_translator=openai_translator,
             native_lang=native_language,
             top_n=top_n_words
         )

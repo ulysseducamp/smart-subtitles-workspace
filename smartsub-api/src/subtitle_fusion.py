@@ -276,6 +276,25 @@ class SubtitleFusionEngine:
 
         return intersection_end - intersection_start > 500
 
+    def _generate_episode_context(self, subtitles: List[Subtitle]) -> str:
+        """
+        Generate full episode context in SRT format for LLM translation.
+
+        Args:
+            subtitles: List of subtitles to convert to SRT format
+
+        Returns:
+            Full SRT formatted string of all subtitles
+        """
+        srt_lines = []
+        for sub in subtitles:
+            srt_lines.append(str(sub.index))
+            srt_lines.append(f"{sub.start} --> {sub.end}")
+            srt_lines.append(sub.text)
+            srt_lines.append("")  # Empty line between subtitles
+
+        return "\n".join(srt_lines)
+
     def _format_words_with_ranks(self, words: List[str], language: str, top_n: int = 2000) -> str:
         """
         Format words with their frequency ranks for logging.
@@ -386,13 +405,14 @@ class SubtitleFusionEngine:
                 logger.info(f"Final subtitle: \"{log_entry['final_text']}\"")
                 logger.info("")
 
-    def fuse_subtitles(self, 
+    def fuse_subtitles(self,
                       target_subs: List[Subtitle],
-                      native_subs: List[Subtitle], 
+                      native_subs: List[Subtitle],
                       known_words: Set[str],
                       lang: str,
                       enable_inline_translation: bool = False,
                       deepl_api: Optional[Any] = None,
+                      openai_translator: Optional[Any] = None,
                       native_lang: Optional[str] = None,
                       top_n: int = 2000) -> Dict[str, Any]:
         """
@@ -634,31 +654,67 @@ class SubtitleFusionEngine:
             debug_shown += 1
         
         # Re-index the final subtitles
-        # BATCH TRANSLATION: Translate all collected words in a single API call
-        if unknown_words_to_translate and enable_inline_translation and deepl_api and native_lang:
-            logger.info(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words in a single API call...")
-            
-            try:
-                # Convert set to list for batch translation
-                words_list = list(unknown_words_to_translate)
-                
-                # Translate all words in a single batch request
-                translated_words_batch = deepl_api.translate_batch(words_list, lang, native_lang)
-                
-                # Create mapping of original words to translations
-                word_translations = dict(zip(words_list, translated_words_batch))
-                
-                logger.info(f"✅ Batch translation successful! Translated {len(word_translations)} words")
-                
-                # Apply translations to subtitles
+        # BATCH TRANSLATION: Translate all collected words with full episode context
+        if unknown_words_to_translate and enable_inline_translation and native_lang:
+            logger.info(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words...")
+
+            # Convert to list for processing
+            words_list = list(unknown_words_to_translate)
+            word_translations = {}
+
+            # Strategy 1: Try OpenAI with full episode context (best quality)
+            if openai_translator:
+                try:
+                    logger.info(f"🤖 Using OpenAI GPT-4o mini with full episode context...")
+
+                    # Generate episode context (full SRT format)
+                    episode_context = self._generate_episode_context(target_subs)
+
+                    # Translate with OpenAI
+                    word_translations = openai_translator.translate_batch_with_context(
+                        episode_context=episode_context,
+                        words_to_translate=words_list,
+                        source_lang=lang,
+                        target_lang=native_lang
+                    )
+
+                    logger.info(f"✅ OpenAI translation successful! Translated {len(word_translations)} words")
+
+                except Exception as e:
+                    logger.error(f"❌ OpenAI translation failed: {e}")
+                    logger.info(f"🔄 Falling back to DeepL...")
+                    word_translations = {}  # Clear for fallback
+
+            # Strategy 2: Fallback to DeepL (without context)
+            if not word_translations and deepl_api:
+                try:
+                    logger.info(f"🔄 Using DeepL fallback (no context)...")
+
+                    # Translate with DeepL batch (no context)
+                    translated_words_batch = deepl_api.translate_batch(words_list, lang, native_lang)
+                    word_translations = dict(zip(words_list, translated_words_batch))
+
+                    logger.info(f"✅ DeepL fallback successful! Translated {len(word_translations)} words")
+
+                except Exception as e:
+                    logger.error(f"❌ DeepL translation failed: {e}")
+                    logger.info("🔄 Falling back to original subtitles without translations")
+
+            # Apply translations to subtitles
+            if word_translations:
                 for original_word, translation in word_translations.items():
+                    # Check if word is in mapping (only words with 1 unknown word are collected)
+                    if original_word not in word_to_subtitle_mapping:
+                        logger.warning(f"⚠️  Word '{original_word}' not in mapping (likely from subtitle with 2+ unknown words)")
+                        continue
+
                     subtitle = word_to_subtitle_mapping[original_word]
-                    
+
                     # Replace the word in the subtitle text
                     original_text = subtitle.text
                     pattern = re.compile(re.escape(original_word), re.IGNORECASE)
                     new_text = pattern.sub(f"{original_word} ({translation})", original_text)
-                    
+
                     # Create new subtitle with inline translation
                     translated_sub = Subtitle(
                         index=subtitle.index,
@@ -666,23 +722,21 @@ class SubtitleFusionEngine:
                         end=subtitle.end,
                         text=new_text
                     )
-                    
+
                     final_subtitles.append(translated_sub)
                     inline_translation_count += 1
-                    
+
                     logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
-                
-            except Exception as e:
-                logger.error(f"❌ Batch translation failed: {e}")
-                logger.info("🔄 Falling back to original subtitles without inline translations")
-                # Add original subtitles without translations
+            else:
+                # No translation available - add original subtitles
+                logger.info(f"⚠️  No translation service available - adding {len(unknown_words_to_translate)} original subtitles")
                 for original_word in unknown_words_to_translate:
                     subtitle = word_to_subtitle_mapping[original_word]
                     final_subtitles.append(subtitle)
         else:
-            # No DeepL API available - add original subtitles without translations
+            # No translation enabled - add original subtitles without translations
             if unknown_words_to_translate:
-                logger.info(f"🔄 No DeepL API available - adding {len(unknown_words_to_translate)} original subtitles without translations")
+                logger.info(f"🔄 Translation disabled - adding {len(unknown_words_to_translate)} original subtitles")
                 for original_word in unknown_words_to_translate:
                     subtitle = word_to_subtitle_mapping[original_word]
                     final_subtitles.append(subtitle)

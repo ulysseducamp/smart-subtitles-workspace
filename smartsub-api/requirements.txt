@@ -4,3 +4,5 @@ python-multipart==0.0.20
 supabase==2.3.4
 simplemma==1.1.2
 deepl==1.18.0
+openai==1.58.1
+python-dotenv==1.0.0
