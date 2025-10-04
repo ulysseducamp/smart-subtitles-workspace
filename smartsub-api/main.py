@@ -247,19 +247,8 @@ async def fuse_subtitles(
         # Initialize LLM translator (OpenAI or Gemini - priority for context-aware translation)
         openai_translator = None
 
-        # Try Gemini first (if GEMINI_API_KEY is set)
-        gemini_api_key = os.getenv("GEMINI_API_KEY")
-        if gemini_api_key and enable_inline_translation:
-            from openai_translator import OpenAITranslator
-            openai_translator = OpenAITranslator(
-                api_key=gemini_api_key,
-                model="gemini-2.5-flash",
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-            )
-            logger.info("✅ Google Gemini 2.5 Flash initialized for context-aware translations")
-
-        # Fallback to OpenAI if Gemini not available
-        elif os.getenv("OPENAI_API_KEY") and enable_inline_translation:
+        # Use OpenAI GPT-4.1 Nano for context-aware translation
+        if os.getenv("OPENAI_API_KEY") and enable_inline_translation:
             from openai_translator import OpenAITranslator
             openai_translator = OpenAITranslator(api_key=os.getenv("OPENAI_API_KEY"))
             logger.info("✅ OpenAI GPT-4.1 Nano initialized for context-aware translations")
