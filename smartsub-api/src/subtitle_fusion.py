@@ -493,10 +493,11 @@ class SubtitleFusionEngine:
             proper_count = len(proper_nouns)
             known_count = total_words - unknown_count - proper_count
 
-            logger.info(f"DECISION_FINALE[{current_target_sub.index}]: total_mots={total_words}, connus={known_count}, inconnus={unknown_count}, noms_propres={proper_count}")
+            # Disabled verbose logging - only log critical decisions
+            # logger.info(f"DECISION_FINALE[{current_target_sub.index}]: total_mots={total_words}, connus={known_count}, inconnus={unknown_count}, noms_propres={proper_count}")
 
             if len(unknown_words) == 0:
-                logger.info(f"DECISION_FINALE[{current_target_sub.index}]: GARDÉ_EN_LANGUE_CIBLE (tous mots connus/noms propres)")
+                # logger.info(f"DECISION_FINALE[{current_target_sub.index}]: GARDÉ_EN_LANGUE_CIBLE (tous mots connus/noms propres)")
                 if should_show_details:
                     # Format words with ranks for better debugging
                     words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
@@ -519,7 +520,7 @@ class SubtitleFusionEngine:
             
             # Handle single unknown word with inline translation
             if len(unknown_words) == 1 and enable_inline_translation and native_lang:
-                logger.info(f"DECISION_FINALE[{current_target_sub.index}]: TRADUCTION_INLINE (1 mot inconnu)")
+                # logger.info(f"DECISION_FINALE[{current_target_sub.index}]: TRADUCTION_INLINE (1 mot inconnu)")
                 # Find the original word corresponding to the lemmatized unknown word using mappings
                 unknown_lemma = unknown_words[0]
                 original_word = unknown_lemma  # Fallback
@@ -627,7 +628,7 @@ class SubtitleFusionEngine:
                 text=combined_native_sub['text']
             )
 
-            logger.info(f"DECISION_FINALE[{current_target_sub.index}]: REMPLACÉ_PAR_NATIF ({len(unknown_words)} mots inconnus)")
+            # logger.info(f"DECISION_FINALE[{current_target_sub.index}]: REMPLACÉ_PAR_NATIF ({len(unknown_words)} mots inconnus)")
             
             if should_show_details:
                 # Format words with ranks for better debugging

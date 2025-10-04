@@ -252,6 +252,11 @@ async def fuse_subtitles(
             from openai_translator import OpenAITranslator
             openai_translator = OpenAITranslator(api_key=os.getenv("OPENAI_API_KEY"))
             logger.info("✅ OpenAI GPT-4.1 Nano initialized for context-aware translations")
+        else:
+            if not os.getenv("OPENAI_API_KEY"):
+                logger.warning("⚠️  OPENAI_API_KEY not found in environment variables")
+            if not enable_inline_translation:
+                logger.info("ℹ️  Inline translation disabled by user")
 
         # Initialize DeepL API (fallback for OpenAI)
         deepl_api = None
