@@ -287,7 +287,8 @@ async def fuse_subtitles(
             deepl_api=deepl_api,
             openai_translator=openai_translator,
             native_lang=native_language,
-            top_n=top_n_words
+            top_n=top_n_words,
+            max_concurrent=8  # Optimized for better performance (38% rate limit usage)
         )
         
         processing_time = time.time() - start_time

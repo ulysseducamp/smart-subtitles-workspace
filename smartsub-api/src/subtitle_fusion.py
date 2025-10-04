@@ -414,7 +414,8 @@ class SubtitleFusionEngine:
                       deepl_api: Optional[Any] = None,
                       openai_translator: Optional[Any] = None,
                       native_lang: Optional[str] = None,
-                      top_n: int = 2000) -> Dict[str, Any]:
+                      top_n: int = 2000,
+                      max_concurrent: int = 5) -> Dict[str, Any]:
         """
         Main fusion algorithm - migrated from TypeScript fuseSubtitles function
         """
@@ -685,7 +686,7 @@ class SubtitleFusionEngine:
                         words_to_translate=words_list,
                         source_lang=lang,
                         target_lang=native_lang,
-                        max_concurrent=5  # Respect OpenAI rate limits
+                        max_concurrent=max_concurrent  # Configurable concurrency (default: 5)
                     )
 
                     logger.info(f"✅ OpenAI parallel translation successful! Translated {len(word_translations)} words")
