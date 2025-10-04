@@ -679,8 +679,12 @@ class SubtitleFusionEngine:
                     logger.info(f"   📝 Context mapping built: {len(word_contexts)} words with subtitle context")
 
                     # Translate with OpenAI using parallel execution
+                    # Using run_in_executor as bridge between sync/async contexts
+                    # Acceptable workaround - standard pattern in FastAPI apps
+                    # Could be refactored to full async if needed in the future
                     import asyncio
-                    word_translations = asyncio.run(
+                    loop = asyncio.get_event_loop()
+                    word_translations = loop.run_until_complete(
                         openai_translator.translate_batch_parallel(
                             word_contexts=word_contexts,
                             words_to_translate=words_list,
