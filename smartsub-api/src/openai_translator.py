@@ -7,6 +7,7 @@ Uses Structured Outputs for guaranteed JSON reliability
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 from openai import OpenAI
+import asyncio
 import logging
 import time
 
@@ -271,6 +272,120 @@ TRANSLATION RULES:
 Translate each word accurately based on its subtitle context."""
 
         return prompt
+
+    async def translate_batch_parallel(
+        self,
+        word_contexts: Dict[str, str],
+        words_to_translate: List[str],
+        source_lang: str,
+        target_lang: str,
+        max_concurrent: int = 5
+    ) -> Dict[str, str]:
+        """
+        Translate words in parallel chunks with rate limiting
+
+        Args:
+            word_contexts: Dictionary mapping each word to subtitle context
+            words_to_translate: List of words to translate
+            source_lang: Source language code
+            target_lang: Target language code
+            max_concurrent: Max concurrent API requests (default: 5)
+
+        Returns:
+            Dictionary mapping original words to translations
+        """
+        start_time = time.time()
+        logger.info(f"🚀 [PARALLEL] Starting parallel translation")
+        logger.info(f"   [PARALLEL] Total words: {len(words_to_translate)}")
+        logger.info(f"   [PARALLEL] Max concurrent requests: {max_concurrent}")
+
+        if not words_to_translate:
+            return {}
+
+        # Check cache first
+        cache_key_prefix = f"{source_lang}_{target_lang}_"
+        cached_translations = {}
+        uncached_words = []
+
+        for word in words_to_translate:
+            cache_key = f"{cache_key_prefix}{word}"
+            if cache_key in self.cache:
+                cached_translations[word] = self.cache[cache_key]
+            else:
+                uncached_words.append(word)
+
+        logger.info(f"   [PARALLEL] Cached: {len(cached_translations)}, Uncached: {len(uncached_words)}")
+
+        if not uncached_words:
+            logger.info(f"✅ [PARALLEL] All words cached")
+            return cached_translations
+
+        # Split into chunks of ~18 words
+        chunk_size = 18
+        chunks = [uncached_words[i:i + chunk_size]
+                  for i in range(0, len(uncached_words), chunk_size)]
+
+        logger.info(f"   [PARALLEL] Created {len(chunks)} chunks of ~{chunk_size} words")
+
+        # Semaphore to limit concurrent requests
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def translate_chunk(chunk: List[str], chunk_idx: int) -> Dict[str, str]:
+            """Translate a single chunk with rate limiting"""
+            async with semaphore:
+                logger.info(f"   [PARALLEL] 🔄 Chunk {chunk_idx + 1}/{len(chunks)} started ({len(chunk)} words)")
+
+                try:
+                    # Build chunk-specific word contexts
+                    chunk_contexts = {w: word_contexts[w] for w in chunk if w in word_contexts}
+
+                    # Call synchronous method in thread pool
+                    loop = asyncio.get_event_loop()
+                    result = await loop.run_in_executor(
+                        None,
+                        self.translate_batch_with_context,
+                        chunk_contexts,
+                        chunk,
+                        source_lang,
+                        target_lang
+                    )
+
+                    logger.info(f"   [PARALLEL] ✅ Chunk {chunk_idx + 1}/{len(chunks)} completed ({len(result)} translations)")
+                    return result
+
+                except Exception as e:
+                    logger.error(f"   [PARALLEL] ❌ Chunk {chunk_idx + 1}/{len(chunks)} failed: {e}")
+                    return {}  # Return empty dict, fallback to DeepL
+
+        # Execute all chunks in parallel with timeout
+        try:
+            async with asyncio.timeout(120):  # 2-minute global timeout
+                tasks = [translate_chunk(chunk, idx) for idx, chunk in enumerate(chunks)]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+        except asyncio.TimeoutError:
+            logger.error(f"❌ [PARALLEL] Global timeout exceeded (120s)")
+            results = []
+
+        # Merge results
+        merged = {**cached_translations}
+        failed_chunks = 0
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"   [PARALLEL] Exception in chunk: {result}")
+                failed_chunks += 1
+                continue
+            if isinstance(result, dict):
+                merged.update(result)
+
+        total_duration = time.time() - start_time
+
+        logger.info(f"✅ [PARALLEL] Translation completed in {total_duration:.2f}s")
+        logger.info(f"   [PARALLEL] Total translations: {len(merged)} (cached: {len(cached_translations)})")
+        if failed_chunks > 0:
+            logger.warning(f"   [PARALLEL] ⚠️  {failed_chunks} chunks failed (will fallback to DeepL)")
+
+        return merged
 
     def get_stats(self) -> Dict[str, any]:
         """Get API usage statistics"""

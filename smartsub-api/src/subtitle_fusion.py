@@ -662,10 +662,10 @@ class SubtitleFusionEngine:
             words_list = list(unknown_words_to_translate)
             word_translations = {}
 
-            # Strategy 1: Try OpenAI with LOCAL context (one subtitle per word)
+            # Strategy 1: Try OpenAI with PARALLEL translation (5 concurrent requests)
             if openai_translator:
                 try:
-                    logger.info(f"🤖 Using OpenAI GPT-4o mini with LOCAL context (one subtitle per word)...")
+                    logger.info(f"🤖 Using OpenAI GPT-4.1 Nano with PARALLEL translation...")
 
                     # Build word-to-subtitle context mapping
                     word_contexts = {}
@@ -677,15 +677,19 @@ class SubtitleFusionEngine:
 
                     logger.info(f"   📝 Context mapping built: {len(word_contexts)} words with subtitle context")
 
-                    # Translate with OpenAI using local context
-                    word_translations = openai_translator.translate_batch_with_context(
-                        word_contexts=word_contexts,
-                        words_to_translate=words_list,
-                        source_lang=lang,
-                        target_lang=native_lang
+                    # Translate with OpenAI using parallel execution
+                    import asyncio
+                    word_translations = asyncio.run(
+                        openai_translator.translate_batch_parallel(
+                            word_contexts=word_contexts,
+                            words_to_translate=words_list,
+                            source_lang=lang,
+                            target_lang=native_lang,
+                            max_concurrent=5  # Respect OpenAI rate limits
+                        )
                     )
 
-                    logger.info(f"✅ OpenAI translation successful! Translated {len(word_translations)} words")
+                    logger.info(f"✅ OpenAI parallel translation successful! Translated {len(word_translations)} words")
 
                 except Exception as e:
                     logger.error(f"❌ OpenAI translation failed: {e}")
