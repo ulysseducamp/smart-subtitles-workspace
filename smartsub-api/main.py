@@ -244,13 +244,25 @@ async def fuse_subtitles(
         # Initialize fusion engine
         engine = SubtitleFusionEngine()
         
-        # Initialize OpenAI translator (priority for context-aware translation)
+        # Initialize LLM translator (OpenAI or Gemini - priority for context-aware translation)
         openai_translator = None
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if openai_api_key and enable_inline_translation:
+
+        # Try Gemini first (if GEMINI_API_KEY is set)
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        if gemini_api_key and enable_inline_translation:
             from openai_translator import OpenAITranslator
-            openai_translator = OpenAITranslator(api_key=openai_api_key)
-            logger.info("✅ OpenAI GPT-4o mini initialized for context-aware translations")
+            openai_translator = OpenAITranslator(
+                api_key=gemini_api_key,
+                model="gemini-2.0-flash",
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            )
+            logger.info("✅ Google Gemini 2.0 Flash initialized for context-aware translations")
+
+        # Fallback to OpenAI if Gemini not available
+        elif os.getenv("OPENAI_API_KEY") and enable_inline_translation:
+            from openai_translator import OpenAITranslator
+            openai_translator = OpenAITranslator(api_key=os.getenv("OPENAI_API_KEY"))
+            logger.info("✅ OpenAI GPT-4.1 Nano initialized for context-aware translations")
 
         # Initialize DeepL API (fallback for OpenAI)
         deepl_api = None

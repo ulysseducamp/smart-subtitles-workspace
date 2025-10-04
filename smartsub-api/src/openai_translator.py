@@ -1,6 +1,7 @@
 """
 OpenAI API integration for context-aware translation
-Uses GPT-4o mini with Structured Outputs for guaranteed JSON reliability
+Supports both OpenAI models (GPT-4.1 Nano) and Google Gemini models (2.0 Flash)
+Uses Structured Outputs for guaranteed JSON reliability
 """
 
 from typing import List, Dict, Optional
@@ -40,23 +41,43 @@ class TranslationResponse(BaseModel):
 
 class OpenAITranslator:
     """
-    OpenAI-based translator using GPT-4o mini with Structured Outputs
-    Supports full episode context for better translation quality
+    LLM-based translator supporting both OpenAI and Google Gemini models
+    Uses Structured Outputs for reliable JSON parsing
+    Supports local context (one subtitle per word) for contextual translation
     """
 
-    def __init__(self, api_key: str, model: str = "gpt-4.1-nano-2025-04-14", timeout: float = 90.0):
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "gpt-4.1-nano-2025-04-14",
+        timeout: float = 90.0,
+        base_url: Optional[str] = None
+    ):
         """
-        Initialize OpenAI translator
+        Initialize LLM translator (OpenAI or Gemini)
 
         Args:
-            api_key: OpenAI API key
-            model: Model to use (default: gpt-4o-mini)
+            api_key: API key (OpenAI or Google Gemini)
+            model: Model to use (default: gpt-4.1-nano-2025-04-14)
+                   For Gemini: use "gemini-2.0-flash" with base_url
             timeout: Request timeout in seconds (default: 90.0)
+            base_url: Optional base URL for API endpoint
+                      For Gemini: "https://generativelanguage.googleapis.com/v1beta/openai/"
+                      For OpenAI: None (uses default)
         """
-        self.client = OpenAI(api_key=api_key, timeout=timeout)
+        if base_url:
+            self.client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
+            logger.info(f"✅ LLM Translator initialized with custom base_url: {base_url}")
+        else:
+            self.client = OpenAI(api_key=api_key, timeout=timeout)
+            logger.info(f"✅ LLM Translator initialized with OpenAI endpoint")
+
         self.model = model
+        self.base_url = base_url
         self.cache = {}
         self.request_count = 0
+
+        logger.info(f"   Model: {model}")
 
     def translate_batch_with_context(
         self,
