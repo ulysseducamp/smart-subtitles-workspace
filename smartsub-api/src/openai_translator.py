@@ -44,7 +44,7 @@ class OpenAITranslator:
     Supports full episode context for better translation quality
     """
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini", timeout: float = 90.0):
+    def __init__(self, api_key: str, model: str = "gpt-4.1-nano-2025-04-14", timeout: float = 90.0):
         """
         Initialize OpenAI translator
 
