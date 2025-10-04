@@ -1,6 +1,6 @@
 """
 OpenAI API integration for context-aware translation
-Supports both OpenAI models (GPT-4.1 Nano) and Google Gemini models (2.0 Flash)
+Supports both OpenAI models (GPT-4.1 Nano) and Google Gemini models (2.5 Flash)
 Uses Structured Outputs for guaranteed JSON reliability
 """
 
@@ -59,7 +59,7 @@ class OpenAITranslator:
         Args:
             api_key: API key (OpenAI or Google Gemini)
             model: Model to use (default: gpt-4.1-nano-2025-04-14)
-                   For Gemini: use "gemini-2.0-flash" with base_url
+                   For Gemini: use "gemini-2.5-flash" with base_url
             timeout: Request timeout in seconds (default: 90.0)
             base_url: Optional base URL for API endpoint
                       For Gemini: "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -146,8 +146,14 @@ class OpenAITranslator:
             prompt_build_duration = time.time() - start_prompt_build
             logger.info(f"   [OPENAI] Prompt built in {prompt_build_duration:.3f}s (length: {len(prompt)} chars)")
 
-            # ⏱️ API call timing
-            logger.info(f"   [OPENAI] Sending API request to OpenAI...")
+            # ⏱️ API call timing with detailed cold start measurement
+            from datetime import datetime
+
+            start_timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            logger.info(f"   [OPENAI] 🚀 Starting API request at {start_timestamp}")
+            logger.info(f"   [OPENAI] Model: {self.model}")
+            logger.info(f"   [OPENAI] Words to translate: {len(uncached_words)}")
+
             start_api_call = time.time()
 
             response = self.client.beta.chat.completions.parse(
@@ -167,7 +173,10 @@ class OpenAITranslator:
             )
 
             api_call_duration = time.time() - start_api_call
-            logger.info(f"   [OPENAI] ✅ API response received in {api_call_duration:.3f}s")
+            end_timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+
+            logger.info(f"   [OPENAI] ✅ API response received at {end_timestamp}")
+            logger.info(f"   [OPENAI] ⏱️ TOTAL API CALL DURATION: {api_call_duration:.3f}s")
 
             # ⏱️ Response parsing timing
             start_parsing = time.time()

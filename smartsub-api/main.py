@@ -253,10 +253,10 @@ async def fuse_subtitles(
             from openai_translator import OpenAITranslator
             openai_translator = OpenAITranslator(
                 api_key=gemini_api_key,
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
             )
-            logger.info("✅ Google Gemini 2.0 Flash initialized for context-aware translations")
+            logger.info("✅ Google Gemini 2.5 Flash initialized for context-aware translations")
 
         # Fallback to OpenAI if Gemini not available
         elif os.getenv("OPENAI_API_KEY") and enable_inline_translation:
