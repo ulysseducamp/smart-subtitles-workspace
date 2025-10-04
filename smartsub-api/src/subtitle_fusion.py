@@ -405,7 +405,7 @@ class SubtitleFusionEngine:
                 logger.info(f"Final subtitle: \"{log_entry['final_text']}\"")
                 logger.info("")
 
-    def fuse_subtitles(self,
+    async def fuse_subtitles(self,
                       target_subs: List[Subtitle],
                       native_subs: List[Subtitle],
                       known_words: Set[str],
@@ -679,19 +679,13 @@ class SubtitleFusionEngine:
                     logger.info(f"   📝 Context mapping built: {len(word_contexts)} words with subtitle context")
 
                     # Translate with OpenAI using parallel execution
-                    # Using run_in_executor as bridge between sync/async contexts
-                    # Acceptable workaround - standard pattern in FastAPI apps
-                    # Could be refactored to full async if needed in the future
-                    import asyncio
-                    loop = asyncio.get_event_loop()
-                    word_translations = loop.run_until_complete(
-                        openai_translator.translate_batch_parallel(
-                            word_contexts=word_contexts,
-                            words_to_translate=words_list,
-                            source_lang=lang,
-                            target_lang=native_lang,
-                            max_concurrent=5  # Respect OpenAI rate limits
-                        )
+                    # Now using native async/await (FastAPI best practice 2024)
+                    word_translations = await openai_translator.translate_batch_parallel(
+                        word_contexts=word_contexts,
+                        words_to_translate=words_list,
+                        source_lang=lang,
+                        target_lang=native_lang,
+                        max_concurrent=5  # Respect OpenAI rate limits
                     )
 
                     logger.info(f"✅ OpenAI parallel translation successful! Translated {len(word_translations)} words")

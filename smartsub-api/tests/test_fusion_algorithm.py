@@ -3,6 +3,7 @@ Test suite for subtitle fusion algorithm
 """
 
 import unittest
+import asyncio
 import sys
 import os
 
@@ -76,16 +77,17 @@ class TestFusionAlgorithm(unittest.TestCase):
             Subtitle("1", "00:00:10,000", "00:00:15,000", "I understand this"),
             Subtitle("2", "00:00:16,000", "00:00:20,000", "This is complicated")
         ]
-        
+
         native_subs = [
             Subtitle("1", "00:00:10,000", "00:00:15,000", "Je comprends ceci"),
             Subtitle("2", "00:00:16,000", "00:00:20,000", "C'est compliqué")
         ]
-        
+
         known_words = {"i", "understand", "this", "is"}
-        
-        result = self.engine.fuse_subtitles(target_subs, native_subs, known_words, "en")
-        
+
+        # Run async method using asyncio.run()
+        result = asyncio.run(self.engine.fuse_subtitles(target_subs, native_subs, known_words, "en"))
+
         self.assertTrue(result['success'])
         self.assertEqual(len(result['hybrid']), 2)
         # First subtitle should be kept (all words known)

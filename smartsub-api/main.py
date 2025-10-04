@@ -277,8 +277,8 @@ async def fuse_subtitles(
         logger.info("=== TRAITEMENT DES SOUS-TITRES ===")
         import time
         start_time = time.time()
-        
-        result = engine.fuse_subtitles(
+
+        result = await engine.fuse_subtitles(
             target_subs=target_subs,
             native_subs=native_subs,
             known_words=known_words,
