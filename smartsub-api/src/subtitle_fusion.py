@@ -276,6 +276,82 @@ class SubtitleFusionEngine:
 
         return intersection_end - intersection_start > 500
 
+    def _calculate_intersection_duration(self, sub1: Subtitle, sub2: Subtitle) -> float:
+        """
+        Calculate the duration of intersection between two subtitles in seconds.
+
+        Args:
+            sub1: First subtitle
+            sub2: Second subtitle
+
+        Returns:
+            Duration of intersection in seconds (0 if no intersection)
+        """
+        start1_ms = self._srt_time_to_ms(sub1.start)
+        end1_ms = self._srt_time_to_ms(sub1.end)
+        start2_ms = self._srt_time_to_ms(sub2.start)
+        end2_ms = self._srt_time_to_ms(sub2.end)
+
+        intersection_start = max(start1_ms, start2_ms)
+        intersection_end = min(end1_ms, end2_ms)
+
+        if intersection_end <= intersection_start:
+            return 0.0
+
+        return (intersection_end - intersection_start) / 1000.0  # Convert to seconds
+
+    def _get_next_native_subtitle(self, current_native_index: int, native_subs: List[Subtitle]) -> Optional[Subtitle]:
+        """
+        Get the next native subtitle after the current one.
+
+        Args:
+            current_native_index: Index position in native_subs list
+            native_subs: List of all native subtitles
+
+        Returns:
+            Next native subtitle or None if current is the last one
+        """
+        if current_native_index + 1 < len(native_subs):
+            return native_subs[current_native_index + 1]
+        return None
+
+    def _should_include_in_replacement(self, target_sub: Subtitle, current_native: Subtitle,
+                                       next_native: Optional[Subtitle]) -> bool:
+        """
+        Determine if a target subtitle should be included in the current replacement.
+
+        Logic: If the target subtitle overlaps MORE with the next native subtitle,
+        it belongs to the next replacement, so exclude it from the current one.
+
+        Args:
+            target_sub: Target subtitle to evaluate
+            current_native: Current native subtitle being processed
+            next_native: Next native subtitle (or None if last)
+
+        Returns:
+            True if should include, False if should exclude
+        """
+        current_overlap = self._calculate_intersection_duration(target_sub, current_native)
+
+        # If no next native subtitle, include (last subtitle of episode)
+        if not next_native:
+            logger.info(f"   [Include Logic] PT {target_sub.index}: No next FR → INCLUDE (end of episode)")
+            return True
+
+        next_overlap = self._calculate_intersection_duration(target_sub, next_native)
+
+        # If overlaps more with next, exclude from current replacement
+        should_include = next_overlap <= current_overlap
+
+        # Log decision
+        if target_sub.index in ["496", "764", "763"]:  # Debug specific cases
+            logger.info(f"   [Include Logic] PT {target_sub.index}:")
+            logger.info(f"      Current FR overlap: {current_overlap:.3f}s")
+            logger.info(f"      Next FR overlap: {next_overlap:.3f}s")
+            logger.info(f"      Decision: {'INCLUDE' if should_include else 'EXCLUDE (belongs to next FR)'}")
+
+        return should_include
+
     def _generate_episode_context(self, subtitles: List[Subtitle]) -> str:
         """
         Generate full episode context in SRT format for LLM translation.
@@ -591,15 +667,55 @@ class SubtitleFusionEngine:
                 'start': intersecting_native_subs[0].start,
                 'end': intersecting_native_subs[-1].end,
             }
-            
+
+            # Create a Subtitle object for combined_native_sub (for helper functions)
+            combined_native_sub_obj = Subtitle(
+                index='',
+                start=combined_native_sub['start'],
+                end=combined_native_sub['end'],
+                text=combined_native_sub['text']
+            )
+
+            # Find the index of the first intersecting native subtitle in the native_subs list
+            try:
+                first_native_index = native_subs.index(intersecting_native_subs[0])
+                next_native_sub = self._get_next_native_subtitle(first_native_index, native_subs)
+            except ValueError:
+                # Fallback: if not found in list, assume no next subtitle
+                next_native_sub = None
+
+            # Log for debugging
+            if current_target_sub.index in ["496", "764", "763"]:
+                logger.info(f"\n🔍 [Replacement Logic] Processing PT {current_target_sub.index}")
+                logger.info(f"   Current FR range: {combined_native_sub['start']} → {combined_native_sub['end']}")
+                if next_native_sub:
+                    logger.info(f"   Next FR: {next_native_sub.index} ({next_native_sub.start} → {next_native_sub.end})")
+                else:
+                    logger.info(f"   Next FR: None (end of episode)")
+
             # Find all target subtitles that overlap with this native subtitle
-            overlapping_target_subs = [
+            # STEP 1: Find all candidates (overlap > 0.5s)
+            candidate_target_subs = [
                 sub for sub in target_subs
-                if sub.index not in processed_target_indices and 
-                self._has_intersection(combined_native_sub['start'], combined_native_sub['end'], 
+                if sub.index not in processed_target_indices and
+                self._has_intersection(combined_native_sub['start'], combined_native_sub['end'],
                                      sub.start, sub.end)
             ]
-            
+
+            # Log candidates
+            if current_target_sub.index in ["496", "764", "763"]:
+                logger.info(f"   Candidate PT subs (overlap > 0.5s): {[s.index for s in candidate_target_subs]}")
+
+            # STEP 2: Filter candidates based on "compare with next FR" logic
+            overlapping_target_subs = [
+                sub for sub in candidate_target_subs
+                if self._should_include_in_replacement(sub, combined_native_sub_obj, next_native_sub)
+            ]
+
+            # Log final decision
+            if current_target_sub.index in ["496", "764", "763"]:
+                logger.info(f"   Final PT subs to replace: {[s.index for s in overlapping_target_subs]}")
+
             if len(overlapping_target_subs) == 0:
                 if should_show_details:
                     # Format words with ranks for better debugging
@@ -742,8 +858,13 @@ class SubtitleFusionEngine:
                 # No translation available - add original subtitles
                 logger.info(f"⚠️  No translation service available - adding {len(unknown_words_to_translate)} original subtitles")
                 for original_word in unknown_words_to_translate:
+                    if original_word not in word_to_subtitle_mapping:
+                        logger.warning(f"⚠️  Word '{original_word}' NOT in word_to_subtitle_mapping! Skipping...")
+                        continue
                     subtitle = word_to_subtitle_mapping[original_word]
                     final_subtitles.append(subtitle)
+                    # CRITICAL FIX: Mark subtitle as processed to prevent double-processing
+                    processed_target_indices.add(subtitle.index)
         else:
             # No translation enabled - add original subtitles without translations
             if unknown_words_to_translate:
@@ -758,9 +879,14 @@ class SubtitleFusionEngine:
             self._display_ordered_logs(final_subtitles)
             # Nettoyer la liste temporaire pour éviter les fuites mémoire
             self._debug_logs.clear()
-        
+
+        # CRITICAL FIX: Sort final_subtitles by timestamp BEFORE re-indexing
+        # This ensures chronological order regardless of when subtitles were added to the list
+        # (e.g., inline translation subtitles are added after the main loop)
+        final_subtitles_sorted = sorted(final_subtitles, key=lambda s: self._srt_time_to_ms(s.start))
+
         re_indexed_hybrid = []
-        for i, subtitle in enumerate(final_subtitles):
+        for i, subtitle in enumerate(final_subtitles_sorted):
             re_indexed_hybrid.append(Subtitle(
                 index=str(i + 1),
                 start=subtitle.start,
