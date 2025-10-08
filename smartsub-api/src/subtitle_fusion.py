@@ -315,6 +315,21 @@ class SubtitleFusionEngine:
             return native_subs[current_native_index + 1]
         return None
 
+    def _get_previous_target_subtitle(self, current_target_index: int, target_subs: List[Subtitle]) -> Optional[Subtitle]:
+        """
+        Get the previous target subtitle before the current one.
+
+        Args:
+            current_target_index: Index position in target_subs list
+            target_subs: List of all target subtitles
+
+        Returns:
+            Previous target subtitle or None if current is the first one
+        """
+        if current_target_index > 0:
+            return target_subs[current_target_index - 1]
+        return None
+
     def _should_include_in_replacement(self, target_sub: Subtitle, current_native: Subtitle,
                                        next_native: Optional[Subtitle]) -> bool:
         """
@@ -636,10 +651,46 @@ class SubtitleFusionEngine:
             # Find intersecting native subtitles
             intersecting_native_subs = [
                 native_sub for native_sub in native_subs
-                if self._has_intersection(current_target_sub.start, current_target_sub.end, 
+                if self._has_intersection(current_target_sub.start, current_target_sub.end,
                                         native_sub.start, native_sub.end)
             ]
-            
+
+            # Filter out native subtitles that match BETTER with the previous target subtitle
+            # This prevents "avalanche" effect where a native sub incorrectly replaces multiple targets
+            previous_target_sub = self._get_previous_target_subtitle(i, target_subs)
+
+            # Log for debug cases
+            if current_target_sub.index in ["632", "633", "234", "235"]:
+                logger.info(f"\n🔍 [Previous Filter] PT {current_target_sub.index}:")
+                logger.info(f"   Initial FR candidates: {[s.index for s in intersecting_native_subs]}")
+                if previous_target_sub:
+                    logger.info(f"   Previous PT: {previous_target_sub.index} ({previous_target_sub.start} → {previous_target_sub.end})")
+
+            if previous_target_sub:
+                filtered_native_subs = []
+                for native_sub in intersecting_native_subs:
+                    current_overlap = self._calculate_intersection_duration(
+                        Subtitle(index='', start=native_sub.start, end=native_sub.end, text=''),
+                        current_target_sub
+                    )
+                    previous_overlap = self._calculate_intersection_duration(
+                        Subtitle(index='', start=native_sub.start, end=native_sub.end, text=''),
+                        previous_target_sub
+                    )
+
+                    # If this native sub overlaps MORE with the previous target, exclude it
+                    if previous_overlap > current_overlap:
+                        logger.info(f"   [Filter] Excluding FR {native_sub.index}: better match with PT {previous_target_sub.index} ({previous_overlap:.3f}s) than PT {current_target_sub.index} ({current_overlap:.3f}s)")
+                        continue
+
+                    filtered_native_subs.append(native_sub)
+
+                intersecting_native_subs = filtered_native_subs
+
+                # Log after filtering for debug cases
+                if current_target_sub.index in ["632", "633", "234", "235"]:
+                    logger.info(f"   After previous filter: {[s.index for s in intersecting_native_subs]}")
+
             if len(intersecting_native_subs) == 0:
                 if should_show_details:
                     # Format words with ranks for better debugging
