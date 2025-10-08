@@ -263,6 +263,17 @@ DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (tro
 ### Diagnostic Logging Enhancement
 Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
 
+### OpenAI Translation Performance Optimization ✅ **COMPLETED** (January 2025)
+**Problem**: Translation processing took 7-10 seconds per episode due to conservative concurrency limits.
+
+**Solution**: Increased parallel API requests from 5 to 8 concurrent requests using native FastAPI async/await pattern.
+
+**Implementation**: 3-file minimal change - `main.py:291` (pass parameter), `subtitle_fusion.py:418` (add parameter), `subtitle_fusion.py:689` (use parameter).
+
+**Results**: Translation time reduced 7.80s → 3.95s (-49%), total processing 10.03s → 6.87s (-32%). Rate limit usage: 38% of OpenAI's 500 RPM limit.
+
+**Code Location**: `smartsub-api/main.py`, `smartsub-api/src/subtitle_fusion.py`
+
 ## Memory Leak Resolution (January 2025)
 
 ### Problem Resolution ✅ **COMPLETED**

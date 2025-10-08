@@ -546,7 +546,7 @@ import { railwayAPIClient } from './api/railwayClient';
     return `WEBVTT
 
 00:00:00.000 --> 01:00:00.000
-Loading smart subtitles...`;
+Preparing smart subtitles... (this should take ~10s per hour of content)`;
   }
 
   // Function to create loading WebVTT blob
