@@ -771,24 +771,22 @@ class SubtitleFusionEngine:
                 processed_target_indices.add(sub.index)
             debug_shown += 1
         
-        # BATCH TRANSLATION: Translate all collected subtitles (no deduplication = no subtitle loss)
+        # BATCH TRANSLATION: Translate each subtitle with its unique context (perfect quality)
         if subtitles_to_translate and enable_inline_translation and native_lang:
-            logger.info(f"\n🔄 BATCH TRANSLATION: Processing {len(subtitles_to_translate)} subtitles...")
+            logger.info(f"\n🔄 BATCH TRANSLATION: Processing {len(subtitles_to_translate)} subtitles with unique contexts...")
 
-            # Deduplicate words for batch translation (cache efficiency)
-            # But we'll apply each translation to ALL subtitles containing that word
+            # Build context mapping: each word gets its own subtitle context (no deduplication)
+            # This ensures perfect contextual translation quality for language learning
             word_contexts = {}
-            unique_words = []
+            words_to_translate = []
 
-            for word, subtitle in subtitles_to_translate:
-                if word not in word_contexts:
-                    unique_words.append(word)
-                # Last context wins (acceptable compromise for cache efficiency)
-                word_contexts[word] = strip_html(subtitle.text)
+            for idx, (word, subtitle) in enumerate(subtitles_to_translate):
+                # Use unique key: word_INDEX to prevent deduplication
+                unique_key = f"{word}_{idx}"
+                word_contexts[unique_key] = strip_html(subtitle.text)
+                words_to_translate.append(unique_key)
 
-            logger.info(f"   📊 Unique words to translate: {len(unique_words)} (from {len(subtitles_to_translate)} subtitles)")
-
-            word_translations = {}
+            translations = {}
 
             # Strategy 1: Try OpenAI with PARALLEL translation
             if openai_translator:
@@ -796,39 +794,45 @@ class SubtitleFusionEngine:
                     logger.info(f"🤖 Using OpenAI GPT-4.1 Nano with PARALLEL translation...")
 
                     # Translate with OpenAI using parallel execution
-                    word_translations = await openai_translator.translate_batch_parallel(
+                    translations = await openai_translator.translate_batch_parallel(
                         word_contexts=word_contexts,
-                        words_to_translate=unique_words,
+                        words_to_translate=words_to_translate,
                         source_lang=lang,
                         target_lang=native_lang,
                         max_concurrent=max_concurrent
                     )
 
-                    logger.info(f"✅ OpenAI parallel translation successful! Translated {len(word_translations)} words")
+                    logger.info(f"✅ OpenAI parallel translation successful! Translated {len(translations)} subtitles")
 
                 except Exception as e:
                     logger.error(f"❌ OpenAI translation failed: {e}")
                     logger.info(f"🔄 Falling back to DeepL...")
-                    word_translations = {}
+                    translations = {}
 
             # Strategy 2: Fallback to DeepL (without context)
-            if not word_translations and deepl_api:
+            if not translations and deepl_api:
                 try:
                     logger.info(f"🔄 Using DeepL fallback (no context)...")
 
-                    translated_words_batch = deepl_api.translate_batch(unique_words, lang, native_lang)
-                    word_translations = dict(zip(unique_words, translated_words_batch))
+                    # Extract original words (without _INDEX suffix)
+                    original_words = [word for word, _ in subtitles_to_translate]
+                    translated_words_batch = deepl_api.translate_batch(original_words, lang, native_lang)
 
-                    logger.info(f"✅ DeepL fallback successful! Translated {len(word_translations)} words")
+                    # Map back to unique keys
+                    for idx, unique_key in enumerate(words_to_translate):
+                        translations[unique_key] = translated_words_batch[idx]
+
+                    logger.info(f"✅ DeepL fallback successful! Translated {len(translations)} subtitles")
 
                 except Exception as e:
                     logger.error(f"❌ DeepL translation failed: {e}")
                     logger.info("🔄 Falling back to original subtitles without translations")
 
-            # Apply translations to ALL subtitles (no subtitle loss - Bug #1 fix)
-            if word_translations:
-                for original_word, subtitle in subtitles_to_translate:
-                    translation = word_translations.get(original_word)
+            # Apply translations to each subtitle
+            if translations:
+                for idx, (original_word, subtitle) in enumerate(subtitles_to_translate):
+                    unique_key = f"{original_word}_{idx}"
+                    translation = translations.get(unique_key)
 
                     if translation:
                         # Replace the word in the subtitle text
@@ -848,7 +852,7 @@ class SubtitleFusionEngine:
 
                         logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
                     else:
-                        # No translation for this word - add original subtitle
+                        # No translation - add original subtitle
                         final_subtitles.append(subtitle)
                         logger.warning(f"⚠️  No translation for '{original_word}' in subtitle {subtitle.index} - keeping original")
 
