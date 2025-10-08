@@ -505,11 +505,11 @@ class SubtitleFusionEngine:
         error_count = 0
         debug_shown = 0
         translated_words = {}
-        
-        # Batch translation: collect words to translate instead of translating immediately
-        unknown_words_to_translate = []  # Use list to preserve order
-        word_to_subtitle_mapping = {}  # Map word -> subtitle for later integration
-        
+
+        # Batch translation: collect subtitles to translate (no deduplication to prevent subtitle loss)
+        # Each tuple contains (original_word, subtitle) - duplicates preserved intentionally
+        subtitles_to_translate = []  # List of (word, subtitle) tuples
+
         final_subtitles = []
         processed_target_indices = set()
         
@@ -608,10 +608,10 @@ class SubtitleFusionEngine:
                         original_word = mapping.original_word
                         break
 
-                # BATCH TRANSLATION: Collect word for batch translation instead of translating immediately
-                if original_word not in unknown_words_to_translate:
-                    unknown_words_to_translate.append(original_word)
-                word_to_subtitle_mapping[original_word] = current_target_sub
+                # BATCH TRANSLATION: Collect (word, subtitle) tuple for batch translation
+                # No deduplication - if same word appears in 10 subtitles, we translate 10 times
+                # This prevents subtitle loss (Bug #1 fix)
+                subtitles_to_translate.append((original_word, current_target_sub))
                 
                 if should_show_details:
                     # Format words with ranks for better debugging
@@ -771,38 +771,37 @@ class SubtitleFusionEngine:
                 processed_target_indices.add(sub.index)
             debug_shown += 1
         
-        # Re-index the final subtitles
-        # BATCH TRANSLATION: Translate all collected words with LOCAL context (one subtitle per word)
-        if unknown_words_to_translate and enable_inline_translation and native_lang:
-            logger.info(f"\n🔄 BATCH TRANSLATION: Translating {len(unknown_words_to_translate)} words...")
+        # BATCH TRANSLATION: Translate all collected subtitles (no deduplication = no subtitle loss)
+        if subtitles_to_translate and enable_inline_translation and native_lang:
+            logger.info(f"\n🔄 BATCH TRANSLATION: Processing {len(subtitles_to_translate)} subtitles...")
 
-            # Convert to list for processing
-            words_list = list(unknown_words_to_translate)
+            # Deduplicate words for batch translation (cache efficiency)
+            # But we'll apply each translation to ALL subtitles containing that word
+            word_contexts = {}
+            unique_words = []
+
+            for word, subtitle in subtitles_to_translate:
+                if word not in word_contexts:
+                    unique_words.append(word)
+                # Last context wins (acceptable compromise for cache efficiency)
+                word_contexts[word] = strip_html(subtitle.text)
+
+            logger.info(f"   📊 Unique words to translate: {len(unique_words)} (from {len(subtitles_to_translate)} subtitles)")
+
             word_translations = {}
 
-            # Strategy 1: Try OpenAI with PARALLEL translation (5 concurrent requests)
+            # Strategy 1: Try OpenAI with PARALLEL translation
             if openai_translator:
                 try:
                     logger.info(f"🤖 Using OpenAI GPT-4.1 Nano with PARALLEL translation...")
 
-                    # Build word-to-subtitle context mapping
-                    word_contexts = {}
-                    for word in words_list:
-                        if word in word_to_subtitle_mapping:
-                            subtitle = word_to_subtitle_mapping[word]
-                            # Use only the subtitle text where the word appears (no HTML, no timing)
-                            word_contexts[word] = strip_html(subtitle.text)
-
-                    logger.info(f"   📝 Context mapping built: {len(word_contexts)} words with subtitle context")
-
                     # Translate with OpenAI using parallel execution
-                    # Now using native async/await (FastAPI best practice 2024)
                     word_translations = await openai_translator.translate_batch_parallel(
                         word_contexts=word_contexts,
-                        words_to_translate=words_list,
+                        words_to_translate=unique_words,
                         source_lang=lang,
                         target_lang=native_lang,
-                        max_concurrent=max_concurrent  # Configurable concurrency (default: 5)
+                        max_concurrent=max_concurrent
                     )
 
                     logger.info(f"✅ OpenAI parallel translation successful! Translated {len(word_translations)} words")
@@ -810,16 +809,15 @@ class SubtitleFusionEngine:
                 except Exception as e:
                     logger.error(f"❌ OpenAI translation failed: {e}")
                     logger.info(f"🔄 Falling back to DeepL...")
-                    word_translations = {}  # Clear for fallback
+                    word_translations = {}
 
             # Strategy 2: Fallback to DeepL (without context)
             if not word_translations and deepl_api:
                 try:
                     logger.info(f"🔄 Using DeepL fallback (no context)...")
 
-                    # Translate with DeepL batch (no context)
-                    translated_words_batch = deepl_api.translate_batch(words_list, lang, native_lang)
-                    word_translations = dict(zip(words_list, translated_words_batch))
+                    translated_words_batch = deepl_api.translate_batch(unique_words, lang, native_lang)
+                    word_translations = dict(zip(unique_words, translated_words_batch))
 
                     logger.info(f"✅ DeepL fallback successful! Translated {len(word_translations)} words")
 
@@ -827,51 +825,48 @@ class SubtitleFusionEngine:
                     logger.error(f"❌ DeepL translation failed: {e}")
                     logger.info("🔄 Falling back to original subtitles without translations")
 
-            # Apply translations to subtitles
+            # Apply translations to ALL subtitles (no subtitle loss - Bug #1 fix)
             if word_translations:
-                for original_word, translation in word_translations.items():
-                    # Check if word is in mapping (only words with 1 unknown word are collected)
-                    if original_word not in word_to_subtitle_mapping:
-                        logger.warning(f"⚠️  Word '{original_word}' not in mapping (likely from subtitle with 2+ unknown words)")
-                        continue
+                for original_word, subtitle in subtitles_to_translate:
+                    translation = word_translations.get(original_word)
 
-                    subtitle = word_to_subtitle_mapping[original_word]
+                    if translation:
+                        # Replace the word in the subtitle text
+                        pattern = re.compile(re.escape(original_word), re.IGNORECASE)
+                        new_text = pattern.sub(f"{original_word} ({translation})", subtitle.text)
 
-                    # Replace the word in the subtitle text
-                    original_text = subtitle.text
-                    pattern = re.compile(re.escape(original_word), re.IGNORECASE)
-                    new_text = pattern.sub(f"{original_word} ({translation})", original_text)
+                        # Create new subtitle with inline translation
+                        translated_sub = Subtitle(
+                            index=subtitle.index,
+                            start=subtitle.start,
+                            end=subtitle.end,
+                            text=new_text
+                        )
 
-                    # Create new subtitle with inline translation
-                    translated_sub = Subtitle(
-                        index=subtitle.index,
-                        start=subtitle.start,
-                        end=subtitle.end,
-                        text=new_text
-                    )
+                        final_subtitles.append(translated_sub)
+                        inline_translation_count += 1
 
-                    final_subtitles.append(translated_sub)
-                    inline_translation_count += 1
+                        logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
+                    else:
+                        # No translation for this word - add original subtitle
+                        final_subtitles.append(subtitle)
+                        logger.warning(f"⚠️  No translation for '{original_word}' in subtitle {subtitle.index} - keeping original")
 
-                    logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
+                    # Mark as processed to prevent double-processing
+                    processed_target_indices.add(subtitle.index)
             else:
-                # No translation available - add original subtitles
-                logger.info(f"⚠️  No translation service available - adding {len(unknown_words_to_translate)} original subtitles")
-                for original_word in unknown_words_to_translate:
-                    if original_word not in word_to_subtitle_mapping:
-                        logger.warning(f"⚠️  Word '{original_word}' NOT in word_to_subtitle_mapping! Skipping...")
-                        continue
-                    subtitle = word_to_subtitle_mapping[original_word]
+                # No translation service available - add all original subtitles
+                logger.info(f"⚠️  No translation service available - adding {len(subtitles_to_translate)} original subtitles")
+                for word, subtitle in subtitles_to_translate:
                     final_subtitles.append(subtitle)
-                    # CRITICAL FIX: Mark subtitle as processed to prevent double-processing
                     processed_target_indices.add(subtitle.index)
         else:
-            # No translation enabled - add original subtitles without translations
-            if unknown_words_to_translate:
-                logger.info(f"🔄 Translation disabled - adding {len(unknown_words_to_translate)} original subtitles")
-                for original_word in unknown_words_to_translate:
-                    subtitle = word_to_subtitle_mapping[original_word]
+            # Translation disabled - add all original subtitles
+            if subtitles_to_translate:
+                logger.info(f"🔄 Translation disabled - adding {len(subtitles_to_translate)} original subtitles")
+                for word, subtitle in subtitles_to_translate:
                     final_subtitles.append(subtitle)
+                    processed_target_indices.add(subtitle.index)
         
         # Afficher les logs de debug dans l'ordre correct des sous-titres finaux
         # IMPORTANT: Doit être fait APRÈS que final_subtitles soit complètement construit
