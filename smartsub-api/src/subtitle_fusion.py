@@ -350,7 +350,8 @@ class SubtitleFusionEngine:
 
         # If no next native subtitle, include (last subtitle of episode)
         if not next_native:
-            logger.info(f"   [Include Logic] PT {target_sub.index}: No next FR → INCLUDE (end of episode)")
+            # INCLUDE LOGIC DEBUG LOGS DISABLED - Uncomment to re-enable specific subtitle debugging
+            # logger.info(f"   [Include Logic] PT {target_sub.index}: No next FR → INCLUDE (end of episode)")
             return True
 
         next_overlap = self._calculate_intersection_duration(target_sub, next_native)
@@ -359,11 +360,11 @@ class SubtitleFusionEngine:
         should_include = next_overlap <= current_overlap
 
         # Log decision
-        if target_sub.index in ["496", "764", "763"]:  # Debug specific cases
-            logger.info(f"   [Include Logic] PT {target_sub.index}:")
-            logger.info(f"      Current FR overlap: {current_overlap:.3f}s")
-            logger.info(f"      Next FR overlap: {next_overlap:.3f}s")
-            logger.info(f"      Decision: {'INCLUDE' if should_include else 'EXCLUDE (belongs to next FR)'}")
+        # if target_sub.index in ["496", "764", "763"]:  # Debug specific cases
+        #     logger.info(f"   [Include Logic] PT {target_sub.index}:")
+        #     logger.info(f"      Current FR overlap: {current_overlap:.3f}s")
+        #     logger.info(f"      Next FR overlap: {next_overlap:.3f}s")
+        #     logger.info(f"      Decision: {'INCLUDE' if should_include else 'EXCLUDE (belongs to next FR)'}")
 
         return should_include
 
@@ -484,17 +485,19 @@ class SubtitleFusionEngine:
         for subtitle in sorted_subtitles:
             if subtitle.index in logs_by_index:
                 log_entry = logs_by_index[subtitle.index]
-                
+
+                # VERBOSE LOGS DISABLED - Uncomment to re-enable detailed subtitle debugging
                 # Afficher le log de manière atomique
-                logger.info(f"=== SUBTITLE {log_entry['index']} ===")
-                logger.info(f"Original: \"{log_entry['original_text']}\"")
-                logger.info(f"Proper nouns: {', '.join(log_entry['proper_nouns']) if log_entry['proper_nouns'] else 'none'}")
-                logger.info(f"Mots analysés: {log_entry['words_ranks']}")
-                logger.info(f"Unknown words: {', '.join(log_entry['unknown_words']) if log_entry['unknown_words'] else 'none'}")
-                logger.info(f"Decision: {log_entry['decision']}")
-                logger.info(f"Reason: {log_entry['reason']}")
-                logger.info(f"Final subtitle: \"{log_entry['final_text']}\"")
-                logger.info("")
+                # logger.info(f"=== SUBTITLE {log_entry['index']} ===")
+                # logger.info(f"Original: \"{log_entry['original_text']}\"")
+                # logger.info(f"Proper nouns: {', '.join(log_entry['proper_nouns']) if log_entry['proper_nouns'] else 'none'}")
+                # logger.info(f"Mots analysés: {log_entry['words_ranks']}")
+                # logger.info(f"Unknown words: {', '.join(log_entry['unknown_words']) if log_entry['unknown_words'] else 'none'}")
+                # logger.info(f"Decision: {log_entry['decision']}")
+                # logger.info(f"Reason: {log_entry['reason']}")
+                # logger.info(f"Final subtitle: \"{log_entry['final_text']}\"")
+                # logger.info("")
+                pass
 
     async def fuse_subtitles(self,
                       target_subs: List[Subtitle],
@@ -659,12 +662,13 @@ class SubtitleFusionEngine:
             # This prevents "avalanche" effect where a native sub incorrectly replaces multiple targets
             previous_target_sub = self._get_previous_target_subtitle(i, target_subs)
 
+            # AVALANCHE DEBUG LOGS DISABLED - Uncomment to re-enable specific subtitle debugging
             # Log for debug cases
-            if current_target_sub.index in ["632", "633", "234", "235"]:
-                logger.info(f"\n🔍 [Previous Filter] PT {current_target_sub.index}:")
-                logger.info(f"   Initial FR candidates: {[s.index for s in intersecting_native_subs]}")
-                if previous_target_sub:
-                    logger.info(f"   Previous PT: {previous_target_sub.index} ({previous_target_sub.start} → {previous_target_sub.end})")
+            # if current_target_sub.index in ["632", "633", "234", "235"]:
+            #     logger.info(f"\n🔍 [Previous Filter] PT {current_target_sub.index}:")
+            #     logger.info(f"   Initial FR candidates: {[s.index for s in intersecting_native_subs]}")
+            #     if previous_target_sub:
+            #         logger.info(f"   Previous PT: {previous_target_sub.index} ({previous_target_sub.start} → {previous_target_sub.end})")
 
             if previous_target_sub:
                 filtered_native_subs = []
@@ -680,7 +684,7 @@ class SubtitleFusionEngine:
 
                     # If this native sub overlaps MORE with the previous target, exclude it
                     if previous_overlap > current_overlap:
-                        logger.info(f"   [Filter] Excluding FR {native_sub.index}: better match with PT {previous_target_sub.index} ({previous_overlap:.3f}s) than PT {current_target_sub.index} ({current_overlap:.3f}s)")
+                        # logger.info(f"   [Filter] Excluding FR {native_sub.index}: better match with PT {previous_target_sub.index} ({previous_overlap:.3f}s) than PT {current_target_sub.index} ({current_overlap:.3f}s)")
                         continue
 
                     filtered_native_subs.append(native_sub)
@@ -688,8 +692,8 @@ class SubtitleFusionEngine:
                 intersecting_native_subs = filtered_native_subs
 
                 # Log after filtering for debug cases
-                if current_target_sub.index in ["632", "633", "234", "235"]:
-                    logger.info(f"   After previous filter: {[s.index for s in intersecting_native_subs]}")
+                # if current_target_sub.index in ["632", "633", "234", "235"]:
+                #     logger.info(f"   After previous filter: {[s.index for s in intersecting_native_subs]}")
 
             if len(intersecting_native_subs) == 0:
                 if should_show_details:
@@ -735,14 +739,15 @@ class SubtitleFusionEngine:
                 # Fallback: if not found in list, assume no next subtitle
                 next_native_sub = None
 
+            # REPLACEMENT LOGIC DEBUG LOGS DISABLED - Uncomment to re-enable specific subtitle debugging
             # Log for debugging
-            if current_target_sub.index in ["496", "764", "763"]:
-                logger.info(f"\n🔍 [Replacement Logic] Processing PT {current_target_sub.index}")
-                logger.info(f"   Current FR range: {combined_native_sub['start']} → {combined_native_sub['end']}")
-                if next_native_sub:
-                    logger.info(f"   Next FR: {next_native_sub.index} ({next_native_sub.start} → {next_native_sub.end})")
-                else:
-                    logger.info(f"   Next FR: None (end of episode)")
+            # if current_target_sub.index in ["496", "764", "763"]:
+            #     logger.info(f"\n🔍 [Replacement Logic] Processing PT {current_target_sub.index}")
+            #     logger.info(f"   Current FR range: {combined_native_sub['start']} → {combined_native_sub['end']}")
+            #     if next_native_sub:
+            #         logger.info(f"   Next FR: {next_native_sub.index} ({next_native_sub.start} → {next_native_sub.end})")
+            #     else:
+            #         logger.info(f"   Next FR: None (end of episode)")
 
             # Find all target subtitles that overlap with this native subtitle
             # STEP 1: Find all candidates (overlap > 0.5s)
@@ -754,8 +759,8 @@ class SubtitleFusionEngine:
             ]
 
             # Log candidates
-            if current_target_sub.index in ["496", "764", "763"]:
-                logger.info(f"   Candidate PT subs (overlap > 0.5s): {[s.index for s in candidate_target_subs]}")
+            # if current_target_sub.index in ["496", "764", "763"]:
+            #     logger.info(f"   Candidate PT subs (overlap > 0.5s): {[s.index for s in candidate_target_subs]}")
 
             # STEP 2: Filter candidates based on "compare with next FR" logic
             overlapping_target_subs = [
@@ -764,8 +769,8 @@ class SubtitleFusionEngine:
             ]
 
             # Log final decision
-            if current_target_sub.index in ["496", "764", "763"]:
-                logger.info(f"   Final PT subs to replace: {[s.index for s in overlapping_target_subs]}")
+            # if current_target_sub.index in ["496", "764", "763"]:
+            #     logger.info(f"   Final PT subs to replace: {[s.index for s in overlapping_target_subs]}")
 
             if len(overlapping_target_subs) == 0:
                 if should_show_details:
@@ -901,7 +906,8 @@ class SubtitleFusionEngine:
                         final_subtitles.append(translated_sub)
                         inline_translation_count += 1
 
-                        logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
+                        # INDIVIDUAL WORD SUCCESS LOGS DISABLED - Uncomment to re-enable per-word translation logging
+                        # logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
                     else:
                         # No translation - add original subtitle
                         final_subtitles.append(subtitle)

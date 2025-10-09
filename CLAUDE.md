@@ -274,6 +274,33 @@ Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and 
 
 **Code Location**: `smartsub-api/main.py`, `smartsub-api/src/subtitle_fusion.py`
 
+### Subtitle Loss Bug - Cache Deduplication Removal ✅ **COMPLETED** (January 2025)
+**Problem**: Subtitles with same unknown word (e.g., "suspira" in PT 100, 496, 700) disappeared - only last subtitle kept due to dict overwriting.
+
+**Solution**: Replaced `word_to_subtitle_mapping` dict with `subtitles_to_translate` list of tuples. Each (word, subtitle) preserved, no deduplication.
+
+**Results**: All subtitles preserved. Cost increase: +$0.00002/episode (+30% tokens, negligible). Code simplified (-20 lines).
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` lines 509-869
+
+### Perfect Contextual Translation ✅ **COMPLETED** (January 2025)
+**Problem**: Same word translated identically regardless of context (e.g., "banco" = "banque" in both "sentei no banco" and "Banco do Brasil").
+
+**Solution**: Each (word, subtitle) tuple gets unique context translation using unique keys (word_0, word_1, etc.). No word deduplication.
+
+**Results**: Context-perfect translations for language learning. Cost: +50% tokens (+$0.00002/episode), +1s latency. Quality over cost for educational product.
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` lines 774-869
+
+### Double Subtitle Display - Avalanche Fix ✅ **COMPLETED** (January 2025)
+**Problem**: PT and FR subtitles displayed simultaneously on Netflix. PT 633 (4 unknown words) combined FR 629+630, "avalanching" PT 632 into replacement, preventing its inline translation.
+
+**Solution**: Filter FR candidates by comparing overlap with previous PT subtitle (symmetry with existing "next PT" logic). FR 629 excluded from PT 633 (better match with PT 632: 1.958s vs 0.625s).
+
+**Results**: No double display. PT 632 receives inline translation, PT 633 replaced by FR 630 only (not FR 629+630 block).
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` - `_get_previous_target_subtitle()` helper, lines 658-692 filtering logic
+
 ## Memory Leak Resolution (January 2025)
 
 ### Problem Resolution ✅ **COMPLETED**

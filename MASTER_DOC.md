@@ -987,6 +987,32 @@ app.add_middleware(
 
 **Résultat :** Code plus propre, plus maintenable et sans doublons, avec conservation des éléments utiles.
 
+### Subtitle Loss Bug - Cache Deduplication Removal ✅ **COMPLETED** (January 2025)
+
+**Problem**: Subtitles with same unknown word disappeared (e.g., 2 subs with "parede", only 1 displayed).
+
+**Solution**: Replaced dict with list of tuples in `_build_translation_cache()` to preserve all subtitles.
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` lines 548-564
+
+### Perfect Contextual Translation ✅ **COMPLETED** (January 2025)
+
+**Problem**: Same word translated identically regardless of context due to dict key deduplication.
+
+**Solution**: Unique context translation using unique keys (`{idx}_{word}`) for perfect contextual accuracy.
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` lines 548-564
+
+### Double Subtitle Display - Avalanche Fix ✅ **COMPLETED** (January 2025)
+
+**Problem**: PT and FR subtitles displayed simultaneously on Netflix. PT 633 (4 unknown words) combined FR 629+630, "avalanching" PT 632 into replacement, preventing its inline translation.
+
+**Solution**: Filter FR candidates by comparing overlap with previous PT subtitle (symmetry with existing "next PT" logic). FR 629 excluded from PT 633 (better match with PT 632: 1.958s vs 0.625s).
+
+**Results**: No double display. PT 632 receives inline translation, PT 633 replaced by FR 630 only (not FR 629+630 block).
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` - `_get_previous_target_subtitle()` helper, lines 658-692 filtering logic
+
 ## 🔒 Security Implementation (January 2025)
 
 ### Chrome Web Store Security Compliance ✅ **COMPLETED**

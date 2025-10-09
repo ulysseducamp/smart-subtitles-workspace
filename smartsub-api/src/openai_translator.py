@@ -101,8 +101,9 @@ class OpenAITranslator:
         """
         # ⏱️ Start global timing
         start_time_global = time.time()
-        logger.info(f"🚀 [OPENAI] Starting translation batch")
-        logger.info(f"   [OPENAI] Total words requested: {len(words_to_translate)}")
+        # PROGRESS LOGS DISABLED - Uncomment to re-enable detailed progress tracking
+        # logger.info(f"🚀 [OPENAI] Starting translation batch")
+        # logger.info(f"   [OPENAI] Total words requested: {len(words_to_translate)}")
 
         if not words_to_translate:
             logger.info(f"   [OPENAI] No words to translate, returning empty dict")
@@ -122,8 +123,8 @@ class OpenAITranslator:
                 uncached_words.append(word)
 
         cache_check_duration = time.time() - start_cache_check
-        logger.info(f"   [OPENAI] Cache check completed in {cache_check_duration:.3f}s")
-        logger.info(f"   [OPENAI] Cached: {len(cached_translations)} words, Uncached: {len(uncached_words)} words")
+        # logger.info(f"   [OPENAI] Cache check completed in {cache_check_duration:.3f}s")
+        # logger.info(f"   [OPENAI] Cached: {len(cached_translations)} words, Uncached: {len(uncached_words)} words")
 
         # If all words are cached, return immediately
         if not uncached_words:
@@ -131,9 +132,9 @@ class OpenAITranslator:
             logger.info(f"✅ [OPENAI] All {len(words_to_translate)} words found in cache (total: {total_duration:.3f}s)")
             return cached_translations
 
-        logger.info(f"🔄 [OPENAI] Translating {len(uncached_words)} words with GPT-4o mini")
-        logger.info(f"   [OPENAI] Using LOCAL context: {len(word_contexts)} words with individual subtitle contexts")
-        logger.info(f"   [OPENAI] Words to translate: {', '.join(uncached_words[:10])}{'...' if len(uncached_words) > 10 else ''}")
+        # logger.info(f"🔄 [OPENAI] Translating {len(uncached_words)} words with GPT-4o mini")
+        # logger.info(f"   [OPENAI] Using LOCAL context: {len(word_contexts)} words with individual subtitle contexts")
+        # logger.info(f"   [OPENAI] Words to translate: {', '.join(uncached_words[:10])}{'...' if len(uncached_words) > 10 else ''}")
 
         try:
             # ⏱️ Prompt building timing
@@ -145,15 +146,15 @@ class OpenAITranslator:
                 target_lang=target_lang
             )
             prompt_build_duration = time.time() - start_prompt_build
-            logger.info(f"   [OPENAI] Prompt built in {prompt_build_duration:.3f}s (length: {len(prompt)} chars)")
+            # logger.info(f"   [OPENAI] Prompt built in {prompt_build_duration:.3f}s (length: {len(prompt)} chars)")
 
             # ⏱️ API call timing with detailed cold start measurement
             from datetime import datetime
 
             start_timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            logger.info(f"   [OPENAI] 🚀 Starting API request at {start_timestamp}")
-            logger.info(f"   [OPENAI] Model: {self.model}")
-            logger.info(f"   [OPENAI] Words to translate: {len(uncached_words)}")
+            # logger.info(f"   [OPENAI] 🚀 Starting API request at {start_timestamp}")
+            # logger.info(f"   [OPENAI] Model: {self.model}")
+            # logger.info(f"   [OPENAI] Words to translate: {len(uncached_words)}")
 
             start_api_call = time.time()
 
@@ -176,18 +177,23 @@ class OpenAITranslator:
             api_call_duration = time.time() - start_api_call
             end_timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
-            logger.info(f"   [OPENAI] ✅ API response received at {end_timestamp}")
-            logger.info(f"   [OPENAI] ⏱️ TOTAL API CALL DURATION: {api_call_duration:.3f}s")
+            # logger.info(f"   [OPENAI] ✅ API response received at {end_timestamp}")
+            # logger.info(f"   [OPENAI] ⏱️ TOTAL API CALL DURATION: {api_call_duration:.3f}s")
 
             # ⏱️ Response parsing timing
             start_parsing = time.time()
             parsed_data = response.choices[0].message.parsed
+
+            # 🔍 DEBUG: Log what OpenAI actually returned
+            logger.info(f"   [OPENAI] 🔍 DEBUG: OpenAI returned {len(parsed_data.translations)} translations")
+            logger.info(f"   [OPENAI] 🔍 DEBUG: First 5 translations: {[(item.word, item.translation) for item in parsed_data.translations[:5]]}")
+
             new_translations = {
                 item.word: item.translation
                 for item in parsed_data.translations
             }
             parsing_duration = time.time() - start_parsing
-            logger.info(f"   [OPENAI] Response parsed in {parsing_duration:.3f}s")
+            # logger.info(f"   [OPENAI] Response parsed in {parsing_duration:.3f}s")
 
             # ⏱️ Cache update timing
             start_cache_update = time.time()
@@ -195,7 +201,7 @@ class OpenAITranslator:
                 cache_key = f"{cache_key_prefix}{word}"
                 self.cache[cache_key] = translation
             cache_update_duration = time.time() - start_cache_update
-            logger.info(f"   [OPENAI] Cache updated in {cache_update_duration:.3f}s")
+            # logger.info(f"   [OPENAI] Cache updated in {cache_update_duration:.3f}s")
 
             # Combine cached and new translations
             all_translations = {**cached_translations, **new_translations}
@@ -218,13 +224,14 @@ class OpenAITranslator:
             logger.info(f"   [OPENAI] Words translated: {len(new_translations)} (cached: {len(cached_translations)})")
             logger.info(f"   [OPENAI] Tokens: {input_tokens} input + {output_tokens} output = {total_tokens} total")
             logger.info(f"   [OPENAI] Cost: ${cost:.6f}")
-            logger.info(f"   [OPENAI] ⏱️ TIMING BREAKDOWN:")
-            logger.info(f"      - Cache check: {cache_check_duration:.3f}s")
-            logger.info(f"      - Prompt build: {prompt_build_duration:.3f}s")
-            logger.info(f"      - API call: {api_call_duration:.3f}s ⚡")
-            logger.info(f"      - Response parsing: {parsing_duration:.3f}s")
-            logger.info(f"      - Cache update: {cache_update_duration:.3f}s")
-            logger.info(f"      - TOTAL: {total_duration:.3f}s")
+            # TIMING BREAKDOWN DISABLED - Uncomment to re-enable detailed timing analysis
+            # logger.info(f"   [OPENAI] ⏱️ TIMING BREAKDOWN:")
+            # logger.info(f"      - Cache check: {cache_check_duration:.3f}s")
+            # logger.info(f"      - Prompt build: {prompt_build_duration:.3f}s")
+            # logger.info(f"      - API call: {api_call_duration:.3f}s ⚡")
+            # logger.info(f"      - Response parsing: {parsing_duration:.3f}s")
+            # logger.info(f"      - Cache update: {cache_update_duration:.3f}s")
+            # logger.info(f"      - TOTAL: {total_duration:.3f}s")
 
             return all_translations
 
@@ -333,7 +340,8 @@ Translate each word accurately based on its subtitle context."""
         async def translate_chunk(chunk: List[str], chunk_idx: int) -> Dict[str, str]:
             """Translate a single chunk with rate limiting"""
             async with semaphore:
-                logger.info(f"   [PARALLEL] 🔄 Chunk {chunk_idx + 1}/{len(chunks)} started ({len(chunk)} words)")
+                # CHUNK PROGRESS LOGS DISABLED - Uncomment to re-enable chunk-by-chunk progress tracking
+                # logger.info(f"   [PARALLEL] 🔄 Chunk {chunk_idx + 1}/{len(chunks)} started ({len(chunk)} words)")
 
                 try:
                     # Build chunk-specific word contexts
@@ -350,7 +358,7 @@ Translate each word accurately based on its subtitle context."""
                         target_lang
                     )
 
-                    logger.info(f"   [PARALLEL] ✅ Chunk {chunk_idx + 1}/{len(chunks)} completed ({len(result)} translations)")
+                    # logger.info(f"   [PARALLEL] ✅ Chunk {chunk_idx + 1}/{len(chunks)} completed ({len(result)} translations)")
                     return result
 
                 except Exception as e:
