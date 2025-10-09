@@ -4,7 +4,7 @@ Supports both OpenAI models (GPT-4.1 Nano) and Google Gemini models (2.5 Flash)
 Uses Structured Outputs for guaranteed JSON reliability
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from pydantic import BaseModel
 from openai import OpenAI
 import asyncio
@@ -82,71 +82,37 @@ class OpenAITranslator:
 
     def translate_batch_with_context(
         self,
-        word_contexts: Dict[str, str],
-        words_to_translate: List[str],
+        words_with_contexts: List[Tuple[str, str]],
         source_lang: str,
         target_lang: str
-    ) -> Dict[str, str]:
+    ) -> List[str]:
         """
         Translate multiple words with LOCAL context (one subtitle per word) in a single API call
 
         Args:
-            word_contexts: Dictionary mapping each word to the subtitle text where it appears
-            words_to_translate: List of words to translate
+            words_with_contexts: List of (word, context) tuples
             source_lang: Source language code (e.g., 'PT', 'EN')
             target_lang: Target language code (e.g., 'FR', 'EN')
 
         Returns:
-            Dictionary mapping original words to translations
+            List of translations in the same order as input
         """
         # ⏱️ Start global timing
         start_time_global = time.time()
-        # PROGRESS LOGS DISABLED - Uncomment to re-enable detailed progress tracking
-        # logger.info(f"🚀 [OPENAI] Starting translation batch")
-        # logger.info(f"   [OPENAI] Total words requested: {len(words_to_translate)}")
 
-        if not words_to_translate:
-            logger.info(f"   [OPENAI] No words to translate, returning empty dict")
-            return {}
-
-        # ⏱️ Cache check timing
-        start_cache_check = time.time()
-        cache_key_prefix = f"{source_lang}_{target_lang}_"
-        cached_translations = {}
-        uncached_words = []
-
-        for word in words_to_translate:
-            cache_key = f"{cache_key_prefix}{word}"
-            if cache_key in self.cache:
-                cached_translations[word] = self.cache[cache_key]
-            else:
-                uncached_words.append(word)
-
-        cache_check_duration = time.time() - start_cache_check
-        # logger.info(f"   [OPENAI] Cache check completed in {cache_check_duration:.3f}s")
-        # logger.info(f"   [OPENAI] Cached: {len(cached_translations)} words, Uncached: {len(uncached_words)} words")
-
-        # If all words are cached, return immediately
-        if not uncached_words:
-            total_duration = time.time() - start_time_global
-            logger.info(f"✅ [OPENAI] All {len(words_to_translate)} words found in cache (total: {total_duration:.3f}s)")
-            return cached_translations
-
-        # logger.info(f"🔄 [OPENAI] Translating {len(uncached_words)} words with GPT-4o mini")
-        # logger.info(f"   [OPENAI] Using LOCAL context: {len(word_contexts)} words with individual subtitle contexts")
-        # logger.info(f"   [OPENAI] Words to translate: {', '.join(uncached_words[:10])}{'...' if len(uncached_words) > 10 else ''}")
+        if not words_with_contexts:
+            logger.info(f"   [OPENAI] No words to translate, returning empty list")
+            return []
 
         try:
             # ⏱️ Prompt building timing
             start_prompt_build = time.time()
             prompt = self._build_translation_prompt(
-                word_contexts=word_contexts,
-                words_to_translate=uncached_words,
+                words_with_contexts=words_with_contexts,
                 source_lang=source_lang,
                 target_lang=target_lang
             )
             prompt_build_duration = time.time() - start_prompt_build
-            # logger.info(f"   [OPENAI] Prompt built in {prompt_build_duration:.3f}s (length: {len(prompt)} chars)")
 
             # ⏱️ API call timing with detailed cold start measurement
             from datetime import datetime
@@ -188,23 +154,14 @@ class OpenAITranslator:
             logger.info(f"   [OPENAI] 🔍 DEBUG: OpenAI returned {len(parsed_data.translations)} translations")
             logger.info(f"   [OPENAI] 🔍 DEBUG: First 5 translations: {[(item.word, item.translation) for item in parsed_data.translations[:5]]}")
 
-            new_translations = {
-                item.word: item.translation
-                for item in parsed_data.translations
-            }
+            # Extract translations in order (matching by index)
+            translations_list = [item.translation for item in parsed_data.translations]
+
             parsing_duration = time.time() - start_parsing
-            # logger.info(f"   [OPENAI] Response parsed in {parsing_duration:.3f}s")
 
-            # ⏱️ Cache update timing
-            start_cache_update = time.time()
-            for word, translation in new_translations.items():
-                cache_key = f"{cache_key_prefix}{word}"
-                self.cache[cache_key] = translation
-            cache_update_duration = time.time() - start_cache_update
-            # logger.info(f"   [OPENAI] Cache updated in {cache_update_duration:.3f}s")
-
-            # Combine cached and new translations
-            all_translations = {**cached_translations, **new_translations}
+            # Validate count matches
+            if len(translations_list) != len(words_with_contexts):
+                logger.warning(f"   [OPENAI] ⚠️  Count mismatch: sent {len(words_with_contexts)} words, got {len(translations_list)} translations")
 
             self.request_count += 1
 
@@ -221,19 +178,17 @@ class OpenAITranslator:
             total_duration = time.time() - start_time_global
 
             logger.info(f"✅ [OPENAI] Translation successful!")
-            logger.info(f"   [OPENAI] Words translated: {len(new_translations)} (cached: {len(cached_translations)})")
+            logger.info(f"   [OPENAI] Words translated: {len(translations_list)}")
             logger.info(f"   [OPENAI] Tokens: {input_tokens} input + {output_tokens} output = {total_tokens} total")
             logger.info(f"   [OPENAI] Cost: ${cost:.6f}")
             # TIMING BREAKDOWN DISABLED - Uncomment to re-enable detailed timing analysis
             # logger.info(f"   [OPENAI] ⏱️ TIMING BREAKDOWN:")
-            # logger.info(f"      - Cache check: {cache_check_duration:.3f}s")
             # logger.info(f"      - Prompt build: {prompt_build_duration:.3f}s")
             # logger.info(f"      - API call: {api_call_duration:.3f}s ⚡")
             # logger.info(f"      - Response parsing: {parsing_duration:.3f}s")
-            # logger.info(f"      - Cache update: {cache_update_duration:.3f}s")
             # logger.info(f"      - TOTAL: {total_duration:.3f}s")
 
-            return all_translations
+            return translations_list
 
         except Exception as e:
             total_duration = time.time() - start_time_global
@@ -242,8 +197,7 @@ class OpenAITranslator:
 
     def _build_translation_prompt(
         self,
-        word_contexts: Dict[str, str],
-        words_to_translate: List[str],
+        words_with_contexts: List[Tuple[str, str]],
         source_lang: str,
         target_lang: str
     ) -> str:
@@ -254,17 +208,14 @@ class OpenAITranslator:
 
         # Build context list showing each word with its subtitle
         context_lines = []
-        for word in words_to_translate:
-            if word in word_contexts:
-                context_lines.append(f'- "{word}" appears in: "{word_contexts[word]}"')
-            else:
-                context_lines.append(f'- "{word}" (no context available)')
+        for word, context in words_with_contexts:
+            context_lines.append(f'- "{word}" appears in: "{context}"')
 
         contexts_section = "\n".join(context_lines)
 
         prompt = f"""You are translating subtitles for a language learning application.
 
-TASK: Translate {len(words_to_translate)} {source_name} words to {target_name}.
+TASK: Translate {len(words_with_contexts)} {source_name} words to {target_name}.
 
 WORD CONTEXTS (each word with its subtitle):
 {contexts_section}
@@ -282,77 +233,53 @@ Translate each word accurately based on its subtitle context."""
 
     async def translate_batch_parallel(
         self,
-        word_contexts: Dict[str, str],
-        words_to_translate: List[str],
+        words_with_contexts: List[Tuple[str, str]],
         source_lang: str,
         target_lang: str,
         max_concurrent: int = 5
-    ) -> Dict[str, str]:
+    ) -> List[str]:
         """
         Translate words in parallel chunks with rate limiting
 
         Args:
-            word_contexts: Dictionary mapping each word to subtitle context
-            words_to_translate: List of words to translate
+            words_with_contexts: List of (word, context) tuples
             source_lang: Source language code
             target_lang: Target language code
             max_concurrent: Max concurrent API requests (default: 5)
 
         Returns:
-            Dictionary mapping original words to translations
+            List of translations in the same order as input
         """
         start_time = time.time()
         logger.info(f"🚀 [PARALLEL] Starting parallel translation")
-        logger.info(f"   [PARALLEL] Total words: {len(words_to_translate)}")
+        logger.info(f"   [PARALLEL] Total words: {len(words_with_contexts)}")
         logger.info(f"   [PARALLEL] Max concurrent requests: {max_concurrent}")
 
-        if not words_to_translate:
-            return {}
-
-        # Check cache first
-        cache_key_prefix = f"{source_lang}_{target_lang}_"
-        cached_translations = {}
-        uncached_words = []
-
-        for word in words_to_translate:
-            cache_key = f"{cache_key_prefix}{word}"
-            if cache_key in self.cache:
-                cached_translations[word] = self.cache[cache_key]
-            else:
-                uncached_words.append(word)
-
-        logger.info(f"   [PARALLEL] Cached: {len(cached_translations)}, Uncached: {len(uncached_words)}")
-
-        if not uncached_words:
-            logger.info(f"✅ [PARALLEL] All words cached")
-            return cached_translations
+        if not words_with_contexts:
+            return []
 
         # Split into chunks of ~18 words
         chunk_size = 18
-        chunks = [uncached_words[i:i + chunk_size]
-                  for i in range(0, len(uncached_words), chunk_size)]
+        chunks = [words_with_contexts[i:i + chunk_size]
+                  for i in range(0, len(words_with_contexts), chunk_size)]
 
         logger.info(f"   [PARALLEL] Created {len(chunks)} chunks of ~{chunk_size} words")
 
         # Semaphore to limit concurrent requests
         semaphore = asyncio.Semaphore(max_concurrent)
 
-        async def translate_chunk(chunk: List[str], chunk_idx: int) -> Dict[str, str]:
+        async def translate_chunk(chunk: List[Tuple[str, str]], chunk_idx: int) -> List[str]:
             """Translate a single chunk with rate limiting"""
             async with semaphore:
                 # CHUNK PROGRESS LOGS DISABLED - Uncomment to re-enable chunk-by-chunk progress tracking
                 # logger.info(f"   [PARALLEL] 🔄 Chunk {chunk_idx + 1}/{len(chunks)} started ({len(chunk)} words)")
 
                 try:
-                    # Build chunk-specific word contexts
-                    chunk_contexts = {w: word_contexts[w] for w in chunk if w in word_contexts}
-
                     # Call synchronous method in thread pool
                     loop = asyncio.get_event_loop()
                     result = await loop.run_in_executor(
                         None,
                         self.translate_batch_with_context,
-                        chunk_contexts,
                         chunk,
                         source_lang,
                         target_lang
@@ -363,7 +290,7 @@ Translate each word accurately based on its subtitle context."""
 
                 except Exception as e:
                     logger.error(f"   [PARALLEL] ❌ Chunk {chunk_idx + 1}/{len(chunks)} failed: {e}")
-                    return {}  # Return empty dict, fallback to DeepL
+                    return []  # Return empty list on error
 
         # Execute all chunks in parallel with timeout
         try:
@@ -374,8 +301,8 @@ Translate each word accurately based on its subtitle context."""
             logger.error(f"❌ [PARALLEL] Global timeout exceeded (120s)")
             results = []
 
-        # Merge results
-        merged = {**cached_translations}
+        # Merge results (flatten list of lists)
+        merged = []
         failed_chunks = 0
 
         for result in results:
@@ -383,13 +310,13 @@ Translate each word accurately based on its subtitle context."""
                 logger.error(f"   [PARALLEL] Exception in chunk: {result}")
                 failed_chunks += 1
                 continue
-            if isinstance(result, dict):
-                merged.update(result)
+            if isinstance(result, list):
+                merged.extend(result)
 
         total_duration = time.time() - start_time
 
         logger.info(f"✅ [PARALLEL] Translation completed in {total_duration:.2f}s")
-        logger.info(f"   [PARALLEL] Total translations: {len(merged)} (cached: {len(cached_translations)})")
+        logger.info(f"   [PARALLEL] Total translations: {len(merged)}")
         if failed_chunks > 0:
             logger.warning(f"   [PARALLEL] ⚠️  {failed_chunks} chunks failed (will fallback to DeepL)")
 
