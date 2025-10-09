@@ -878,10 +878,16 @@ class SubtitleFusionEngine:
 
             # Apply translations to each subtitle (matched by index)
             if translations:
+                # DIAGNOSTIC: Log before applying translations
+                logger.info(f"   [FUSION] 🔧 Applying translations: {len(subtitles_to_translate)} words, {len(translations)} translations available")
+
                 for idx, (original_word, subtitle) in enumerate(subtitles_to_translate):
                     # Check if we have a translation for this index
                     if idx < len(translations):
                         translation = translations[idx]
+
+                        # DIAGNOSTIC: Log every translation application
+                        logger.info(f"   [FUSION]    [{idx}] '{original_word}' → '{translation}' (subtitle {subtitle.index})")
 
                         # Replace the word in the subtitle text
                         pattern = re.compile(re.escape(original_word), re.IGNORECASE)
@@ -897,13 +903,10 @@ class SubtitleFusionEngine:
 
                         final_subtitles.append(translated_sub)
                         inline_translation_count += 1
-
-                        # INDIVIDUAL WORD SUCCESS LOGS DISABLED - Uncomment to re-enable per-word translation logging
-                        # logger.info(f"  📝 '{original_word}' → '{translation}' applied to subtitle {subtitle.index}")
                     else:
                         # No translation available for this index
                         final_subtitles.append(subtitle)
-                        logger.warning(f"⚠️  No translation for '{original_word}' in subtitle {subtitle.index} - keeping original")
+                        logger.warning(f"⚠️  No translation for '{original_word}' at index [{idx}/{len(subtitles_to_translate)}] in subtitle {subtitle.index} - keeping original")
 
                     # Mark as processed to prevent double-processing
                     processed_target_indices.add(subtitle.index)

@@ -163,6 +163,18 @@ class OpenAITranslator:
             if len(translations_list) != len(words_with_contexts):
                 logger.warning(f"   [OPENAI] ⚠️  Count mismatch: sent {len(words_with_contexts)} words, got {len(translations_list)} translations")
 
+                # DIAGNOSTIC: Log mots envoyés vs reçus
+                sent_words = [word for word, _ in words_with_contexts]
+                received_words = [item.word for item in parsed_data.translations]
+
+                logger.warning(f"   [OPENAI] 📤 SENT WORDS: {sent_words}")
+                logger.warning(f"   [OPENAI] 📥 RECEIVED WORDS: {received_words}")
+
+                # Trouver les mots manquants
+                missing_words = [w for w in sent_words if w not in received_words]
+                if missing_words:
+                    logger.warning(f"   [OPENAI] ❌ MISSING WORDS: {missing_words}")
+
             self.request_count += 1
 
             # Log usage stats
@@ -271,8 +283,14 @@ Translate each word accurately based on its subtitle context."""
         async def translate_chunk(chunk: List[Tuple[str, str]], chunk_idx: int) -> List[str]:
             """Translate a single chunk with rate limiting"""
             async with semaphore:
-                # CHUNK PROGRESS LOGS DISABLED - Uncomment to re-enable chunk-by-chunk progress tracking
-                # logger.info(f"   [PARALLEL] 🔄 Chunk {chunk_idx + 1}/{len(chunks)} started ({len(chunk)} words)")
+                # Calculate global indices for this chunk
+                start_idx = chunk_idx * chunk_size
+                end_idx = start_idx + len(chunk) - 1
+
+                # DIAGNOSTIC: Log chunk info
+                chunk_words = [word for word, _ in chunk]
+                logger.info(f"   [PARALLEL] 🔄 Chunk {chunk_idx + 1}/{len(chunks)} (indices {start_idx}-{end_idx}): {len(chunk)} words")
+                logger.info(f"   [PARALLEL]    Words: {chunk_words}")
 
                 try:
                     # Call synchronous method in thread pool
@@ -285,7 +303,8 @@ Translate each word accurately based on its subtitle context."""
                         target_lang
                     )
 
-                    # logger.info(f"   [PARALLEL] ✅ Chunk {chunk_idx + 1}/{len(chunks)} completed ({len(result)} translations)")
+                    # DIAGNOSTIC: Log result
+                    logger.info(f"   [PARALLEL] ✅ Chunk {chunk_idx + 1} returned {len(result)} translations (expected {len(chunk)})")
                     return result
 
                 except Exception as e:
@@ -305,13 +324,18 @@ Translate each word accurately based on its subtitle context."""
         merged = []
         failed_chunks = 0
 
-        for result in results:
+        logger.info(f"   [PARALLEL] 🔧 Merging {len(results)} chunk results...")
+
+        for idx, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"   [PARALLEL] Exception in chunk: {result}")
+                logger.error(f"   [PARALLEL] Exception in chunk {idx + 1}: {result}")
                 failed_chunks += 1
                 continue
             if isinstance(result, list):
+                before_count = len(merged)
                 merged.extend(result)
+                after_count = len(merged)
+                logger.info(f"   [PARALLEL]    Chunk {idx + 1}: added {len(result)} translations (merged total: {before_count} → {after_count})")
 
         total_duration = time.time() - start_time
 
