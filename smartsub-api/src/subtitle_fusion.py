@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import re
 import time
 import logging
+import string
 from srt_parser import Subtitle
 from frequency_loader import get_frequency_loader
 
@@ -22,6 +23,39 @@ class TokenMapping:
 
 # Configure logger
 logger = logging.getLogger(__name__)
+
+def clean_word_for_translation(word: str) -> str:
+    """
+    Nettoie un mot pour traduction selon best practices NLP
+    - Enlève ponctuation de début/fin (leading/trailing uniquement)
+    - Préserve ponctuation interne (traits d'union, apostrophes)
+
+    Exemples:
+        "tensão]" → "tensão"
+        "[ofegando]" → "ofegando"
+        "motor." → "motor"
+        "pré-lavagem" → "pré-lavagem" (garde trait d'union)
+        "d'água" → "d'água" (garde apostrophe)
+        "—Olá!" → "Olá" (tiret dialogue Unicode)
+    """
+    # Ponctuation étendue : ASCII + caractères Unicode courants
+    extended_punctuation = string.punctuation + '—–…''""«»'
+    return word.strip(extended_punctuation)
+
+def extract_trailing_punctuation(word: str) -> str:
+    """
+    Extrait la ponctuation à la fin du mot
+
+    Exemples:
+        "motor." → "."
+        "tensão]" → "]"
+        "banco" → ""
+        "uísque?!" → "?!"
+    """
+    # Ponctuation étendue : ASCII + caractères Unicode courants
+    extended_punctuation = string.punctuation + '—–…''""«»'
+    clean = word.rstrip(extended_punctuation)
+    return word[len(clean):]
 
 def create_alignment_mapping(text: str, lang: str) -> List[TokenMapping]:
     """
@@ -832,11 +866,19 @@ class SubtitleFusionEngine:
             logger.info(f"\n🔄 BATCH TRANSLATION: Processing {len(subtitles_to_translate)} subtitles with unique contexts...")
 
             # Build list of (word, context) tuples for translation
-            # Each tuple contains the word and its subtitle context for contextual translation
+            # Clean words before sending to OpenAI (remove punctuation/brackets)
             words_with_contexts = []
+            word_cleaning_map = {}  # Mapping: clean_word → original_word
 
             for word, subtitle in subtitles_to_translate:
-                words_with_contexts.append((word, strip_html(subtitle.text)))
+                # Clean the word for translation (remove leading/trailing punctuation)
+                clean_word = clean_word_for_translation(word)
+
+                # Store mapping for reapplication after translation
+                word_cleaning_map[clean_word] = word
+
+                # Send cleaned word to OpenAI
+                words_with_contexts.append((clean_word, strip_html(subtitle.text)))
 
             translations = []
 
@@ -865,8 +907,8 @@ class SubtitleFusionEngine:
                 try:
                     logger.info(f"🔄 Using DeepL fallback (no context)...")
 
-                    # Extract words for DeepL translation
-                    words_only = [word for word, _ in subtitles_to_translate]
+                    # Extract words for DeepL translation (cleaned)
+                    words_only = [clean_word_for_translation(word) for word, _ in subtitles_to_translate]
                     translations = deepl_api.translate_batch(words_only, lang, native_lang)
 
                     logger.info(f"✅ DeepL fallback successful! Translated {len(translations)} subtitles")
@@ -882,16 +924,26 @@ class SubtitleFusionEngine:
                 logger.info(f"   [FUSION] 🔧 Applying translations: {len(subtitles_to_translate)} words, {len(translations)} translations available")
 
                 for original_word, subtitle in subtitles_to_translate:
-                    # Check if we have a translation for this word
-                    if original_word in translations:
-                        translation = translations[original_word]
+                    # Clean the word for lookup (same cleaning as before sending to OpenAI)
+                    clean_word = clean_word_for_translation(original_word)
+
+                    # Check if we have a translation for this word (using cleaned word)
+                    if clean_word in translations:
+                        translation = translations[clean_word]
 
                         # DIAGNOSTIC: Log every translation application
                         logger.info(f"   [FUSION]    '{original_word}' → '{translation}' (subtitle {subtitle.index})")
 
+                        # Extract trailing punctuation from original word
+                        trailing_punct = extract_trailing_punctuation(original_word)
+
+                        # Build replacement: clean_word (translation)trailing_punct
+                        # Example: "tensão]" → "tensão (tension)]"
+                        replacement = f"{clean_word} ({translation}){trailing_punct}"
+
                         # Replace the word in the subtitle text
                         pattern = re.compile(re.escape(original_word), re.IGNORECASE)
-                        new_text = pattern.sub(f"{original_word} ({translation})", subtitle.text)
+                        new_text = pattern.sub(replacement, subtitle.text)
 
                         # Create new subtitle with inline translation
                         translated_sub = Subtitle(
