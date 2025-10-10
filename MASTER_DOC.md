@@ -515,8 +515,8 @@ RAILWAY_SERVICE_ID=service_id
 - **No Cross-Contamination**: Staging extension never hits production API
 
 **Last Updated**: January 2025
-**Version**: 3.14.0 (Phase 3 Complete + OpenAI Performance Optimization, Phase 4 Active)
-**Status**: Full end-to-end integration with optimized OpenAI translation performance - Translation time reduced 49% (7.80s→3.95s) via async parallelization (8 concurrent requests), all security vulnerabilities resolved, Chrome Web Store ready, Netflix preload corruption prevention, Portuguese lemmatization bug fixed, production API at https://smartsub-api-production.up.railway.app, staging API at https://smartsub-api-staging.up.railway.app
+**Version**: 3.15.0 (Phase 3 Complete + Translation Architecture Refactor, Phase 4 Active)
+**Status**: Full end-to-end integration with tuple-based translation architecture - Translation success rate improved from 67% to 98.9%, OpenAI key normalization bug fixed, 1.1% edge case under investigation, translation time reduced 49% (7.80s→3.95s) via async parallelization (8 concurrent requests), all security vulnerabilities resolved, Chrome Web Store ready, Netflix preload corruption prevention, Portuguese lemmatization bug fixed, production API at https://smartsub-api-production.up.railway.app, staging API at https://smartsub-api-staging.up.railway.app
 **Maintainer**: Smart Subtitles Development Team
 **License**: AGPL-3.0-or-later
 
@@ -1012,6 +1012,26 @@ app.add_middleware(
 **Results**: No double display. PT 632 receives inline translation, PT 633 replaced by FR 630 only (not FR 629+630 block).
 
 **Code Location**: `smartsub-api/src/subtitle_fusion.py` - `_get_previous_target_subtitle()` helper, lines 658-692 filtering logic
+
+### Translation Key Normalization Bug ✅ **FIXED** (January 2025)
+
+**Problem**: 33% translation failures (116/348 words) - OpenAI inconsistently normalized unique keys with `_INDEX` suffixes (`word_0` → `word`, `word_1` → `word`), breaking dict-based lookup.
+
+**Root Cause**: Unique key system relied on exact string matching, but OpenAI's structured outputs normalized away index suffixes.
+
+**Solution**: Refactored to tuple-based architecture `List[Tuple[str, str]]` instead of `Dict[str, str]`. Relies on OpenAI Structured Outputs' guaranteed array order preservation. Removed cache system for simplicity.
+
+**Results**: Translation success 67% → 98.9% (348 sent → 344 received).
+
+**Code Location**: `smartsub-api/src/openai_translator.py`, `smartsub-api/src/subtitle_fusion.py`
+
+### OpenAI Count Mismatch Bug 🔍 **INVESTIGATING** (January 2025)
+
+**Problem**: 1.1% translation failures (4/348 words) - one chunk returns 14/18 translations, causing index misalignment for remaining words.
+
+**Status**: Diagnostic logging added to track chunk processing, merge operations, and translation application flow.
+
+**Code Location**: `smartsub-api/src/openai_translator.py` (lines 166-176, 290-338), `smartsub-api/src/subtitle_fusion.py` (lines 881-909)
 
 ## 🔒 Security Implementation (January 2025)
 

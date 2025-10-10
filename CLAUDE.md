@@ -263,6 +263,29 @@ DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (tro
 ### Diagnostic Logging Enhancement
 Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
 
+### Translation Key Normalization Bug ✅ **FIXED** (January 2025)
+**Problem**: 33% of translations failing (116/348 words) - OpenAI inconsistently normalized unique keys with `_INDEX` suffixes (`word_0` → `word`, `word_1` → `word`), breaking dict-based lookup.
+
+**Root Cause**: Unique key system (`word_0`, `word_1`, etc.) relied on exact string matching, but OpenAI's structured outputs normalized away the index suffixes.
+
+**Solution**: Complete refactoring to tuple-based architecture using `List[Tuple[str, str]]` instead of `Dict[str, str]` with unique keys. Relies on OpenAI Structured Outputs' guaranteed array order preservation.
+
+**Implementation**:
+- `openai_translator.py`: Changed signatures to accept/return `List[Tuple[str, str]]` and `List[str]`
+- `openai_translator.py`: Index-based matching instead of key lookup, removed cache system
+- `subtitle_fusion.py`: Build tuples directly `(word, context)`, apply translations by index
+
+**Results**: Translation success rate improved from 67% → 98.9% (348 sent → 344 received, 4 missing due to OpenAI count mismatch bug).
+
+**Code Location**: `smartsub-api/src/openai_translator.py`, `smartsub-api/src/subtitle_fusion.py`
+
+### OpenAI Count Mismatch Bug 🔍 **INVESTIGATING** (January 2025)
+**Problem**: 1.1% translation failures (4/348 words) - one chunk returns 14 translations instead of 18, causing index misalignment.
+
+**Status**: Diagnostic logs added to track chunk processing, merge operations, and translation application to identify which words OpenAI omits and why.
+
+**Code Location**: `smartsub-api/src/openai_translator.py` (lines 166-176, 290-338), `smartsub-api/src/subtitle_fusion.py` (lines 881-909)
+
 ### OpenAI Translation Performance Optimization ✅ **COMPLETED** (January 2025)
 **Problem**: Translation processing took 7-10 seconds per episode due to conservative concurrency limits.
 
