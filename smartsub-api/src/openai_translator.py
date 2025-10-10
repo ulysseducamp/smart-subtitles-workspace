@@ -75,7 +75,6 @@ class OpenAITranslator:
 
         self.model = model
         self.base_url = base_url
-        self.cache = {}
         self.request_count = 0
 
         logger.info(f"   Model: {model}")
@@ -85,7 +84,7 @@ class OpenAITranslator:
         words_with_contexts: List[Tuple[str, str]],
         source_lang: str,
         target_lang: str
-    ) -> List[str]:
+    ) -> Dict[str, str]:
         """
         Translate multiple words with LOCAL context (one subtitle per word) in a single API call
 
@@ -95,14 +94,14 @@ class OpenAITranslator:
             target_lang: Target language code (e.g., 'FR', 'EN')
 
         Returns:
-            List of translations in the same order as input
+            Dict mapping words to their translations
         """
         # ⏱️ Start global timing
         start_time_global = time.time()
 
         if not words_with_contexts:
-            logger.info(f"   [OPENAI] No words to translate, returning empty list")
-            return []
+            logger.info(f"   [OPENAI] No words to translate, returning empty dict")
+            return {}
 
         try:
             # ⏱️ Prompt building timing
@@ -154,14 +153,14 @@ class OpenAITranslator:
             logger.info(f"   [OPENAI] 🔍 DEBUG: OpenAI returned {len(parsed_data.translations)} translations")
             logger.info(f"   [OPENAI] 🔍 DEBUG: First 5 translations: {[(item.word, item.translation) for item in parsed_data.translations[:5]]}")
 
-            # Extract translations in order (matching by index)
-            translations_list = [item.translation for item in parsed_data.translations]
+            # Extract translations as dict (matching by word)
+            translations_dict = {item.word: item.translation for item in parsed_data.translations}
 
             parsing_duration = time.time() - start_parsing
 
             # Validate count matches
-            if len(translations_list) != len(words_with_contexts):
-                logger.warning(f"   [OPENAI] ⚠️  Count mismatch: sent {len(words_with_contexts)} words, got {len(translations_list)} translations")
+            if len(translations_dict) != len(words_with_contexts):
+                logger.warning(f"   [OPENAI] ⚠️  Count mismatch: sent {len(words_with_contexts)} words, got {len(translations_dict)} translations")
 
                 # DIAGNOSTIC: Log mots envoyés vs reçus
                 sent_words = [word for word, _ in words_with_contexts]
@@ -190,7 +189,7 @@ class OpenAITranslator:
             total_duration = time.time() - start_time_global
 
             logger.info(f"✅ [OPENAI] Translation successful!")
-            logger.info(f"   [OPENAI] Words translated: {len(translations_list)}")
+            logger.info(f"   [OPENAI] Words translated: {len(translations_dict)}")
             logger.info(f"   [OPENAI] Tokens: {input_tokens} input + {output_tokens} output = {total_tokens} total")
             logger.info(f"   [OPENAI] Cost: ${cost:.6f}")
             # TIMING BREAKDOWN DISABLED - Uncomment to re-enable detailed timing analysis
@@ -200,7 +199,7 @@ class OpenAITranslator:
             # logger.info(f"      - Response parsing: {parsing_duration:.3f}s")
             # logger.info(f"      - TOTAL: {total_duration:.3f}s")
 
-            return translations_list
+            return translations_dict
 
         except Exception as e:
             total_duration = time.time() - start_time_global
@@ -249,7 +248,7 @@ Translate each word accurately based on its subtitle context."""
         source_lang: str,
         target_lang: str,
         max_concurrent: int = 5
-    ) -> List[str]:
+    ) -> Dict[str, str]:
         """
         Translate words in parallel chunks with rate limiting
 
@@ -260,7 +259,7 @@ Translate each word accurately based on its subtitle context."""
             max_concurrent: Max concurrent API requests (default: 5)
 
         Returns:
-            List of translations in the same order as input
+            Dict mapping words to their translations
         """
         start_time = time.time()
         logger.info(f"🚀 [PARALLEL] Starting parallel translation")
@@ -268,7 +267,7 @@ Translate each word accurately based on its subtitle context."""
         logger.info(f"   [PARALLEL] Max concurrent requests: {max_concurrent}")
 
         if not words_with_contexts:
-            return []
+            return {}
 
         # Split into chunks of ~18 words
         chunk_size = 18
@@ -280,7 +279,7 @@ Translate each word accurately based on its subtitle context."""
         # Semaphore to limit concurrent requests
         semaphore = asyncio.Semaphore(max_concurrent)
 
-        async def translate_chunk(chunk: List[Tuple[str, str]], chunk_idx: int) -> List[str]:
+        async def translate_chunk(chunk: List[Tuple[str, str]], chunk_idx: int) -> Dict[str, str]:
             """Translate a single chunk with rate limiting"""
             async with semaphore:
                 # Calculate global indices for this chunk
@@ -309,7 +308,7 @@ Translate each word accurately based on its subtitle context."""
 
                 except Exception as e:
                     logger.error(f"   [PARALLEL] ❌ Chunk {chunk_idx + 1}/{len(chunks)} failed: {e}")
-                    return []  # Return empty list on error
+                    return {}  # Return empty dict on error
 
         # Execute all chunks in parallel with timeout
         try:
@@ -320,8 +319,8 @@ Translate each word accurately based on its subtitle context."""
             logger.error(f"❌ [PARALLEL] Global timeout exceeded (120s)")
             results = []
 
-        # Merge results (flatten list of lists)
-        merged = []
+        # Merge results (merge dicts)
+        merged = {}
         failed_chunks = 0
 
         logger.info(f"   [PARALLEL] 🔧 Merging {len(results)} chunk results...")
@@ -331,9 +330,9 @@ Translate each word accurately based on its subtitle context."""
                 logger.error(f"   [PARALLEL] Exception in chunk {idx + 1}: {result}")
                 failed_chunks += 1
                 continue
-            if isinstance(result, list):
+            if isinstance(result, dict):
                 before_count = len(merged)
-                merged.extend(result)
+                merged.update(result)
                 after_count = len(merged)
                 logger.info(f"   [PARALLEL]    Chunk {idx + 1}: added {len(result)} translations (merged total: {before_count} → {after_count})")
 
@@ -349,6 +348,5 @@ Translate each word accurately based on its subtitle context."""
     def get_stats(self) -> Dict[str, any]:
         """Get API usage statistics"""
         return {
-            "requestCount": self.request_count,
-            "cacheSize": len(self.cache)
+            "requestCount": self.request_count
         }
