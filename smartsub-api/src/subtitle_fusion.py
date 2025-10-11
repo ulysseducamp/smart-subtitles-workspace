@@ -880,6 +880,10 @@ class SubtitleFusionEngine:
                 # Send cleaned word to OpenAI
                 words_with_contexts.append((clean_word, strip_html(subtitle.text)))
 
+            # Log unique words vs duplicates
+            unique_words = set(clean_word for clean_word, _ in words_with_contexts)
+            logger.info(f"   📊 Translation stats: {len(words_with_contexts)} total words, {len(unique_words)} unique words ({len(words_with_contexts) - len(unique_words)} duplicates)")
+
             translations = []
 
             # Strategy 1: Try OpenAI with PARALLEL translation
