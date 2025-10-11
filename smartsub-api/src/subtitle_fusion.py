@@ -884,6 +884,11 @@ class SubtitleFusionEngine:
             unique_words = set(clean_word for clean_word, _ in words_with_contexts)
             logger.info(f"   📊 Translation stats: {len(words_with_contexts)} total words, {len(unique_words)} unique words ({len(words_with_contexts) - len(unique_words)} duplicates)")
 
+            # Log first 10 words with context for debugging
+            logger.info(f"   📝 First 10 words with context:")
+            for idx, (word, context) in enumerate(words_with_contexts[:10]):
+                logger.info(f"      [{idx+1}] '{word}' in: \"{context[:80]}{'...' if len(context) > 80 else ''}\"")
+
             translations = []
 
             # Strategy 1: Try OpenAI with PARALLEL translation
@@ -960,9 +965,14 @@ class SubtitleFusionEngine:
                         final_subtitles.append(translated_sub)
                         inline_translation_count += 1
                     else:
-                        # No translation available for this word
+                        # No translation available for this word - Log diagnostic info
+                        logger.warning(f"⚠️  TRANSLATION FAILED for word '{original_word}' in subtitle {subtitle.index}")
+                        logger.warning(f"   📝 Context: \"{subtitle.text}\"")
+                        logger.warning(f"   🧹 Clean word sent to OpenAI: '{clean_word}'")
+                        logger.warning(f"   ⚙️  Action: Keeping original PT subtitle (TODO: Implement FR native fallback)")
+
+                        # Keep original subtitle (will be replaced with FR fallback in future)
                         final_subtitles.append(subtitle)
-                        logger.warning(f"⚠️  No translation for '{original_word}' in subtitle {subtitle.index} - keeping original")
 
                     # Mark as processed to prevent double-processing
                     processed_target_indices.add(subtitle.index)
