@@ -44,7 +44,8 @@ Client HTTP → FastAPI Endpoint → Subtitle Fusion Engine → OpenAI/DeepL Tra
 - ✅ Suppression de la déduplication du cache pour éviter la perte de sous-titres
 - ✅ Traduction contextuelle parfaite avec clés uniques `word_INDEX`
 - ✅ Filtre "avalanche" - Compare FR avec PT précédent pour éviter double affichage
-- ❌ **BUG ACTUEL:** Système de clés uniques cause échec de 33% des traductions (voir section Bugs)
+- ✅ Pre-cleaning ponctuation avant traduction (évite normalisation OpenAI)
+- ⚠️ **LIMITATION CONNUE:** Collision de dict quand même mot nettoyé apparaît plusieurs fois dans un batch (~0.5-1%)
 
 #### `src/openai_translator.py` (390+ lignes)
 - **Rôle:** Traduction contextuelle via OpenAI GPT-4.1 Nano ou Google Gemini
@@ -192,60 +193,38 @@ for idx, (original_word, subtitle) in enumerate(subtitles_to_translate):
 
 ## Bugs connus
 
-### Bug #1: 33% des traductions échouent (ACTUEL - Janvier 2025)
+### Bug #1: Ponctuation normalisée par OpenAI (RÉSOLU - Janvier 2025)
 
-**Symptôme:** Logs Railway montrent `✅ OpenAI parallel translation successful! Translated 232 subtitles` mais ensuite beaucoup de `⚠️  No translation for 'tensão]' in subtitle 1 - keeping original`
+**Symptôme:** 17-32% échecs de traduction dus à OpenAI qui normalise la ponctuation
 
-**Statistiques:**
-- Envoyé: 348 mots (19 chunks × 18 + 1 chunk × 6)
-- Retourné: 232 traductions
-- **Échoué: 116 traductions (33%)**
+**Cause:** OpenAI Structured Outputs enlève ponctuation des champs `word`, causant mismatch avec clés dict
 
-**Exemples d'échecs:**
-```
-✅ Mots traduits: 'aumenta]' → 'augmente' (subtitle 403)
-✅ Mots traduits: 'desconectadas!' → 'déconnectées' (subtitle 401)
-❌ Pas de traduction: 'tensão]' (subtitle 1, 8, 36, 60, 77, ...)
-❌ Pas de traduction: 'delegada' (subtitle 11)
-❌ Pas de traduction: 'relatório,' (subtitle 132)
-```
+**Solution:** Pre-cleaning avant envoi à OpenAI
+- `clean_word_for_translation()`: Enlève ponctuation leading/trailing (ASCII + Unicode)
+- `extract_trailing_punctuation()`: Extrait ponctuation pour réapplication
+- Placement: `mot (traduction)ponctuation` (ex: "tensão (tension)]")
 
-**Cause racine:**
-1. **Clés uniques avec index** - On envoie `"tensão]_126"` à OpenAI
-2. **OpenAI normalise** - Il retourne `{"word": "tensão]", "translation": "tension"}` (sans l'index!)
-3. **Mismatch de clés** - On cherche `translations["tensão]_126"]` → `None`
+**Résultats:** 67% → 79.8% succès (206/258 traductions appliquées)
 
-**Pourquoi certains marchent et d'autres pas?**
-OpenAI est **inconsistant** dans sa normalisation:
-- Parfois il garde la clé exacte: `"aumenta]_403"` → ✅
-- Parfois il enlève l'index: `"tensão]"` (au lieu de `"tensão]_126"`) → ❌
-- Parfois il nettoie aussi la ponctuation: `"tensão"` (au lieu de `"tensão]_126"`) → ❌
+**Code:** `subtitle_fusion.py` - Fonctions utilitaires + flow de traduction modifié
+
+### Bug #2: Collision de dict avec même mot nettoyé (NON PRIORITAIRE - Janvier 2025)
+
+**Symptôme:** Même mot apparaît plusieurs fois dans un batch → Dict écrase les traductions précédentes (ex: "banco" dans "Banco do Brasil" vs "sentei no banco")
+
+**Impact:** ~0.5-1% des batches, traduction contextuelle incorrecte pour 1-2 mots par épisode affecté
+
+**Statut:** Documenté, non résolu. Workaround acceptable pour l'impact mineur.
+
+**Solution recommandée (pour implémentation future):**
+- Clé composite : `f"{clean_word}|||{context[:20]}"` comme clé dict
+- Garde la robustesse du système Dict word-based
+- Risque : OpenAI pourrait nettoyer le séparateur (testable)
+- Estimation : ~20 lignes, 1h dev+test
 
 **Code concerné:**
-- `subtitle_fusion.py:834-838` - Construction des clés uniques
-- `openai_translator.py:184-193` - Parsing de la réponse OpenAI
-- `subtitle_fusion.py:884-908` - Application des traductions avec `translations.get(unique_key)`
-
-**Logs de debug ajoutés (à vérifier):**
-```python
-# openai_translator.py:186-188
-logger.info(f"   [OPENAI] 🔍 DEBUG: OpenAI returned {len(parsed_data.translations)} translations")
-logger.info(f"   [OPENAI] 🔍 DEBUG: First 5 translations: {[(item.word, item.translation) for item in parsed_data.translations[:5]]}")
-```
-
-**Ancien code (avant changements):**
-```python
-# Pas de clés uniques, juste le mot avec ponctuation
-if original_word not in unknown_words_to_translate:
-    unknown_words_to_translate.append(original_word)  # Ex: "tensão]"
-
-# Envoi à OpenAI
-word_contexts["tensão]"] = "música de tensão"
-
-# Réception
-translations = {"tensão]": "tension"}  # OpenAI retourne la même clé
-translations.get("tensão]")  # ✅ Match!
-```
+- `subtitle_fusion.py:863-876` - Préparation OpenAI avec `word_cleaning_map`
+- `subtitle_fusion.py:921-941` - Application des traductions avec `translations.get(clean_word)`
 
 ### Bug #2: Subtitle Loss (RÉSOLU - Janvier 2025)
 

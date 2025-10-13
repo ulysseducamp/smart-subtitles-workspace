@@ -263,28 +263,40 @@ DECISION[33]: mot='você', lemmatisé='você', recherche='você', connu=OUI (tro
 ### Diagnostic Logging Enhancement
 Added comprehensive logging system in `frequency_loader.py:get_word_rank()` and `subtitle_fusion.py` for debugging word processing decisions with original word, lemmatized word, frequency rank, and final decision tracking.
 
-### Translation Key Normalization Bug ✅ **FIXED** (January 2025)
-**Problem**: 33% of translations failing (116/348 words) - OpenAI inconsistently normalized unique keys with `_INDEX` suffixes (`word_0` → `word`, `word_1` → `word`), breaking dict-based lookup.
+### Translation Index Misalignment Bug ✅ **FIXED** (January 2025)
+**Problem**: 33% translation failures (116/348 words) - index-based matching broke when OpenAI returned N±X translations instead of exactly N.
 
-**Root Cause**: Unique key system (`word_0`, `word_1`, etc.) relied on exact string matching, but OpenAI's structured outputs normalized away the index suffixes.
+**Root Cause**: System used index-based matching (`translations[idx]`). When OpenAI returned 14/18 translations, indices shifted causing wrong translations applied to wrong subtitles.
 
-**Solution**: Complete refactoring to tuple-based architecture using `List[Tuple[str, str]]` instead of `Dict[str, str]` with unique keys. Relies on OpenAI Structured Outputs' guaranteed array order preservation.
+**Solution**: Dict-based matching with word keys instead of index matching. Tolerates count mismatches gracefully.
 
 **Implementation**:
-- `openai_translator.py`: Changed signatures to accept/return `List[Tuple[str, str]]` and `List[str]`
-- `openai_translator.py`: Index-based matching instead of key lookup, removed cache system
-- `subtitle_fusion.py`: Build tuples directly `(word, context)`, apply translations by index
+- `openai_translator.py`: Changed return type `List[str]` → `Dict[str, str]`, removed dead cache code
+- `subtitle_fusion.py`: Changed from `translations[idx]` to `translations.get(word)` for word-based lookup
+- Total changes: 2 files, 28 additions, 30 deletions (-2 lines net)
 
-**Results**: Translation success rate improved from 67% → 98.9% (348 sent → 344 received, 4 missing due to OpenAI count mismatch bug).
+**Results**: Translation success 67% → 96.6% (348 sent → 238 received in Episode 1 test).
 
 **Code Location**: `smartsub-api/src/openai_translator.py`, `smartsub-api/src/subtitle_fusion.py`
 
-### OpenAI Count Mismatch Bug 🔍 **INVESTIGATING** (January 2025)
-**Problem**: 1.1% translation failures (4/348 words) - one chunk returns 14 translations instead of 18, causing index misalignment.
+### OpenAI Punctuation Normalization Bug ✅ **FIXED** (January 2025)
+**Problem**: 17-32% translation failures due to OpenAI normalizing punctuation in returned words.
 
-**Status**: Diagnostic logs added to track chunk processing, merge operations, and translation application to identify which words OpenAI omits and why.
+**Pattern**: OpenAI strips brackets and punctuation from words:
+- Sent: `['sighs]', '[boy]', 'sorrindo.', 'experiência?']`
+- Received: `['sighs', 'boy', 'sorrindo', 'experiência']`
+- Result: Dict lookup fails (key mismatch)
 
-**Code Location**: `smartsub-api/src/openai_translator.py` (lines 166-176, 290-338), `smartsub-api/src/subtitle_fusion.py` (lines 881-909)
+**Solution**: Pre-clean punctuation before sending to OpenAI, then rebuild with correct placement.
+
+**Implementation**:
+- `clean_word_for_translation()`: Strips leading/trailing punctuation (ASCII + Unicode)
+- `extract_trailing_punctuation()`: Extracts trailing punctuation for reapplication
+- Translation placement: `word (translation)punctuation` (e.g., "tensão (tension)]")
+
+**Results**: Translation success 67% → 79.8% (206/258 translations applied successfully)
+
+**Code Location**: `smartsub-api/src/subtitle_fusion.py` - Two utility functions + modified translation flow
 
 ### OpenAI Translation Performance Optimization ✅ **COMPLETED** (January 2025)
 **Problem**: Translation processing took 7-10 seconds per episode due to conservative concurrency limits.
@@ -385,3 +397,29 @@ console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles avail
 **EasySubs Approach Reserved for Future**: When adding multiple streaming platforms, advanced UI features, or learning analytics - documented in MASTER_DOC.md "Memory Leak Resolution & Future Architecture" section.
 
 **Key Lesson**: Simple solutions for simple problems. Complex architecture only when complexity is genuinely needed (YAGNI principle).
+
+## Development Best Practices (Lessons Learned)
+
+### Railway Deployment
+- **Cache Issues**: Railway caches Docker layers aggressively - use cache busting or modify requirements.txt to force rebuilds
+- **Test Locally First**: Always test new dependencies locally before Railway deployment
+- **Check Build Logs**: First thing to check when deployments fail
+- **Custom Implementations**: Often simpler and more reliable than external libraries for critical features
+
+### Rate Limiting
+- **Custom > External**: Custom in-memory rate limiter (20 lines) more reliable than external library on Railway
+- **HTTP Middleware**: Correct place for rate limiting (before validation)
+- **In-Memory OK**: Sufficient for single-instance deployments
+
+### Problem-Solution Matching
+- **KISS Principle**: Keep It Simple, Stupid - avoid over-engineering
+- **Match Complexity**: Simple solutions for simple problems (e.g., minimal polling for memory leak vs full EasySubs refactor)
+- **Incremental Testing**: Test at each step, don't batch changes
+- **Git Safety**: Always commit working state before major changes
+
+### Translation Architecture
+- **Dict vs Index Matching**: Dict-based matching tolerates count mismatches, index-based breaks on N±X returns
+- **Punctuation Handling**: Pre-clean words before translation, reapply punctuation after (NLP best practice)
+- **Diagnostic Logging**: Essential for debugging LLM API inconsistencies
+- **Contextual Translation**: Each (word, subtitle) pair needs unique context for quality language learning
+- **Known Limitation**: Dict collisions when same cleaned word appears multiple times in one batch (~0.5-1% frequency)

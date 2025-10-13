@@ -1034,7 +1034,7 @@ class SubtitleFusionEngine:
             for idx, (word, context) in enumerate(words_with_contexts[:10]):
                 logger.info(f"      [{idx+1}] '{word}' in: \"{context[:80]}{'...' if len(context) > 80 else ''}\"")
 
-            translations = []
+            translations = {}
 
             # Strategy 1: Try OpenAI with PARALLEL translation
             if openai_translator:
@@ -1054,7 +1054,7 @@ class SubtitleFusionEngine:
                 except Exception as e:
                     logger.error(f"❌ OpenAI translation failed: {e}")
                     logger.info(f"🔄 Falling back to DeepL...")
-                    translations = []
+                    translations = {}
 
             # Strategy 2: Fallback to DeepL (without context)
             if not translations and deepl_api:
@@ -1070,10 +1070,12 @@ class SubtitleFusionEngine:
                 except Exception as e:
                     logger.error(f"❌ DeepL translation failed: {e}")
                     logger.info("🔄 Falling back to original subtitles without translations")
-                    translations = []
+                    translations = {}
 
             # Apply translations to each subtitle (matched by word)
-            if translations:
+            # Note: Check 'is not None' instead of truthiness to handle empty dict {}
+            # When translations = {}, we still need to enter loop to apply fallback
+            if translations is not None:
                 # DIAGNOSTIC: Log before applying translations
                 logger.info(f"   [FUSION] 🔧 Applying translations: {len(subtitles_to_translate)} words, {len(translations)} translations available")
 
