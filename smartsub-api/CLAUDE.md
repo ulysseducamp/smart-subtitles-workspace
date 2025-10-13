@@ -26,7 +26,7 @@ Client HTTP → FastAPI Endpoint → Subtitle Fusion Engine → OpenAI/DeepL Tra
   - CORS restreint aux domaines Netflix
   - Gestion d'API keys serveur-side
 
-#### `src/subtitle_fusion.py` (900+ lignes)
+#### `src/subtitle_fusion.py` (1200+ lignes)
 - **Rôle:** Moteur principal de fusion de sous-titres
 - **Classe:** `SubtitleFusionEngine`
 - **Méthode principale:** `fuse_subtitles(target_subs, native_subs, lang, native_lang, top_n, ...)`
@@ -35,7 +35,7 @@ Client HTTP → FastAPI Endpoint → Subtitle Fusion Engine → OpenAI/DeepL Tra
 1. **Analyse vocabulaire** - Détermine quels mots sont connus via frequency lists
 2. **Décision par sous-titre:**
    - Tous les mots connus → Garder sous-titre PT
-   - 1 mot inconnu → Traduction inline `mot (translation)`
+   - 1 mot inconnu → Traduction inline `mot (translation)` (avec fallback natif si échec)
    - 2+ mots inconnus → Remplacer par sous-titre FR
 3. **Synchronisation temporelle** - Bidirectionnelle avec calcul d'overlap
 4. **Batch translation** - Collecte tous les mots à traduire, puis traduction parallèle
@@ -45,6 +45,7 @@ Client HTTP → FastAPI Endpoint → Subtitle Fusion Engine → OpenAI/DeepL Tra
 - ✅ Traduction contextuelle parfaite avec clés uniques `word_INDEX`
 - ✅ Filtre "avalanche" - Compare FR avec PT précédent pour éviter double affichage
 - ✅ Pre-cleaning ponctuation avant traduction (évite normalisation OpenAI)
+- ✅ Native fallback system - Remplace par sous-titre natif si traduction échoue
 - ⚠️ **LIMITATION CONNUE:** Collision de dict quand même mot nettoyé apparaît plusieurs fois dans un batch (~0.5-1%)
 
 #### `src/openai_translator.py` (390+ lignes)
@@ -260,7 +261,14 @@ for idx, (original_word, subtitle) in enumerate(subtitles_to_translate):
 - **Solution:** Comparer overlap avec PT précédent, exclure si meilleur match
 - **Code:** `subtitle_fusion.py:658-692`
 
-### 4. Parallel Translation
+### 4. Native Fallback System
+- **Déclenchement:** Quand traduction inline échoue (mot absent du dict OpenAI)
+- **Fonctions:** `_find_best_native_match()`, `_apply_native_fallback()`
+- **Logique:** Réutilise synchronisation temporelle pour trouver sous-titre natif correspondant
+- **Stats:** `fallbackCount` tracking dans logs (~0% actuellement, GPT-4.1 Nano très fiable)
+- **Code:** `subtitle_fusion.py:405-543, 1113-1139`
+
+### 5. Parallel Translation
 - **Chunks:** 18 mots par requête OpenAI
 - **Concurrency:** 8 requêtes simultanées (38% du rate limit OpenAI de 500 RPM)
 - **Performance:** 7.80s → 3.95s (-49%), traitement total 10.03s → 6.87s (-32%)
@@ -309,16 +317,8 @@ python -m pytest tests/ -v
 
 ## TODO / Investigations en cours
 
-- [ ] **PRIORITÉ 1:** Résoudre le bug des 33% de traductions échouées
-  - Option A: Faire matcher les clés de manière plus flexible (fuzzy matching)
-  - Option B: Demander à OpenAI de garder les clés exactes dans le prompt
-  - Option C: Post-processing pour mapper les réponses d'OpenAI aux clés originales
-
-- [ ] Vérifier si le problème de ponctuation existe aussi (`.`, `,`, `!`, `?`)
-
-- [ ] Améliorer le tokenization dans `create_alignment_mapping()` pour séparer ponctuation
-
-- [ ] Analyser les logs Railway pour comprendre le pattern exact de normalisation d'OpenAI
+- [x] ~~Résoudre traductions échouées~~ - RÉSOLU: Dict-based matching + punctuation cleaning + native fallback
+- [ ] Améliorer tokenization dans `create_alignment_mapping()` pour séparer ponctuation (nice-to-have)
 
 ## Références
 

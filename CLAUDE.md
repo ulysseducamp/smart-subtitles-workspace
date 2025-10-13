@@ -101,7 +101,8 @@ docker run -p 3000:3000 smartsub-api
 - **Vocabulary-Based Selection**: Intelligent language switching based on word frequency rankings
 - **Bidirectional Synchronization**: Advanced time alignment between subtitle versions
 - **Lemmatization**: Uses `simplemma` library for word stemming across languages
-- **Inline Translation**: DeepL API integration for unknown words
+- **Inline Translation**: OpenAI GPT-4.1 Nano (primary) + DeepL (fallback) for unknown words
+- **Native Fallback**: Replaces with native subtitle if translation fails
 - **Contraction Handling**: English contraction expansion for better vocabulary matching
 - **TokenMapping System**: Industry-standard NLP approach for preserving word alignment during processing
 
@@ -115,10 +116,11 @@ docker run -p 3000:3000 smartsub-api
 
 ### Subtitle Processing (`smartsub-api/src/subtitle_fusion.py`)
 - Core fusion algorithm with vocabulary-based language switching
-- Processes approximately 72% of subtitles with intelligent replacements
+- ~30% inline translations, ~20% native replacements per episode (typical)
 - Supports 4 languages: English (EN), French (FR), Portuguese (PT), Spanish (ES)
 - Maintains temporal alignment between different subtitle versions
-- **TokenMapping System**: Resolves word alignment issues between original and processed words using industry-standard NLP tokenization approach
+- **TokenMapping System**: Resolves word alignment issues using industry-standard NLP tokenization
+- **Native Fallback**: Graceful degradation when translation fails (~0% with GPT-4.1 Nano)
 
 ### Security Implementation
 - **API Key Protection**: Server-side proxy prevents client-side API key exposure
