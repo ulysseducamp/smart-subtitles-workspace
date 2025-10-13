@@ -315,6 +315,7 @@ async def fuse_subtitles(
         
         logger.info(f"Subtitles replaced with native: {result['replacedCount']}/{len(target_subs)} ({percent_replaced:.1f}%)")
         logger.info(f"Subtitles with inline translation: {result['inlineTranslationCount']}/{len(target_subs)} ({percent_inline:.1f}%)")
+        logger.info(f"Subtitles with native fallback (failed translation): {result['fallbackCount']}/{len(target_subs)}")
         logger.info(f"Subs with inline translation vs kept in target language: {result['inlineTranslationCount']}/{kept_subtitles} ({percent_inline_vs_kept:.1f}%)")
         logger.info("—")
         

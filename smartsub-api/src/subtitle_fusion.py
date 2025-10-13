@@ -3,7 +3,7 @@ Main subtitle fusion engine - Python implementation
 Migrated from TypeScript logic.ts
 """
 
-from typing import List, Set, Dict, Any, Optional
+from typing import List, Set, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import re
 import time
@@ -402,6 +402,150 @@ class SubtitleFusionEngine:
 
         return should_include
 
+    def _find_best_native_match(
+        self,
+        target_sub: Subtitle,
+        target_index: int,
+        target_subs: List[Subtitle],
+        native_subs: List[Subtitle],
+        processed_indices: set
+    ) -> Optional[Subtitle]:
+        """
+        Find the best matching native subtitle for a target subtitle.
+        Extracts and reuses logic from the "2+ unknown words" replacement flow.
+
+        Args:
+            target_sub: Target subtitle to find match for
+            target_index: Index of target_sub in target_subs list
+            target_subs: Full list of target subtitles
+            native_subs: Full list of native subtitles
+            processed_indices: Set of already processed target subtitle indices
+
+        Returns:
+            Replacement subtitle object if match found, None otherwise
+        """
+        # Find intersecting native subtitles
+        intersecting_native_subs = [
+            native_sub for native_sub in native_subs
+            if self._has_intersection(target_sub.start, target_sub.end,
+                                    native_sub.start, native_sub.end)
+        ]
+
+        # Apply avalanche filter (compare with previous PT subtitle)
+        previous_target_sub = self._get_previous_target_subtitle(target_index, target_subs)
+
+        if previous_target_sub:
+            filtered_native_subs = []
+            for native_sub in intersecting_native_subs:
+                current_overlap = self._calculate_intersection_duration(
+                    Subtitle(index='', start=native_sub.start, end=native_sub.end, text=''),
+                    target_sub
+                )
+                previous_overlap = self._calculate_intersection_duration(
+                    Subtitle(index='', start=native_sub.start, end=native_sub.end, text=''),
+                    previous_target_sub
+                )
+
+                # Exclude if better match with previous target
+                if previous_overlap > current_overlap:
+                    continue
+
+                filtered_native_subs.append(native_sub)
+
+            intersecting_native_subs = filtered_native_subs
+
+        # No matching native subtitles found
+        if len(intersecting_native_subs) == 0:
+            return None
+
+        # Combine intersecting native subtitles
+        combined_native_sub_obj = Subtitle(
+            index='',
+            start=intersecting_native_subs[0].start,
+            end=intersecting_native_subs[-1].end,
+            text='\n'.join(s.text for s in intersecting_native_subs)
+        )
+
+        # Find next native subtitle for filtering logic
+        try:
+            first_native_index = native_subs.index(intersecting_native_subs[0])
+            next_native_sub = self._get_next_native_subtitle(first_native_index, native_subs)
+        except ValueError:
+            next_native_sub = None
+
+        # Find all target subtitles that should be replaced by this native subtitle
+        candidate_target_subs = [
+            sub for sub in target_subs
+            if sub.index not in processed_indices and
+            self._has_intersection(combined_native_sub_obj.start, combined_native_sub_obj.end,
+                                 sub.start, sub.end)
+        ]
+
+        # Filter candidates based on "compare with next FR" logic
+        overlapping_target_subs = [
+            sub for sub in candidate_target_subs
+            if self._should_include_in_replacement(sub, combined_native_sub_obj, next_native_sub)
+        ]
+
+        # No overlapping target subtitles found
+        if len(overlapping_target_subs) == 0:
+            return None
+
+        # Create replacement subtitle
+        replacement_sub = Subtitle(
+            index='',  # Will be re-indexed later
+            start=overlapping_target_subs[0].start,
+            end=overlapping_target_subs[-1].end,
+            text=combined_native_sub_obj.text
+        )
+
+        return replacement_sub
+
+    def _apply_native_fallback(
+        self,
+        target_sub: Subtitle,
+        target_index: int,
+        target_subs: List[Subtitle],
+        native_subs: List[Subtitle],
+        processed_indices: set,
+        original_word: str,
+        native_lang: str,
+        target_lang: str
+    ) -> Tuple[Subtitle, bool]:
+        """
+        Apply native subtitle fallback when translation fails.
+
+        Args:
+            target_sub: Target subtitle with failed translation
+            target_index: Index of target_sub in target_subs list
+            target_subs: Full list of target subtitles
+            native_subs: Full list of native subtitles
+            processed_indices: Set of already processed target subtitle indices
+            original_word: The word that failed translation
+            native_lang: Native language code (e.g., 'fr', 'en', 'es')
+            target_lang: Target language code (e.g., 'pt', 'en', 'es')
+
+        Returns:
+            Tuple of (subtitle to use, fallback_applied boolean)
+        """
+        logger.info(f"   🔄 Attempting {native_lang.upper()} fallback for '{original_word}' in subtitle {target_sub.index}")
+
+        # Try to find matching native subtitle
+        replacement_sub = self._find_best_native_match(
+            target_sub=target_sub,
+            target_index=target_index,
+            target_subs=target_subs,
+            native_subs=native_subs,
+            processed_indices=processed_indices
+        )
+
+        if replacement_sub:
+            logger.info(f"   ✅ {native_lang.upper()} fallback applied: \"{replacement_sub.text[:80]}{'...' if len(replacement_sub.text) > 80 else ''}\"")
+            return replacement_sub, True
+        else:
+            logger.warning(f"   ⚠️  No {native_lang.upper()} fallback found - keeping original {target_lang.upper()} subtitle")
+            return target_sub, False
+
     def _generate_episode_context(self, subtitles: List[Subtitle]) -> str:
         """
         Generate full episode context in SRT format for LLM translation.
@@ -554,6 +698,7 @@ class SubtitleFusionEngine:
         replaced_count = 0
         replaced_with_one_unknown = 0
         inline_translation_count = 0
+        fallback_count = 0
         error_count = 0
         debug_shown = 0
         translated_words = {}
@@ -965,14 +1110,33 @@ class SubtitleFusionEngine:
                         final_subtitles.append(translated_sub)
                         inline_translation_count += 1
                     else:
-                        # No translation available for this word - Log diagnostic info
+                        # No translation available for this word - Try FR native fallback
                         logger.warning(f"⚠️  TRANSLATION FAILED for word '{original_word}' in subtitle {subtitle.index}")
                         logger.warning(f"   📝 Context: \"{subtitle.text}\"")
                         logger.warning(f"   🧹 Clean word sent to OpenAI: '{clean_word}'")
-                        logger.warning(f"   ⚙️  Action: Keeping original PT subtitle (TODO: Implement FR native fallback)")
 
-                        # Keep original subtitle (will be replaced with FR fallback in future)
-                        final_subtitles.append(subtitle)
+                        # Find the index of this subtitle in target_subs
+                        target_index = next((i for i, sub in enumerate(target_subs) if sub.index == subtitle.index), None)
+
+                        if target_index is not None:
+                            # Apply native fallback
+                            result_sub, fallback_applied = self._apply_native_fallback(
+                                target_sub=subtitle,
+                                target_index=target_index,
+                                target_subs=target_subs,
+                                native_subs=native_subs,
+                                processed_indices=processed_target_indices,
+                                original_word=original_word,
+                                native_lang=native_lang,
+                                target_lang=lang
+                            )
+                            final_subtitles.append(result_sub)
+                            if fallback_applied:
+                                fallback_count += 1
+                        else:
+                            # Fallback: couldn't find subtitle in target_subs, keep original
+                            logger.error(f"   ❌ Could not find subtitle {subtitle.index} in target_subs list")
+                            final_subtitles.append(subtitle)
 
                     # Mark as processed to prevent double-processing
                     processed_target_indices.add(subtitle.index)
@@ -1016,6 +1180,7 @@ class SubtitleFusionEngine:
             'replacedCount': replaced_count,
             'replacedWithOneUnknown': replaced_with_one_unknown,
             'inlineTranslationCount': inline_translation_count,
+            'fallbackCount': fallback_count,
             'errorCount': error_count,
             'translatedWords': translated_words,
             'success': True
