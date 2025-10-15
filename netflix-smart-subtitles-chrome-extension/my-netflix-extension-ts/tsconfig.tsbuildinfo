@@ -1,0 +1,1 @@
+{"root":["./src/content-script.ts","./src/page-script.ts","./src/test.tsx","./src/api/railwayclient.ts","./src/components/ui/button.tsx","./src/components/ui/radio-group.tsx","./src/components/ui/select.tsx","./src/lib/utils.ts","./src/popup/popup.ts","./src/types/environment.d.ts","./src/types/netflix.d.ts"],"version":"5.9.2"}
