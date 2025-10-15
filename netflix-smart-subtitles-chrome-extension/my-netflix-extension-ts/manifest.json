@@ -17,6 +17,9 @@
     "default_popup": "popup.html",
     "default_title": "Subly - Smart Netflix Subtitles"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["*://www.netflix.com/*"],
