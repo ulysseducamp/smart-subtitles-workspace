@@ -8,15 +8,17 @@ This is Smart Subtitles - a comprehensive language learning platform that create
 
 ## Architecture
 
-The project consists of three main components working together:
+The project consists of four main components:
 
 1. **Chrome Extension** (`netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/`) - Netflix integration for subtitle extraction and injection
-2. **FastAPI Backend** (`smartsub-api/`) - Subtitle processing API with Python fusion algorithm
-3. **Reference Implementation** (`netflix-smart-subtitles-chrome-extension/reference/`) - Based on Subadub extension
+2. **Webapp** (`webapp/`) - React + Vite + Shadcn UI for onboarding, dashboard, settings, and account management
+3. **FastAPI Backend** (`smartsub-api/`) - Subtitle processing API with Python fusion algorithm
+4. **Reference Implementation** (`netflix-smart-subtitles-chrome-extension/reference/`) - Based on Subadub extension
 
 ### High-Level Data Flow
 ```
 Chrome Extension (Netflix) → FastAPI API → Python Fusion Algorithm → Processed Subtitles → Chrome Extension
+Extension ↔ Webapp (Supabase Auth + Sync) → Multi-device data synchronization
 ```
 
 ## Development Commands
@@ -50,6 +52,23 @@ npm run lint
 - **Branch staging**: `develop` → auto-deploy to staging API
 - **Branch production**: `main` → auto-deploy to production API
 
+### Webapp (React + Vite)
+```bash
+cd webapp/
+
+# Install dependencies
+npm install
+
+# Development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
 ### FastAPI Backend
 ```bash
 cd smartsub-api/
@@ -67,9 +86,6 @@ python main.py
 
 # Run tests
 python -m pytest tests/
-
-# Run specific API test
-python test_fuse_subtitles_endpoint.py
 ```
 
 ### Docker Build (Full Stack)
@@ -89,6 +105,14 @@ docker run -p 3000:3000 smartsub-api
 - **Message Passing**: Chrome extension message system for cross-context communication
 - **State Management**: Persistent settings via `chrome.storage.local`
 - **Manual Processing**: User must click "Process Subtitles" button (auto-processing disabled to prevent Netflix preload corruption)
+
+### Webapp Architecture (October 2025)
+- **Tech Stack**: React 19 + Vite + TypeScript + Tailwind CSS v3 + Shadcn UI
+- **Routing**: React Router with `/onboarding` and `/dashboard` routes
+- **Auth Strategy**: Supabase Auth (Google OAuth + Email/Password) - Phase 1B in progress
+- **Data Sync**: Supabase database for multi-device synchronization
+- **Pattern**: External webapp (not extension pages) for auth + subscription management
+- **Development**: Hot reload at `localhost:5173`, production deployment via Vercel/Netlify
 
 ### API Backend Architecture
 - **Pure Python Fusion**: Direct function calls to Python subtitle fusion algorithm (migrated from TypeScript)
@@ -214,9 +238,33 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 
 ### Configuration Files
 - `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/package.json` - Extension dependencies and build scripts
+- `webapp/package.json` - Webapp dependencies (React, Vite, Shadcn UI)
 - `smartsub-api/requirements.txt` - Python dependencies
 - `Dockerfile` - Multi-stage build for Node.js + Python deployment
-- `MASTER_DOC.md` - Comprehensive project documentation (720+ lines)
+- `ROADMAP.md` - Phase 1B-3 roadmap (Supabase Auth → Billing → Launch)
+
+## Recent Architecture Changes (October 2025)
+
+### Phase 1A - Webapp Foundation ✅ **COMPLETED**
+**Decision**: External webapp instead of in-extension React for onboarding/dashboard/account management.
+
+**Rationale**:
+- Multi-device sync requires backend (Supabase)
+- Auth + subscription management needs web interface
+- Pattern used by Language Reactor, Grammarly, Loom
+
+**Implementation**:
+- Created `webapp/` with React 19 + Vite + TypeScript
+- Installed Shadcn UI components (Button, Select, RadioGroup, Label)
+- Added React Router with `/onboarding` and `/dashboard`
+- Extension opens webapp on install via background service worker
+
+**Code Location**: `webapp/`, `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/background.ts`
+
+### Phase 1B - Supabase Auth Setup 🚧 **IN PROGRESS**
+**Next**: Direct auth (Google OAuth + Email/Password) without anonymous sign-in phase. See `ROADMAP.md` for implementation checklist.
+
+---
 
 ## Recent Critical Bug Fixes (January 2025)
 
