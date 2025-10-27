@@ -24,7 +24,8 @@ module.exports = {
   entry: {
     popup: './src/popup/popup.ts',
     'content-script': './src/content-script.ts',
-    'page-script': './src/page-script.ts'
+    'page-script': './src/page-script.ts',
+    background: './src/background.ts'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),

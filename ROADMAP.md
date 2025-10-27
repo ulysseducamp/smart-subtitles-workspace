@@ -23,51 +23,216 @@
 
 ## 🚧 PHASE 1B - AUTHENTICATION & DATA SYNC (IN PROGRESS)
 
-**Objective**: Setup Supabase Auth (Google OAuth + Email/Password) for user accounts and data synchronization
+**Objective**: Setup Supabase Auth (Google OAuth only) for user accounts and data synchronization
+
+**Strategy**: Incremental testing after each major component (pragmatic approach)
 
 ### Backend Setup (Day 1 - 4 hours)
 
-- [ ] **Supabase Project Setup** (30min)
-  - [ ] Create Supabase account
-  - [ ] Create new project "smart-subtitles"
-  - [ ] Note: Project URL + Anon Key
+---
 
-- [ ] **Database Schema** (30min)
-  - [ ] Create `user_settings` table [voir Code 1]
-  - [ ] Create `known_words` table [voir Code 2]
-  - [ ] Setup Row Level Security (RLS) policies [voir Code 3]
+#### Step 1: Supabase Project + Database (30min)
 
-- [ ] **Authentication Configuration** (1h)
-  - [ ] Enable Google OAuth provider
-  - [ ] Configure redirect URLs (localhost + production)
-  - [ ] Enable Email/Password authentication
-  - [ ] Configure email templates
+- [x] **Supabase Project Setup**
+  - [x] Create Supabase account
+  - [x] Create new project "Subly"
+  - [x] Note: Project URL + Anon Key + Service Role Key
+    - Anon Key: Frontend (webapp + extension)
+    - Service Role Key: Backend admin (Phase 2 - not used in 1B)
 
-- [ ] **Webapp Integration** (1h 30min)
-  - [ ] Install `@supabase/supabase-js` in webapp
-  - [ ] Create Supabase client configuration [voir Code 4]
-  - [ ] Create AuthContext React component [voir Code 5]
-  - [ ] Create Login/Signup page UI [voir Code 6]
-  - [ ] Add "Sign in with Google" button
-  - [ ] Add Email/Password form
+- [x] **Database Schema** (Use Supabase Dashboard - NOT MCP)
+  - [x] Create `user_settings` table [voir Code 1]
+  - [x] Create `vocab_levels` table [voir Code 1b - multi-language support]
+  - [x] Create `subscriptions` table [voir Code 1c - Phase 2 structure]
+  - [x] Create `known_words` table [voir Code 2]
+  - [x] Setup Row Level Security (RLS) policies [voir Code 3]
 
-- [ ] **Extension Integration** (30min)
-  - [ ] Install `@supabase/supabase-js` in extension
-  - [ ] Configure Supabase client in extension
-  - [ ] Add custom Storage Adapter for chrome.storage [voir Code 7]
+- [x] **✅ TEST 1 (5-10min)** - Database Validation
+  - [x] Login to Supabase Dashboard
+  - [x] Verify 4 tables created with RLS policies
+  - [x] Verify 3-4 RLS policies per table
+  - **Pass criteria:** Tables created, RLS enabled, no errors ✅ PASSED
 
-- [ ] **Testing** (30min)
-  - [ ] Test Google OAuth flow
-  - [ ] Test Email/Password signup
-  - [ ] Test session persistence
-  - [ ] Verify sync between webapp and extension
+---
+
+#### Step 2: Authentication Configuration (30min)
+
+- [x] **Enable Google OAuth**
+  - [x] Enable Google OAuth provider in Supabase dashboard
+  - [x] Configure redirect URLs (localhost:5173 + production)
+  - [x] Create Google Cloud OAuth credentials (Client ID and Secret)
+
+- [x] **✅ TEST 2 (5min)** - OAuth Flow
+  - [x] Test OAuth URL directly in incognito window
+  - [x] Click "Sign in with Google" → Complete OAuth flow
+  - [x] Verify user appears in `auth.users` table
+  - **Pass criteria:** OAuth flow completes, user created in auth.users ✅ PASSED (User: unducamp.pro@gmail.com)
+
+---
+
+#### Step 3: Webapp Integration (1h 30min)
+
+- [x] **Install Dependencies**
+  - [x] `npm install @supabase/supabase-js` in webapp/
+  - [x] `npx shadcn@latest add card alert toast` (Shadcn components)
+
+- [x] **Create Supabase Client**
+  - [x] Create `webapp/src/lib/supabase.ts` [voir Code 4]
+  - [x] Create `.env.local` with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+  - [x] Create AuthContext React component [voir Code 5]
+
+- [x] **Create Onboarding Pages** (7 pages total)
+  - [x] Create `/welcome` page with Google OAuth button [voir Code 6]
+  - [x] Create `/onboarding/languages` page (target + native language selection)
+  - [x] Create `/onboarding/vocab-test` page (12 vocab levels)
+  - [x] Create `/onboarding/results` page (display vocab level)
+  - [x] Create `/onboarding/pin-extension` page (bonus step)
+  - [x] Create `/onboarding/complete` page (congrats + instructions)
+  - [x] Create `/welcome-back` page (returning users)
+
+- [x] **Update App.tsx**
+  - [x] Wrap app with AuthProvider
+  - [x] Add all 7 routes
+  - [x] Implement redirect logic after auth (detect returning users)
+
+- [x] **✅ TEST 3 (10min)** - Webapp Auth
+  - [x] Run `npm run dev` in webapp/
+  - [x] Open localhost:5173/welcome
+  - [x] Click "Continue with Google" → Complete OAuth
+  - [x] Check browser console: `user` object visible
+  - [x] Verify redirect to `/onboarding/languages`
+  - **Pass criteria:** OAuth flow works, user object in console, redirect OK ✅ PASSED
+
+- [x] **✅ TEST 4 (5min)** - Onboarding Flow
+  - [x] Complete onboarding: Languages → Vocab test → Complete
+  - [x] Check Supabase Dashboard: Verify rows created in `user_settings` and `vocab_levels`
+  - **Pass criteria:** Data saved correctly in database ✅ PASSED (pt-BR + fr, level 700)
+
+---
+
+#### Step 4: Extension Integration (30min + 30min Message Passing)
+
+- [x] **Install Dependencies**
+  - [x] `npm install @supabase/supabase-js` in extension/
+  - [x] Create Chrome Storage Adapter [voir Code 7]
+  - [x] Configure Supabase client in extension
+
+**🔗 Step 4b: Message Passing Implementation (30min) - CRITICAL**
+
+**Problem:** Webapp and Extension = 2 separate domains (localhost:5173 vs chrome-extension://xxx)
+Session in webapp localStorage is NOT accessible to extension chrome.storage.local
+
+**Solution:** Transfer tokens from webapp to extension after OAuth
+
+**Implementation Plan (30min):**
+
+1. **Manifest (5min)** - Add `externally_connectable` + `key`
+   - [x] Generate extension key for fixed ID in dev
+   - [x] Add `externally_connectable` to manifest.json
+   - [x] Add localhost:5173 and production URL to matches
+
+2. **Webapp (10min)** - Send tokens to extension after OAuth
+   - [x] Create `syncSessionToExtension()` utility function
+   - [x] Call after OAuth success (implemented via AuthContext SIGNED_IN event)
+   - [x] Add timeout (2s) + error handling
+   - [x] Sync on TOKEN_REFRESHED event (prevents token desync)
+
+3. **Extension (10min)** - Receive and store tokens
+   - [x] Add `chrome.runtime.onMessageExternal` listener in background.ts
+   - [x] Validate sender origin (security)
+   - [x] Call `supabase.auth.setSession()` with received tokens
+   - [x] Store session in chrome.storage.local via adapter
+
+4. **Test (5min)** - Validate end-to-end flow
+   - [x] Get extension ID from Chrome and update webapp
+   - [x] Complete onboarding in webapp
+   - [x] Open extension popup
+   - [x] Verify settings display (pt-BR, fr, 700)
+
+**Critical Fix: Rolling Refresh Tokens**
+- Supabase invalidates old refresh_token when webapp auto-refreshes (after ~50min)
+- Extension's stored refresh_token becomes invalid
+- Solution: Re-sync tokens on TOKEN_REFRESHED event in webapp
+
+- [x] **✅ TEST 5 (5min)** - Extension Reads Supabase ✅ PASSED (January 20, 2025)
+  - [x] Build extension: `npm run build:staging`
+  - [x] Load extension in Chrome
+  - [x] Open extension popup
+  - [x] Verify: Settings displayed (target_lang ✅, vocab_level ✅, native_lang ⚠️ minor bug)
+  - **Pass criteria:** Extension reads user settings from Supabase ✅
+  - **Note:** Native language display bug identified (non-blocking, data loads correctly)
+
+---
+
+#### Step 5: Final Testing (30min) - CRITICAL
+
+- [x] **✅ TEST 6 (10min)** - RLS Isolation (CRITICAL) ✅ PASSED (January 20, 2025)
+  - [x] Create 2nd Google account
+  - [x] User A: Complete onboarding → PT-BR, 1500 + FR, 1500
+  - [x] User B: Complete onboarding → PT-BR, 1000
+  - [x] Verify: User A shows ONLY 1500 (not 1000)
+  - [x] Verify: User B shows ONLY 1000 (not 1500)
+  - **Pass criteria:** Users cannot see each other's data ✅
+  - **Note:** 2 distinct user_ids in database, data properly isolated
+
+- [x] **✅ TEST 7 (5min)** - CASCADE DELETE ✅ PASSED (January 20, 2025)
+  - [x] User B: Deleted via Supabase Dashboard (Authentication tab)
+  - [x] Verify: All User B data deleted from `vocab_levels` ✅
+  - [x] Verify: All User B data deleted from `user_settings` ✅
+  - **Pass criteria:** No orphaned data remains ✅
+
+- [x] **✅ TEST 8 (5min)** - UNIQUE Constraint ✅ PASSED (January 20, 2025)
+  - [x] User A: Test PT-BR → 700 words (initial)
+  - [x] User A: Re-test PT-BR → 1500 words (change level)
+  - [x] Verify: Only 1 row in `vocab_levels` for (User A, PT-BR)
+  - [x] Verify: Level updated to 1500 (ON CONFLICT UPDATE)
+  - **Pass criteria:** No duplicate rows, level updated correctly ✅
+
+- [x] **✅ TEST 9 (5min)** - Session Persistence ✅ PASSED (January 20, 2025)
+  - [x] Login to webapp
+  - [x] Refresh page (F5)
+  - [x] Verify: User still logged in (no redirect to /welcome)
+  - **Pass criteria:** Session persists across page refresh ✅
+
+- [x] **✅ TEST 10 (5min)** - Multi-Language Support ✅ PASSED (January 20, 2025)
+  - [x] User A: Test PT-BR → 700 (then 1500)
+  - [x] User A: Test FR → 1500
+  - [x] Verify: 2 rows in `vocab_levels` table (one per language)
+  - **Pass criteria:** Multiple languages stored independently ✅
 
 ### Design Work (Days 2-5)
+
+- [ ] **Webapp Deployment (PREREQUISITE)** ⚡ **HIGH PRIORITY**
+  - [ ] Deploy webapp to Vercel production (~15 min)
+    - [ ] Create Vercel account
+    - [ ] Connect GitHub repo
+    - [ ] Configure build settings (Vite, webapp/ root)
+    - [ ] Add environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
+    - [ ] Note production URL
+  - [ ] Configure Supabase redirect URLs (~5 min)
+    - [ ] Add production URL to Supabase Authentication settings
+    - [ ] Keep localhost:5173 for dev
+  - [ ] Add WEBAPP_URL variable to extension (~10 min)
+    - [ ] Update webpack.config.js with environment variable
+    - [ ] Add WEBAPP_URL constant in popup.ts
+    - [ ] Test staging build (localhost) and production build (Vercel)
+  - **Rationale:** Deploy early, deploy often. Enables real testing, multi-device validation, no technical debt.
+  - **Reference:** See `POPUP_REDESIGN_PLAN.md` Part 1 for detailed steps
+
+- [ ] **Popup UI Design** 🎨
+  - [ ] Remove Smart Subtitles toggle (always active)
+  - [ ] Replace vocabulary level dropdown with read-only Card display
+  - [ ] Add "Test my level" button (opens webapp `/vocab-test`)
+  - [ ] Add feedback banner at bottom
+  - [ ] Keep Shadcn-like styling (HTML/CSS vanilla, no React migration)
+  - **Reference:** See `POPUP_REDESIGN_PLAN.md` Part 2 for detailed steps
 
 - [ ] **Onboarding Flow Design**
   - [ ] Step 1: Welcome screen
   - [ ] Step 2: Language selection (target + native)
-  - [ ] Step 3: Vocabulary test
+    - [ ] Remove English from target language options (keep only PT-BR + FR for now)
+  - [x] Step 3: Vocabulary test
+    - [x] Implement dynamic vocab test (PT-BR + FR word lists) ✅ (January 27, 2025)
   - [ ] Step 4: Pin extension reminder
   - [ ] Step 5: Success message
 
@@ -77,17 +242,12 @@
   - [ ] Positioning options
   - [ ] Inline translation styling
 
-- [ ] **Popup UI Design**
-  - [ ] Settings panel redesign
-  - [ ] Language selector UI
-  - [ ] Quick actions menu
-
 - [ ] **Dashboard UI Polish**
   - [ ] Known words list view
   - [ ] Learning statistics charts
   - [ ] Profile settings page
 
-**Duration**: 1 week (4h backend + rest for design)
+**Duration**: 1 week (4h backend + 1.5h deployment + rest for design)
 **Target completion**: October 22, 2025
 
 ---
@@ -192,14 +352,34 @@
 - **Pattern**: Same as Language Reactor, Grammarly, Loom
 
 **Anonymous Sign-ins vs Direct Auth** (October 15, 2025)
-- ✅ **Decision**: Direct Auth (Google OAuth + Email/Password)
+- ✅ **Decision**: Direct Auth (Google OAuth only for Phase 1B)
 - **Reason**: Avoid 2-step setup (anonymous then convert), cleaner architecture
 - **Trade-off**: Signup required before testing (acceptable for our use case)
+- **Future**: Email/Password can be added in Phase 2+ without migration
 
-**LocalStorage vs Message Passing vs Supabase** (October 15, 2025)
-- ✅ **Decision**: Supabase direct (no message passing)
-- **Reason**: Permanent code, multi-device sync, no migration needed
-- **Cost**: 1-2h setup vs 0h LocalStorage + 1-2h migration later (same total time)
+**Session Sharing: Message Passing** (January 18, 2025)
+- ✅ **Decision**: Message Passing (webapp → extension token transfer)
+- **Reason**: Webapp and Extension = 2 separate domains, sessions not auto-shared
+- **Pattern**: Standard for Firebase, Auth0, Supabase Chrome extensions
+- **Implementation**:
+  - Webapp sends access_token + refresh_token via `chrome.runtime.sendMessage`
+  - Extension receives via `onMessageExternal` and calls `supabase.auth.setSession()`
+  - Sync on TOKEN_REFRESHED to prevent Supabase rolling token desync
+- **Security**: Validate sender origin, timeout handling, fixed extension ID
+- **Trade-off**: 30min implementation vs 3h refactor to extension-first OAuth
+- **Alternatives Considered**:
+  - Extension-first OAuth: Rejected (onboarding already in React webapp)
+  - Cookie-based: Rejected (requires sensitive permissions, complex setup)
+  - Double login: Rejected (bad UX)
+
+**Future Architecture Reevaluation** (Phase 3 Note)
+- **Trigger**: When popup UI is migrated to React + Shadcn
+- **Consideration**: At that point, React will be bundled in extension anyway
+- **Option**: Evaluate migrating onboarding into extension (chrome-extension:// domain)
+  - Would eliminate message passing complexity
+  - Single domain = simpler auth flow
+  - Decision deferred until Phase 3 (after popup React migration)
+- **Action**: Reassess based on message passing stability in production
 
 ---
 
@@ -213,8 +393,6 @@ create table user_settings (
   user_id uuid references auth.users(id) on delete cascade,
   target_lang text not null,
   native_lang text not null,
-  vocab_level integer default 5000,
-  inline_translation boolean default true,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now(),
   unique(user_id)
@@ -222,6 +400,44 @@ create table user_settings (
 
 -- Enable RLS
 alter table user_settings enable row level security;
+```
+
+### Code 1b: vocab_levels table schema (Multi-language support)
+
+```sql
+create table vocab_levels (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id) on delete cascade,
+  language text not null,  -- 'pt-BR', 'fr', 'en'
+  level integer not null,  -- 100, 200, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 4000, 5000
+  tested_at timestamp with time zone default now(),
+  unique(user_id, language)
+);
+
+-- Enable RLS
+alter table vocab_levels enable row level security;
+
+-- Index for fast lookups
+create index vocab_levels_user_id_idx on vocab_levels(user_id);
+create index vocab_levels_language_idx on vocab_levels(language);
+```
+
+### Code 1c: subscriptions table schema (Phase 2 - structure created now)
+
+```sql
+create table subscriptions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id) on delete cascade,
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  status text not null,  -- 'active', 'canceled', 'past_due'
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now(),
+  unique(user_id)
+);
+
+-- Enable RLS
+alter table subscriptions enable row level security;
 ```
 
 ### Code 2: known_words table schema
@@ -258,6 +474,36 @@ create policy "Users can insert own settings"
 
 create policy "Users can update own settings"
   on user_settings for update
+  using (auth.uid() = user_id);
+
+-- vocab_levels policies
+create policy "Users can view own vocab levels"
+  on vocab_levels for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own vocab levels"
+  on vocab_levels for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own vocab levels"
+  on vocab_levels for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own vocab levels"
+  on vocab_levels for delete
+  using (auth.uid() = user_id);
+
+-- subscriptions policies
+create policy "Users can view own subscription"
+  on subscriptions for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own subscription"
+  on subscriptions for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own subscription"
+  on subscriptions for update
   using (auth.uid() = user_id);
 
 -- known_words policies
@@ -297,8 +543,6 @@ import { supabase } from '@/lib/supabase'
 type AuthContextType = {
   user: User | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
 }
@@ -324,20 +568,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-  }
-
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
-  }
-
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/onboarding` }
+      options: { redirectTo: `${window.location.origin}/onboarding/languages` }
     })
     if (error) throw error
   }
@@ -348,7 +582,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   )
@@ -361,93 +595,75 @@ export const useAuth = () => {
 }
 ```
 
-### Code 6: Login/Signup page UI
+### Code 6: Welcome page with Google OAuth (Simplified - Google OAuth only)
 
 ```typescript
-// webapp/src/pages/Login.tsx
-import { useState } from 'react'
+// webapp/src/pages/Welcome.tsx
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useNavigate } from 'react-router-dom'
 
-export default function Login() {
-  const { signIn, signUp, signInWithGoogle } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
+export default function Welcome() {
+  const { user, signInWithGoogle, signOut } = useAuth()
+  const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAuth = async () => {
     try {
-      if (isSignUp) {
-        await signUp(email, password)
-      } else {
-        await signIn(email, password)
-      }
+      await signInWithGoogle()
+      // Redirect handled by Supabase redirectTo option
     } catch (error) {
       console.error('Auth error:', error)
     }
   }
 
   return (
-    <div className="max-w-md mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">
-        {isSignUp ? 'Create Account' : 'Sign In'}
-      </h1>
-
-      <Button
-        onClick={signInWithGoogle}
-        variant="outline"
-        className="w-full mb-4"
-      >
-        Continue with Google
-      </Button>
-
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+    <div className="min-h-screen flex flex-col">
+      {/* Logout button (top-right, only visible after auth) */}
+      {user && (
+        <div className="absolute top-4 right-4">
+          <Button variant="ghost" onClick={signOut}>
+            Log out
+          </Button>
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or</span>
-        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <img
+          src="/ulysse-photo.jpg"
+          alt="Ulysse"
+          className="w-32 h-32 rounded-full mb-6"
+        />
+
+        <h1 className="text-3xl font-bold text-center mb-4">
+          Thanks for downloading my extension, my name is Ulysse and I learned
+          to code just to build this extension. Hope you'll enjoy it!
+        </h1>
+
+        <p className="text-lg text-center mb-6">
+          To use the extension, you first need to create an account and set it up
+        </p>
+
+        <Button onClick={handleAuth} size="lg" className="mb-2">
+          Create an account and set up Subly
+        </Button>
+
+        <p className="text-sm text-muted-foreground mb-4">
+          It only takes 3 steps
+        </p>
+
+        <button
+          onClick={handleAuth}
+          className="text-sm text-primary underline"
+        >
+          Already have an account? login with google
+        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <Button type="submit" className="w-full">
-          {isSignUp ? 'Sign Up' : 'Sign In'}
-        </Button>
-      </form>
-
-      <p className="mt-4 text-center text-sm">
-        {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-        <button
-          onClick={() => setIsSignUp(!isSignUp)}
-          className="text-primary underline"
-        >
-          {isSignUp ? 'Sign In' : 'Sign Up'}
-        </button>
-      </p>
+      {/* Fixed feedback banner */}
+      <div className="fixed bottom-0 left-0 right-0 bg-muted p-4 text-center text-sm">
+        Any feedback? Please, send me an email at unducamp.pro@gmail.com
+      </div>
     </div>
   )
 }
@@ -558,5 +774,31 @@ serve(async (req) => {
 
 ---
 
-**Last updated**: October 15, 2025
+**Last updated**: January 17, 2025
 **Next milestone**: Complete Supabase Auth setup (Phase 1B)
+
+**Changes in v2.0:**
+- Updated project name to "Subly"
+- Google OAuth only for Phase 1B (no email/password)
+- Added vocab_levels table for multi-language support
+- Added subscriptions table (Phase 2 structure)
+- Simplified AuthContext (removed signIn/signUp functions)
+- Updated Welcome page with Google OAuth button
+- Added Shadcn Card and Alert components
+- Added fixed feedback banner on all pages
+- Updated RLS policies for new tables
+
+**Changes in v2.1:**
+- Added incremental testing strategy (10 tests total)
+- Specified use of Supabase Dashboard (not MCP) for database setup
+- Clarified Service Role Key usage (Phase 2 only)
+- Structured Phase 1B in 5 clear steps with tests after each
+- Added explicit pass criteria for each test
+
+**Changes in v2.2 (Implementation Clarifications - January 2025):**
+- **Vocab Levels**: Confirmed 12 levels (100, 200, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 4000, 5000) as per Code 1b
+- **Webapp Routes**: 7 new routes replace existing Phase 1A routes (/welcome, /onboarding/languages, /onboarding/vocab-test, /onboarding/results, /onboarding/pin-extension, /onboarding/complete, /welcome-back)
+- **OAuth Redirect**: Use `window.location.origin` for dynamic dev/prod redirect URLs
+- **Extension Background**: Modified to open `/welcome` route (instead of `/onboarding`)
+- **Database Tables**: Create all 4 tables in Phase 1B (user_settings, vocab_levels, subscriptions, known_words) even if known_words unused until Phase 3
+- **Shadcn Components**: Install Card, Alert, Toast (Toast for success/error notifications)

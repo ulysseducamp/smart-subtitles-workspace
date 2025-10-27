@@ -20,6 +20,7 @@
 // This script handles the popup interface and communicates with the content script
 
 import { SubtitleTrack, ChromeTab, ChromeMessage, ChromeResponse } from '../types/netflix';
+import { loadSupabaseSettings } from '../lib/loadSupabaseSettings';
 
 console.log('Smart Netflix Subtitles: Popup script loaded');
 
@@ -99,40 +100,44 @@ async function saveSettings(): Promise<void> {
   }
 }
 
-// Function to load settings from chrome.storage.local
+// Function to load settings from Supabase (with chrome.storage.local fallback)
 async function loadSettings(): Promise<void> {
   try {
-    const result = await chrome.storage.local.get([
-      STORAGE_KEYS.SMART_SUBTITLES_ENABLED,
-      STORAGE_KEYS.TARGET_LANGUAGE,
-      STORAGE_KEYS.NATIVE_LANGUAGE,
-      STORAGE_KEYS.VOCABULARY_LEVEL
-    ]);
-    
-    console.log('Smart Netflix Subtitles: Loaded settings from storage:', result);
-    
-    // Update current settings with loaded values (with defaults)
-    const isFirstLaunch = !result[STORAGE_KEYS.SMART_SUBTITLES_ENABLED] && 
-                         !result[STORAGE_KEYS.TARGET_LANGUAGE] && 
-                         !result[STORAGE_KEYS.NATIVE_LANGUAGE] && 
-                         !result[STORAGE_KEYS.VOCABULARY_LEVEL];
-    
-    if (isFirstLaunch) {
-      console.log('Smart Netflix Subtitles: First launch detected - using default disabled state');
+    // Try loading from Supabase first
+    const supabaseSettings = await loadSupabaseSettings();
+
+    if (supabaseSettings) {
+      // Settings loaded from Supabase successfully
+      currentSettings.enabled = true; // Auto-enable if Supabase settings exist
+      currentSettings.targetLanguage = supabaseSettings.targetLanguage;
+      currentSettings.nativeLanguage = supabaseSettings.nativeLanguage;
+      currentSettings.vocabularyLevel = supabaseSettings.vocabularyLevel;
+
+      console.log('Smart Netflix Subtitles: Loaded settings from Supabase:', currentSettings);
+    } else {
+      // Fallback to chrome.storage.local (legacy or no auth)
+      const result = await chrome.storage.local.get([
+        STORAGE_KEYS.SMART_SUBTITLES_ENABLED,
+        STORAGE_KEYS.TARGET_LANGUAGE,
+        STORAGE_KEYS.NATIVE_LANGUAGE,
+        STORAGE_KEYS.VOCABULARY_LEVEL
+      ]);
+
+      currentSettings.enabled = result[STORAGE_KEYS.SMART_SUBTITLES_ENABLED] || false;
+      currentSettings.targetLanguage = result[STORAGE_KEYS.TARGET_LANGUAGE] || '';
+      currentSettings.nativeLanguage = result[STORAGE_KEYS.NATIVE_LANGUAGE] || '';
+      currentSettings.vocabularyLevel = result[STORAGE_KEYS.VOCABULARY_LEVEL] || 0;
+
+      console.log('Smart Netflix Subtitles: No Supabase settings, using local storage or defaults');
     }
-    
-    currentSettings.enabled = result[STORAGE_KEYS.SMART_SUBTITLES_ENABLED] || false;
-    currentSettings.targetLanguage = result[STORAGE_KEYS.TARGET_LANGUAGE] || '';
-    currentSettings.nativeLanguage = result[STORAGE_KEYS.NATIVE_LANGUAGE] || '';
-    currentSettings.vocabularyLevel = result[STORAGE_KEYS.VOCABULARY_LEVEL] || 0;
-    
+
     // Update UI with loaded settings
     smartSubtitlesToggle.checked = currentSettings.enabled;
     targetLanguageSelect.value = currentSettings.targetLanguage;
     nativeLanguageSelect.value = currentSettings.nativeLanguage;
     vocabularyLevelSelect.value = currentSettings.vocabularyLevel.toString();
-    
-    console.log('Smart Netflix Subtitles: Settings loaded and UI updated:', currentSettings);
+
+    console.log('Smart Netflix Subtitles: UI updated with settings');
   } catch (error) {
     console.error('Smart Netflix Subtitles: Error loading settings:', error);
     // Keep default values if loading fails

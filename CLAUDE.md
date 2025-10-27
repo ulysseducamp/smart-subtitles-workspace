@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 CRITICAL: Development Philosophy
+
+**KEEP IT SIMPLE** - Always prefer the simplest solution that works. Avoid over-engineering, premature abstractions, and complex data structures when simple constants or if/else statements suffice. Follow YAGNI (You Aren't Gonna Need It) - only build what's needed NOW, not what might be needed later.
+
+---
+
 ## Project Overview
 
 This is Smart Subtitles - a comprehensive language learning platform that creates personalized Netflix viewing experiences through intelligent bilingual subtitle adaptation. The system automatically switches between target language subtitles and native language subtitles based on the user's vocabulary knowledge.
@@ -56,18 +62,27 @@ npm run lint
 ```bash
 cd webapp/
 
-# Install dependencies
-npm install
-
 # Development server with hot reload
-npm run dev
+npm run dev  # Runs on http://localhost:5173
 
 # Build for production
 npm run build
-
-# Preview production build
-npm run preview
 ```
+
+**Tech Stack:** React 19 + Vite + TypeScript + Tailwind CSS v3 + Shadcn UI + Supabase Auth
+
+**Onboarding Flow (7 pages):**
+1. `/welcome` - Welcome + Google OAuth
+2. `/onboarding/languages` - Target language (PT-BR/FR only) + Native language (13 options) selection
+3. `/onboarding/vocab-test` - Dynamic vocab test (PT/FR word lists, 12 levels: 100-5000)
+4. `/onboarding/results` - Display vocab level result
+5. `/onboarding/pin-extension` - GIF demo showing how to pin extension
+6. `/onboarding/complete` - Final instructions with popup screenshot
+7. `/welcome-back` - Returning users redirect
+
+**Assets Location:** Static files (GIFs, images) go in `webapp/public/`
+
+**Toast System:** Sonner (top-center position) - displays "Connected with {email}" after OAuth
 
 ### FastAPI Backend
 ```bash
@@ -154,7 +169,9 @@ docker run -p 3000:3000 smartsub-api
 
 ## Supported Languages
 
-- **13 Safe Languages**: English, French, Spanish, German, Italian, Portuguese, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean
+- **Target Languages (User-Selectable)**: Portuguese (PT-BR), French (FR)
+- **Native Languages**: 13 languages (English, French, Spanish, German, Italian, Portuguese, Polish, Dutch, Swedish, Danish, Czech, Japanese, Korean)
+- **Backend Support**: API supports EN/FR/PT/ES (EN removed from UI only, backend unchanged)
 - **BCP47 Normalization**: Netflix regional variants (es-ES, pt-BR, etc.) automatically mapped to base languages
 - **Dynamic Detection**: Extension detects available Netflix subtitle languages in real-time
 - **DeepL Integration**: All supported languages have proper DeepL API mapping for translations
@@ -208,6 +225,8 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 2. Update language mapping in `frequency_loader.py`
 3. Add lemmatization support in `lemmatizer.py`
 4. Update DeepL language code mapping in `deepl_api.py`
+5. Add to TARGET_LANGUAGES in `webapp/src/pages/Languages.tsx`
+6. Add to target-language dropdown in `popup.html`
 
 ### Debugging Chrome Extension Issues
 1. Check browser console for page-script errors
@@ -449,6 +468,13 @@ console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles avail
 **Key Lesson**: Simple solutions for simple problems. Complex architecture only when complexity is genuinely needed (YAGNI principle).
 
 ## Development Best Practices (Lessons Learned)
+
+### ROADMAP Progress Tracking
+- **Always Check Boxes**: When implementing tasks from ROADMAP.md, ALWAYS check off `[ ]` → `[x]` for completed items immediately after finishing them
+- **Show Progress**: Checking boxes provides clear visual progress tracking and prevents duplicate work
+- **Mark Dates**: Add completion dates (e.g., `✅ PASSED (January 20, 2025)`) for historical reference
+- **Update Details**: Update task details if actual implementation differs from plan (e.g., different test values)
+- **Systematic Approach**: Read ROADMAP.md at start of session, check boxes as you complete each step, verify all related checkboxes are updated before moving to next major task
 
 ### Railway Deployment
 - **Cache Issues**: Railway caches Docker layers aggressively - use cache busting or modify requirements.txt to force rebuilds

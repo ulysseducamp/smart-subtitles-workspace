@@ -48,7 +48,8 @@
 - Scales to 50,000+ users easily
 
 **Data stored:**
-- `user_settings`: target_lang, native_lang, vocab_level
+- `user_settings`: target_lang, native_lang
+- `vocab_levels`: vocabulary test results per language (supports multi-language testing)
 - `known_words`: user's vocabulary list (for future features)
 - `subscriptions`: billing status (Phase 2)
 
@@ -67,33 +68,34 @@
 **Route:** `/welcome`
 
 **UI Elements:**
+- **Logout button** (top-right corner, visible ONLY after user is authenticated)
 - Ulysse's photo (personal touch)
-- Headline: "Thanks for downloading my extension"
-- Copy: "My name is Ulysse, and I'm going to help you build this extension. Hope you will enjoy it. To use the extension, you first need to set it up."
-- Primary button: "Set up the extension"
-- Subtext: "It only takes 3 steps" (update to reflect auth step)
+- Headline: "Thanks for downloading my extension, my name is Ulysse and I learned to code just to build this extension. Hope you'll enjoy it!"
+- Copy: "To use the extension, you first need to create an account and set it up"
+- Primary button: "Create an account and set up Subly"
+- Subtext: "It only takes 3 steps"
+- Link below button: "Already have an account? login with google" (underlined, triggers Google OAuth)
+- **Fixed feedback banner** (bottom of screen): "Any feedback? Please, send me an email at unducamp.pro@gmail.com"
 
-**User Action:** Clicks "Set up the extension"
+**User Action:**
+- Clicks "Create an account and set up Subly" → Google OAuth popup (new user)
+- OR clicks "login with google" → Google OAuth popup (returning user)
 
 **Data Collected:** None
 
-**Next:** Step 2 (Auth)
+**Next:** Step 2 (Auth via Google OAuth popup)
 
 ---
 
 ### Step 2: Google Authentication 🆕
 
-**Route:** `/auth`
+**Route:** N/A (OAuth popup triggered from `/welcome`)
 
 **UI Elements:**
-- Headline: "Sign in to save your settings"
-- Copy: "Your settings will be saved across all your devices"
-- Benefits list:
-  - ✓ Works on any computer
-  - ✓ No password needed
-  - ✓ Takes 5 seconds
-- Primary button: "Continue with Google" (Google logo)
-- Legal: Small text "By continuing, you agree to our Terms & Privacy Policy"
+- Standard Google OAuth popup (handled by Google)
+- On `/welcome` page: "Step 1: create an account so Subly can save your settings"
+- Primary button: "Continue with google" (Google logo + text)
+- **Fixed feedback banner** (bottom): Same as Step 1
 
 **User Action:** Clicks "Continue with Google" → Google OAuth popup
 
@@ -112,7 +114,13 @@ await supabase.auth.signInWithOAuth({
 - Email
 - Name (optional)
 
-**Next:** Step 3 (Language Selection)
+**Redirect Logic After Auth:**
+- Check if `user_settings` exists in Supabase
+- **If target_lang + native_lang + vocab_level exist:** → `/onboarding/complete` (returning user)
+- **If target_lang + native_lang exist but not vocab_level:** → `/onboarding/vocab-test`
+- **If nothing exists:** → `/onboarding/languages` (new user)
+
+**Next:** Step 3 (Language Selection) OR Skip to complete if returning user
 
 **Edge Case:** If auth fails → Show error message + retry button
 
@@ -123,6 +131,7 @@ await supabase.auth.signInWithOAuth({
 **Route:** `/onboarding/languages`
 
 **UI Elements:**
+- **Logout button** (top-right corner)
 - Headline: "Select your languages"
 - Form:
   - Label: "Target language" (language you want to learn)
@@ -130,6 +139,7 @@ await supabase.auth.signInWithOAuth({
   - Label: "Native language" (your native language)
   - Dropdown: Select with 13 options (see Technical Specs section)
 - Primary button: "Next"
+- **Fixed feedback banner** (bottom): Same as Step 1
 
 **User Action:**
 1. Selects target language
@@ -156,25 +166,34 @@ await supabase.auth.signInWithOAuth({
 **Route:** `/onboarding/vocab-test`
 
 **UI Elements:**
+- **Logout button** (top-right corner)
 - Headline: "Estimate your vocabulary level"
-- Explanation paragraph: Instructions on how the test works (to be finalized)
-- Radio button group: Multiple lists of words
-  - Each option shows a list of sample words
-  - Each option represents a vocabulary level (e.g., 500, 1000, 2000, 5000 words)
-  - User selects the FIRST list where they DON'T understand all words
+- Explanation paragraph:
+  > "Select the first group of words in which there is at least one word you don't know. You should read each group one by one, and as soon as you find a group that contains a word you don't know, stop there and select that group.
+  >
+  > These groups are based on the list of the 10,000 most commonly used portuguese words. The first group is made up of randomly selected words from the 100 most common words, the second group comes from the 200 most common words, and so on.
+  >
+  > This way, your answer will help me roughly estimate how many of the most common portuguese words you already know."
+- Radio button group (13 options):
+  - ○ ele, como, falar, mesmo, dever, onde (100 words)
+  - ○ mundo, tentar, lugar, nome, importante, último (200 words)
+  - ○ morrer, certeza, enquanto, olá, contra, corpo (300 words)
+  - ○ errar, serviço, preço, uma, considerar, vai (500 words)
+  - ○ sentar, clicar, cerca, câmera, vermelho, principalmente (700 words)
+  - ○ observar, membro, americano, desaparecer, apoiar, mamãe (1000 words)
+  - ○ cobrir, relacionar, proteção, expressão, lua, particular (1500 words)
+  - ○ reclamar, impacto, honra, móvel, tribunal, pior (2000 words)
+  - ○ imóvel, duplo, vendedor, olhe, estender, energético (2500 words)
+  - ○ influenciar, mínimo, sensor, ocasião, assegurar, telhado (3000 words)
+  - ○ verso, ousar, puxa, mole, entretenimento, blusa (4000 words)
+  - ○ exausto, art., surdo, deusa, box, parece (5000 words)
+  - ○ **I know all the words above** (5000 words - advanced level)
 - Primary button: "Confirm"
-
-**Example Structure:**
-```
-○ casa, muito, você (500 words - Beginner)
-○ trabalho, cidade, família (1000 words - Elementary)
-● conseguir, desenvolver, situação (2000 words - Intermediate) ← User checks here
-○ estabelecer, proporcionar, adequado (5000 words - Advanced)
-```
+- **Fixed feedback banner** (bottom): Same as Step 1
 
 **User Action:**
-1. Reads word lists
-2. Selects ONE radio button (the first list they don't fully understand)
+1. Reads word lists sequentially
+2. Selects ONE radio button (first group containing unknown word, OR last option if knows all)
 3. Clicks "Confirm"
 
 **Validation:**
@@ -182,15 +201,14 @@ await supabase.auth.signInWithOAuth({
 - If nothing selected → Disable "Confirm" button + show error message
 
 **Technical Note:**
-- Number of lists: TBD (3-5 lists)
-- Words per list: TBD (10-20 words)
-- Exact word content: To be adjusted later
-- Implementation: Simple radio group with `defaultValue` undefined
+- **Mapping:** Group selected = level stored (Option B - direct mapping)
+- Example: User selects "300 words" radio → Store `300` in database
+- Special case: "I know all words above" → Store `5000`
 
 **Data Collected:**
-- `vocab_level` (number: 500 | 1000 | 2000 | 5000 | 10000)
+- `vocab_level` (number: 100 | 200 | 300 | 500 | 700 | 1000 | 1500 | 2000 | 2500 | 3000 | 4000 | 5000)
 
-**Saved to:** Supabase `user_settings` table
+**Saved to:** Supabase `vocab_levels` table (with `language` = target_lang)
 
 **Next:** Step 5 (Test Results)
 
@@ -201,10 +219,12 @@ await supabase.auth.signInWithOAuth({
 **Route:** `/onboarding/results`
 
 **UI Elements:**
+- **Logout button** (top-right corner)
 - Headline: "You know approximately [X] of the most used words"
   - [X] = dynamic number from vocab test (e.g., "2,000")
 - Explanation paragraph: Contextualizes the result, explains what this means
 - Primary button: "OK"
+- **Fixed feedback banner** (bottom): Same as Step 1
 
 **User Action:** Clicks "OK"
 
@@ -219,9 +239,11 @@ await supabase.auth.signInWithOAuth({
 **Route:** `/onboarding/pin-extension`
 
 **UI Elements:**
+- **Logout button** (top-right corner)
 - Headline: "Bonus: Pin the extension for quick access"
 - Animated GIF/Screenshot: Shows how to pin extension in Chrome toolbar
 - Primary button: "I have done it"
+- **Fixed feedback banner** (bottom): Same as Step 1
 
 **User Action:**
 1. Pins extension (optional - not enforced)
@@ -240,6 +262,7 @@ await supabase.auth.signInWithOAuth({
 **Route:** `/onboarding/complete`
 
 **UI Elements:**
+- **Logout button** (top-right corner)
 - Headline: "Congrats, you're all set!"
 - Instructions:
   1. "Start using the extension when watching Netflix"
@@ -248,6 +271,7 @@ await supabase.auth.signInWithOAuth({
 - Screenshot: Shows extension popup on Netflix with "Process subtitles" button highlighted
 - Additional tips paragraph (optional)
 - Primary button: "Start watching on Netflix" (optional - opens netflix.com)
+- **Fixed feedback banner** (bottom): Same as Step 1
 
 **User Action:** Closes tab or clicks to Netflix
 
@@ -268,61 +292,95 @@ await supabase.auth.signInWithOAuth({
 **Popup displays:**
 
 ```
-┌─────────────────────────────┐
-│  Smart Subtitles            │
-├─────────────────────────────┤
-│  Target Language            │
-│  [Portuguese (BR)      ▼]   │
-│                             │
-│  Native Language            │
-│  [French               ▼]   │
-│                             │
-│  Vocabulary Level           │
-│  [2000                 ▼]   │
-│  [Test my level →]          │
-│                             │
-│  [Process Subtitles]        │
-└─────────────────────────────┘
+┌─────────────────────────────────┐
+│  Smart Subtitles                │
+├─────────────────────────────────┤
+│  Target Language                │
+│  [Portuguese (BR)      ▼]       │
+│                                 │
+│  Native Language                │
+│  [French               ▼]       │
+│                                 │
+│  Vocabulary Level  [Test my level]│
+│  ┌───────────────────────────┐ │
+│  │ You know 2000             │ │
+│  │ of the most used words    │ │
+│  │ in Portuguese             │ │
+│  └───────────────────────────┘ │
+│                                 │
+│  [Process Subtitles]            │
+│                                 │
+│  Any feedback? email me at      │
+│  unducamp.pro@gmail.com         │
+└─────────────────────────────────┘
 ```
 
 **UI Elements:**
 - **Target Language dropdown:** Select from 3 languages (PT-BR, FR, EN)
 - **Native Language dropdown:** Select from 13 languages
-- **Vocabulary Level dropdown:** Number input (500, 1000, 2000, 5000, 10000)
-- **"Test my level" link:** Opens webapp vocab test in new tab
+- **Vocabulary Level card (read-only):** Displays "You know X of the most used words in [language]"
+- **"Test my level" button:** Opens webapp vocab test in new tab (route: `/vocab-test`)
 - **"Process Subtitles" button:** Triggers subtitle processing with current settings
+- **Feedback banner (static):** "Any feedback? email me at unducamp.pro@gmail.com" (bottom of popup)
 
 **User Actions:**
 1. (Optional) Change target/native language
-2. (Optional) Change vocab level manually
-3. (Optional) Click "Test my level" to re-test
-4. Click "Process Subtitles" to apply settings
+2. (Optional) Click "Test my level" to re-test vocabulary
+3. Click "Process Subtitles" to apply settings
 
 **Data Flow:**
 - Settings read from Supabase on popup open
-- Changes saved to Supabase on button click
+- Query `vocab_levels` table for current target_lang
+- If no level found → Display "not defined yet" message (see 3.2)
+- Changes to language saved to Supabase immediately
 - Extension uses settings to process subtitles
 
 ---
 
-### 3.2 "Test My Level" Re-test Flow
+### 3.2 Vocabulary Level Not Defined Yet
 
-**Trigger:** User clicks "Test my level" link in popup
+**Trigger:** User changes target_lang to language they haven't tested
+
+**Popup displays:**
+
+```
+┌─────────────────────────────────┐
+│  Vocabulary Level  [Test my level]│
+│  ┌───────────────────────────┐ │
+│  │ Your vocabulary level in  │ │
+│  │ Portuguese is not defined │ │
+│  │ yet, please click on the  │ │
+│  │ button "test my level"    │ │
+│  │ above                     │ │
+│  └───────────────────────────┘ │
+└─────────────────────────────────┘
+```
+
+**Behavior:**
+- "Process Subtitles" button **disabled** until level is tested
+- User must click "Test my level" to enable subtitle processing
+
+---
+
+### 3.3 "Test My Level" Re-test Flow
+
+**Trigger:** User clicks "Test my level" button in popup
 
 **Flow:**
 1. Opens webapp in new tab at `/vocab-test`
-2. Shows same vocabulary test as onboarding Step 4
-3. User selects new level
-4. Clicks "Confirm"
-5. Level automatically updated in Supabase
-6. Popup reflects new level immediately (via Supabase sync)
-7. User closes webapp tab, returns to Netflix
+2. Page reads `target_lang` from Supabase (`user_settings` table)
+3. Shows vocabulary test for that language (same as onboarding Step 4)
+4. User selects level for current target language
+5. Clicks "Confirm"
+6. Level saved to `vocab_levels` table with `language` = target_lang
+7. Popup reflects new level immediately (via Supabase sync)
+8. User closes webapp tab, returns to Netflix
 
 **Note:** No confirmation needed - level updates automatically after test
 
 ---
 
-### 3.3 First-Time Popup (Edge Case)
+### 3.4 First-Time Popup (Edge Case)
 
 **Trigger:** User clicks extension icon BEFORE completing onboarding
 
@@ -507,29 +565,101 @@ const [selectedLevel, setSelectedLevel] = useState<number | null>(null)
 
 ### 5.3 Database Schema
 
-**Table: `user_settings`**
+**Table 1: `user_settings`**
 ```sql
 create table user_settings (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade,
   target_lang text not null,
   native_lang text not null,
-  vocab_level integer default 2000,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now(),
   unique(user_id)
 );
+
+-- Enable RLS
+alter table user_settings enable row level security;
 ```
 
-**Row Level Security:**
+**Table 2: `vocab_levels`** (Multi-language support)
 ```sql
--- Users can only access their own settings
+create table vocab_levels (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id) on delete cascade,
+  language text not null,  -- 'pt-BR', 'fr', 'en'
+  level integer not null,  -- 100, 200, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 4000, 5000
+  tested_at timestamp with time zone default now(),
+  unique(user_id, language)
+);
+
+-- Enable RLS
+alter table vocab_levels enable row level security;
+
+-- Index for fast lookups
+create index vocab_levels_user_id_idx on vocab_levels(user_id);
+create index vocab_levels_language_idx on vocab_levels(language);
+```
+
+**Table 3: `subscriptions`** (Phase 2 - created now, used later)
+```sql
+create table subscriptions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id) on delete cascade,
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  status text not null,  -- 'active', 'canceled', 'past_due'
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now(),
+  unique(user_id)
+);
+
+-- Enable RLS
+alter table subscriptions enable row level security;
+```
+
+**Row Level Security Policies:**
+```sql
+-- user_settings policies
 create policy "Users can view own settings"
   on user_settings for select
   using (auth.uid() = user_id);
 
+create policy "Users can insert own settings"
+  on user_settings for insert
+  with check (auth.uid() = user_id);
+
 create policy "Users can update own settings"
   on user_settings for update
+  using (auth.uid() = user_id);
+
+-- vocab_levels policies
+create policy "Users can view own vocab levels"
+  on vocab_levels for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own vocab levels"
+  on vocab_levels for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own vocab levels"
+  on vocab_levels for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own vocab levels"
+  on vocab_levels for delete
+  using (auth.uid() = user_id);
+
+-- subscriptions policies
+create policy "Users can view own subscription"
+  on subscriptions for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own subscription"
+  on subscriptions for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own subscription"
+  on subscriptions for update
   using (auth.uid() = user_id);
 ```
 
@@ -558,18 +688,24 @@ create policy "Users can update own settings"
 
 ### 5.5 Shadcn UI Components Needed
 
-**Onboarding:**
-- `Button` - Primary actions (already installed ✅)
-- `Select` - Language dropdowns (already installed ✅)
-- `RadioGroup` - Vocabulary test (already installed ✅)
-- `Label` - Form labels (already installed ✅)
-- `Card` - Content containers (need to install)
-- `Alert` - Error messages (need to install)
+**Already Installed (Phase 1A):**
+- `Button` - Primary actions ✅
+- `Select` - Language dropdowns ✅
+- `RadioGroup` - Vocabulary test ✅
+- `Label` - Form labels ✅
 
-**To install:**
+**To Install (Phase 1B):**
+- `Card` - Content containers for popup vocab level display
+- `Alert` - Error messages (auth failures, validation errors)
+
+**Not Needed:**
+- `Input` - NOT required (Google OAuth only, no email/password forms)
+
+**Installation Commands:**
 ```bash
-npx shadcn-ui@latest add card
-npx shadcn-ui@latest add alert
+cd webapp
+npx shadcn@latest add card
+npx shadcn@latest add alert
 ```
 
 ---
@@ -770,6 +906,15 @@ npx shadcn-ui@latest add alert
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** October 16, 2025
+**Document Version:** 2.0
+**Last Updated:** January 17, 2025
 **Next Review:** After Phase 1B implementation
+**Changes in v2.0:**
+- Added multi-language vocab_levels table (supports testing multiple languages)
+- Updated popup UI design (Card component for vocab display, no dropdown)
+- Added fixed feedback banner on all onboarding pages
+- Added logout button (top-right, visible after auth)
+- Updated vocab test with real Portuguese words (13 radio options)
+- Clarified Google OAuth only (no email/password in Phase 1B)
+- Added subscriptions table (Phase 2 - structure created now)
+- Updated redirect logic after auth (detects returning users)

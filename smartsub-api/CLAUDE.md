@@ -71,7 +71,7 @@ class WordTranslation(BaseModel):
 #### `src/frequency_loader.py`
 - **Rôle:** Chargement des listes de fréquence de mots au démarrage
 - **Fonction:** `load_frequency_list(lang)` - Charge top 800 mots par langue
-- **Langues supportées:** EN, FR, PT, ES
+- **Langues supportées:** EN, FR, PT, ES (EN maintenu pour backend mais retiré de l'UI frontend)
 - **Usage:** Détermine si un mot est "connu" (dans top N)
 
 #### `src/lemmatizer.py`
