@@ -4,10 +4,6 @@ import { Button } from '@/components/ui/button'
 export default function Complete() {
   const { signOut } = useAuth()
 
-  const handleOpenNetflix = () => {
-    window.open('https://www.netflix.com', '_blank')
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Logout button */}
