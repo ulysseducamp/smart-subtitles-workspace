@@ -37,7 +37,8 @@
   "externally_connectable": {
     "matches": [
       "http://localhost:5173/*",
-      "https://subly.app/*"
+      "https://staging-subly-extension.vercel.app/*",
+      "https://subly-extension.vercel.app/*"
     ]
   }
 }

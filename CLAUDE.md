@@ -53,10 +53,11 @@ npm run lint
 ```
 
 ### Environment Workflow Rules
-- **Development/Testing**: ALWAYS use `npm run build:staging` → Extension pointe vers `smartsub-api-staging.up.railway.app`
-- **Production/Distribution**: Use `npm run build:production` → Extension pointe vers `smartsub-api-production.up.railway.app`
+- **Development/Testing**: ALWAYS use `npm run build:staging` → Extension pointe vers `smartsub-api-staging.up.railway.app` + `staging-subly-extension.vercel.app`
+- **Production/Distribution**: Use `npm run build:production` → Extension pointe vers `smartsub-api-production.up.railway.app` + `subly-extension.vercel.app`
 - **Branch staging**: `develop` → auto-deploy to staging API
 - **Branch production**: `main` → auto-deploy to production API
+- **WEBAPP_URL**: Configured via webpack.config.js, injected at build time (no manual changes needed)
 
 ### Webapp (React + Vite)
 ```bash
@@ -83,6 +84,21 @@ npm run build
 **Assets Location:** Static files (GIFs, images) go in `webapp/public/`
 
 **Toast System:** Sonner (top-center position) - displays "Connected with {email}" after OAuth
+
+**Deployment:**
+- **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`)
+- **Production**: `subly-extension.vercel.app` (branch: `main`)
+- **Auto-deploy**: Push to `develop`/`main` triggers Vercel deployment
+- **SPA Routing**: `vercel.json` with rewrites for React Router
+- **Environment Variables**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` set in Vercel
+
+**Supabase OAuth Configuration:**
+- **Site URL**: `https://subly-extension.vercel.app` (production default)
+- **Redirect URLs**: Both wildcards (`/*`) AND exact URLs (`/onboarding/languages`) required
+  - `http://localhost:5173/*` + `http://localhost:5173/onboarding/languages`
+  - `https://staging-subly-extension.vercel.app/*` + `.../onboarding/languages`
+  - `https://subly-extension.vercel.app/*` + `.../onboarding/languages`
+- **Why Both**: OAuth checks exact URLs first, falls back to wildcards
 
 ### FastAPI Backend
 ```bash

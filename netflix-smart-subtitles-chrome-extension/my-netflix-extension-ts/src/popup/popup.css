@@ -111,77 +111,57 @@ button:disabled {
   border: 1px solid #bee5eb;
 }
 
-/* Toggle Switch Styles */
-.toggle-container {
+/* Vocabulary Card Styles (Shadcn-like) */
+.vocab-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
+  margin-bottom: 8px;
 }
 
-.toggle-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+.vocab-header label {
+  margin-bottom: 0;
+}
+
+.test-level-btn {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: transparent;
+  color: #6366f1;
+  border: 1px solid #6366f1;
+  border-radius: 6px;
   cursor: pointer;
-  margin: 0;
-}
-
-.toggle-text {
-  font-size: 14px;
-  color: #555;
+  transition: all 0.2s;
   font-weight: 500;
 }
 
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
+.test-level-btn:hover {
+  background-color: #6366f1;
+  color: white;
 }
 
-.toggle-input {
-  opacity: 0;
-  width: 0;
-  height: 0;
+.vocab-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 24px;
+.vocab-text {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+  text-align: center;
 }
 
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-
-.toggle-input:checked + .toggle-slider {
-  background-color: #007bff;
-}
-
-.toggle-input:checked + .toggle-slider:before {
-  transform: translateX(26px);
-}
-
-.toggle-input:disabled + .toggle-slider {
-  background-color: #e9ecef;
-  cursor: not-allowed;
+.vocab-text strong {
+  font-weight: 600;
+  color: #111827;
 }
 
 /* Loading Indicator */
@@ -268,6 +248,27 @@ button:disabled {
 option:disabled {
   color: #999;
   font-style: italic;
+}
+
+/* Feedback Banner */
+.feedback-banner {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.feedback-banner a {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.feedback-banner a:hover {
+  text-decoration: underline;
 }
 
 /* Responsive adjustments */

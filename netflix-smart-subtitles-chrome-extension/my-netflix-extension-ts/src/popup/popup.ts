@@ -30,7 +30,6 @@ console.log('Smart Netflix Subtitles: WEBAPP_URL =', WEBAPP_URL);
 
 // Interface for Smart Subtitles settings
 interface SmartSubtitlesSettings {
-  enabled: boolean;
   targetLanguage: string;
   nativeLanguage: string;
   vocabularyLevel: number;
@@ -38,7 +37,6 @@ interface SmartSubtitlesSettings {
 
 // Storage keys for chrome.storage.local
 const STORAGE_KEYS = {
-  SMART_SUBTITLES_ENABLED: 'smartSubtitlesEnabled',
   TARGET_LANGUAGE: 'targetLanguage',
   NATIVE_LANGUAGE: 'nativeLanguage',
   VOCABULARY_LEVEL: 'vocabularyLevel'
@@ -64,13 +62,13 @@ const SUPPORTED_NATIVE_LANGUAGES: Record<string, string> = {
 };
 
 // Get DOM elements
-const smartSubtitlesToggle = document.getElementById('smart-subtitles-toggle') as HTMLInputElement;
 const targetLanguageSelect = document.getElementById('target-language') as HTMLSelectElement;
 const nativeLanguageSelect = document.getElementById('native-language') as HTMLSelectElement;
-const vocabularyLevelSelect = document.getElementById('vocabulary-level') as HTMLSelectElement;
 const processBtn = document.getElementById('process-btn') as HTMLButtonElement;
+const testLevelBtn = document.getElementById('test-level-btn') as HTMLButtonElement;
 const statusMessage = document.getElementById('status-message') as HTMLDivElement;
 const loadingIndicator = document.getElementById('loading-indicator') as HTMLDivElement;
+const vocabDisplayDiv = document.getElementById('vocab-display') as HTMLDivElement;
 
 // Legacy elements (for backward compatibility)
 const subtitleSelect = document.getElementById('subtitle-select') as HTMLSelectElement;
@@ -79,7 +77,6 @@ const legacySection = document.getElementById('legacy-section') as HTMLDivElemen
 
 // State management
 let currentSettings: SmartSubtitlesSettings = {
-  enabled: false,
   targetLanguage: '',
   nativeLanguage: '',
   vocabularyLevel: 0
@@ -91,12 +88,11 @@ let isProcessing = false;
 async function saveSettings(): Promise<void> {
   try {
     const settings = {
-      [STORAGE_KEYS.SMART_SUBTITLES_ENABLED]: currentSettings.enabled,
       [STORAGE_KEYS.TARGET_LANGUAGE]: currentSettings.targetLanguage,
       [STORAGE_KEYS.NATIVE_LANGUAGE]: currentSettings.nativeLanguage,
       [STORAGE_KEYS.VOCABULARY_LEVEL]: currentSettings.vocabularyLevel
     };
-    
+
     await chrome.storage.local.set(settings);
     console.log('Smart Netflix Subtitles: Settings saved to storage:', settings);
   } catch (error) {
@@ -112,7 +108,6 @@ async function loadSettings(): Promise<void> {
 
     if (supabaseSettings) {
       // Settings loaded from Supabase successfully
-      currentSettings.enabled = true; // Auto-enable if Supabase settings exist
       currentSettings.targetLanguage = supabaseSettings.targetLanguage;
       currentSettings.nativeLanguage = supabaseSettings.nativeLanguage;
       currentSettings.vocabularyLevel = supabaseSettings.vocabularyLevel;
@@ -121,13 +116,11 @@ async function loadSettings(): Promise<void> {
     } else {
       // Fallback to chrome.storage.local (legacy or no auth)
       const result = await chrome.storage.local.get([
-        STORAGE_KEYS.SMART_SUBTITLES_ENABLED,
         STORAGE_KEYS.TARGET_LANGUAGE,
         STORAGE_KEYS.NATIVE_LANGUAGE,
         STORAGE_KEYS.VOCABULARY_LEVEL
       ]);
 
-      currentSettings.enabled = result[STORAGE_KEYS.SMART_SUBTITLES_ENABLED] || false;
       currentSettings.targetLanguage = result[STORAGE_KEYS.TARGET_LANGUAGE] || '';
       currentSettings.nativeLanguage = result[STORAGE_KEYS.NATIVE_LANGUAGE] || '';
       currentSettings.vocabularyLevel = result[STORAGE_KEYS.VOCABULARY_LEVEL] || 0;
@@ -136,10 +129,11 @@ async function loadSettings(): Promise<void> {
     }
 
     // Update UI with loaded settings
-    smartSubtitlesToggle.checked = currentSettings.enabled;
     targetLanguageSelect.value = currentSettings.targetLanguage;
     nativeLanguageSelect.value = currentSettings.nativeLanguage;
-    vocabularyLevelSelect.value = currentSettings.vocabularyLevel.toString();
+
+    // Update vocabulary display Card
+    updateVocabDisplay();
 
     console.log('Smart Netflix Subtitles: UI updated with settings');
   } catch (error) {
@@ -161,6 +155,37 @@ function clearStatus(): void {
   statusMessage.className = 'status';
 }
 
+// Helper function to convert language codes to readable names
+function getLanguageName(code: string): string {
+  const languageNames: Record<string, string> = {
+    'pt-BR': 'Portuguese',
+    'fr': 'French',
+    'en': 'English'
+  };
+  return languageNames[code] || code;
+}
+
+// Function to update vocabulary display in Card
+function updateVocabDisplay(): void {
+  const targetLang = currentSettings.targetLanguage;
+  const vocabLevel = currentSettings.vocabularyLevel;
+
+  if (!targetLang) {
+    vocabDisplayDiv.innerHTML = 'Please select a target language above';
+    return;
+  }
+
+  const languageName = getLanguageName(targetLang);
+
+  if (!vocabLevel || vocabLevel === 0) {
+    // Case 2: No level defined yet
+    vocabDisplayDiv.innerHTML = `Your vocabulary level in ${languageName} is not defined yet, please click on the button "test my level" above`;
+  } else {
+    // Case 1: Level exists - display with bold number
+    vocabDisplayDiv.innerHTML = `You know <strong>${vocabLevel}</strong> of the most used words in <strong>${languageName}</strong>`;
+  }
+}
+
 // Function to show loading indicator
 function showLoading(): void {
   loadingIndicator.style.display = 'flex';
@@ -177,10 +202,6 @@ function hideLoading(): void {
 
 // Function to validate form
 function validateForm(): boolean {
-  if (!currentSettings.enabled) {
-    return false;
-  }
-
   if (!currentSettings.targetLanguage) {
     showStatus('Please select a target language', 'error');
     return false;
@@ -202,26 +223,6 @@ function validateForm(): boolean {
   }
 
   return true;
-}
-
-// Function to update form state based on toggle
-function updateFormState(): void {
-  const isEnabled = smartSubtitlesToggle.checked;
-
-  targetLanguageSelect.disabled = !isEnabled;
-  nativeLanguageSelect.disabled = !isEnabled;
-  vocabularyLevelSelect.disabled = !isEnabled;
-  processBtn.disabled = !isEnabled || isProcessing;
-
-  currentSettings.enabled = isEnabled;
-
-  // Save settings when toggle changes
-  saveSettings();
-
-  if (!isEnabled) {
-    clearStatus();
-    hideLoading();
-  }
 }
 
 // Function to load available native languages from Netflix
@@ -296,9 +297,8 @@ function populateNativeLanguageDropdown(availableLanguages: string[]): void {
 
 // Function to update process button state
 function updateProcessButton(): void {
-  const canProcess = currentSettings.enabled && 
-                    currentSettings.targetLanguage && 
-                    currentSettings.nativeLanguage && 
+  const canProcess = currentSettings.targetLanguage &&
+                    currentSettings.nativeLanguage &&
                     currentSettings.vocabularyLevel &&
                     currentSettings.targetLanguage !== currentSettings.nativeLanguage &&
                     !isProcessing;
@@ -310,28 +310,17 @@ function updateProcessButton(): void {
 function handleLanguageChange(): void {
   currentSettings.targetLanguage = targetLanguageSelect.value;
   currentSettings.nativeLanguage = nativeLanguageSelect.value;
-  
+
   // Save settings when language changes
   saveSettings();
-  
+
+  // Update vocabulary display when target language changes
+  updateVocabDisplay();
+
   updateProcessButton();
-  
+
   // Clear any previous validation errors
   if (currentSettings.targetLanguage && currentSettings.nativeLanguage) {
-    clearStatus();
-  }
-}
-
-// Function to handle vocabulary level change
-function handleVocabularyLevelChange(): void {
-  currentSettings.vocabularyLevel = parseInt(vocabularyLevelSelect.value) || 0;
-  
-  // Save settings when vocabulary level changes
-  saveSettings();
-  
-  updateProcessButton();
-  
-  if (currentSettings.vocabularyLevel) {
     clearStatus();
   }
 }
@@ -448,18 +437,17 @@ async function checkNetflixPage(): Promise<void> {
 
 // Function to enable Smart Subtitles controls
 function enableSmartSubtitlesControls(): void {
-  smartSubtitlesToggle.disabled = false;
-  updateFormState();
+  targetLanguageSelect.disabled = false;
+  nativeLanguageSelect.disabled = false;
+  updateProcessButton();
 }
 
 // Function to disable all controls
 function disableAllControls(): void {
-  smartSubtitlesToggle.disabled = true;
   targetLanguageSelect.disabled = true;
   nativeLanguageSelect.disabled = true;
-  vocabularyLevelSelect.disabled = true;
   processBtn.disabled = true;
-  
+
   // Also disable legacy controls
   subtitleSelect.disabled = true;
   downloadBtn.disabled = true;
@@ -596,19 +584,22 @@ async function initializePopup(): Promise<void> {
   // Load available native languages from Netflix
   await loadAvailableNativeLanguages();
 
-  // Update form state based on loaded settings
-  updateFormState();
+  // Update process button based on loaded settings
+  updateProcessButton();
 
   // Check Netflix page when popup opens
   checkNetflixPage();
-  
+
   // Add event listeners for Smart Subtitles controls
-  smartSubtitlesToggle.addEventListener('change', updateFormState);
   targetLanguageSelect.addEventListener('change', handleLanguageChange);
   nativeLanguageSelect.addEventListener('change', handleLanguageChange);
-  vocabularyLevelSelect.addEventListener('change', handleVocabularyLevelChange);
   processBtn.addEventListener('click', processSubtitles);
-  
+
+  // Add event listener for "Test my level" button
+  testLevelBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: `${WEBAPP_URL}/onboarding/vocab-test` });
+  });
+
   // Add event listeners for legacy controls
   downloadBtn.addEventListener('click', handleDownloadClick);
   subtitleSelect.addEventListener('change', function() {

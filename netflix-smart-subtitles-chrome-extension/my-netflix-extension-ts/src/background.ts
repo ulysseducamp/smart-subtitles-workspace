@@ -5,18 +5,22 @@
 
 import { supabase } from './lib/supabase'
 
+// Webapp URL (set by webpack based on environment)
+const WEBAPP_URL = process.env.WEBAPP_URL || 'http://localhost:5173';
+
 // Allowed origins for message passing (security)
 const ALLOWED_ORIGINS = [
-  'http://localhost:5173', // Local dev
-  'https://subly.app',     // Production
+  'http://localhost:5173',                              // Local dev
+  'https://staging-subly-extension.vercel.app',         // Staging
+  'https://subly-extension.vercel.app',                 // Production
 ]
 
 // Open onboarding webapp on first install
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    // Open welcome page in new tab
+    // Open welcome page in new tab (URL set by webpack based on build environment)
     chrome.tabs.create({
-      url: 'http://localhost:5173/welcome' // Local dev (will be changed to production URL later)
+      url: `${WEBAPP_URL}/welcome`
     });
   }
 });
