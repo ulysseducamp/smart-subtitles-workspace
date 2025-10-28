@@ -202,39 +202,14 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
 
 ### Design Work (Days 2-5)
 
-- [ ] **Webapp Deployment (PREREQUISITE)** ⚡ **HIGH PRIORITY**
-  - [ ] Deploy webapp to Vercel production (~15 min)
-    - [ ] Create Vercel account
-    - [ ] Connect GitHub repo
-    - [ ] Configure build settings (Vite, webapp/ root)
-    - [ ] Add environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
-    - [ ] Note production URL
-  - [ ] Configure Supabase redirect URLs (~5 min)
-    - [ ] Add production URL to Supabase Authentication settings
-    - [ ] Keep localhost:5173 for dev
-  - [ ] Add WEBAPP_URL variable to extension (~10 min)
-    - [ ] Update webpack.config.js with environment variable
-    - [ ] Add WEBAPP_URL constant in popup.ts
-    - [ ] Test staging build (localhost) and production build (Vercel)
-  - **Rationale:** Deploy early, deploy often. Enables real testing, multi-device validation, no technical debt.
-  - **Reference:** See `POPUP_REDESIGN_PLAN.md` Part 1 for detailed steps
-
-- [ ] **Popup UI Design** 🎨
-  - [ ] Remove Smart Subtitles toggle (always active)
-  - [ ] Replace vocabulary level dropdown with read-only Card display
-  - [ ] Add "Test my level" button (opens webapp `/vocab-test`)
-  - [ ] Add feedback banner at bottom
-  - [ ] Keep Shadcn-like styling (HTML/CSS vanilla, no React migration)
-  - **Reference:** See `POPUP_REDESIGN_PLAN.md` Part 2 for detailed steps
-
 - [ ] **Onboarding Flow Design**
-  - [ ] Step 1: Welcome screen
-  - [ ] Step 2: Language selection (target + native)
+  - [x] Step 1: Welcome screen
+  - [x] Step 2: Language selection (target + native)
     - [ ] Remove English from target language options (keep only PT-BR + FR for now)
   - [x] Step 3: Vocabulary test
     - [x] Implement dynamic vocab test (PT-BR + FR word lists) ✅ (January 27, 2025)
-  - [ ] Step 4: Pin extension reminder
-  - [ ] Step 5: Success message
+  - [x] Step 4: Pin extension reminder
+  - [x] Step 5: Success message
 
 - [ ] **Subtitles Appearance**
   - [ ] Font styling improvements
@@ -242,12 +217,13 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
   - [ ] Positioning options
   - [ ] Inline translation styling
 
-- [ ] **Dashboard UI Polish**
-  - [ ] Known words list view
-  - [ ] Learning statistics charts
-  - [ ] Profile settings page
+- [ ] **Popup UI Design**
+  - [ ] Settings panel redesign
+  - [ ] Language selector UI
+  - [ ] Quick actions menu
 
-**Duration**: 1 week (4h backend + 1.5h deployment + rest for design)
+
+**Duration**: 1 week (4h backend + rest for design)
 **Target completion**: October 22, 2025
 
 ---

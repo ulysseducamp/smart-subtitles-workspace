@@ -22,7 +22,11 @@
 import { SubtitleTrack, ChromeTab, ChromeMessage, ChromeResponse } from '../types/netflix';
 import { loadSupabaseSettings } from '../lib/loadSupabaseSettings';
 
+// Webapp URL - set via webpack environment variable (production vs development)
+const WEBAPP_URL = process.env.WEBAPP_URL || 'http://localhost:5173';
+
 console.log('Smart Netflix Subtitles: Popup script loaded');
+console.log('Smart Netflix Subtitles: WEBAPP_URL =', WEBAPP_URL);
 
 // Interface for Smart Subtitles settings
 interface SmartSubtitlesSettings {
