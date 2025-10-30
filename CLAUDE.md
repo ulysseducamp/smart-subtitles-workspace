@@ -296,8 +296,16 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 
 **Code Location**: `webapp/`, `netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/src/background.ts`
 
-### Phase 1B - Supabase Auth Setup 🚧 **IN PROGRESS**
-**Next**: Direct auth (Google OAuth + Email/Password) without anonymous sign-in phase. See `ROADMAP.md` for implementation checklist.
+### Phase 1B - Supabase Auth + Popup Redesign ✅ **COMPLETED** (January 2025)
+**Auth**: Google OAuth + Supabase session sync between webapp and extension
+**Popup Redesign**:
+- Removed Smart Subtitles toggle (always enabled)
+- Replaced vocab dropdown with read-only Shadcn Card displaying level from Supabase
+- Added "Test my level" button linking to `/onboarding/vocab-test`
+- Added feedback banner with contact email
+- Fixed `background.ts` to use `WEBAPP_URL` env variable (staging/production)
+- Fixed `manifest.json` `externally_connectable` to allow staging + production URLs
+**Code**: `src/popup/popup.{ts,html,css}`, `src/background.ts`, `manifest.json`
 
 ---
 

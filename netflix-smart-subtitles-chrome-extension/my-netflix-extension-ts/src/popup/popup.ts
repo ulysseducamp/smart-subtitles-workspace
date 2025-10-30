@@ -28,18 +28,21 @@ const WEBAPP_URL = process.env.WEBAPP_URL || 'http://localhost:5173';
 console.log('Smart Netflix Subtitles: Popup script loaded');
 console.log('Smart Netflix Subtitles: WEBAPP_URL =', WEBAPP_URL);
 
-// Interface for Smart Subtitles settings
+// Interface for Smart Subtitles settings (local definition for popup)
 interface SmartSubtitlesSettings {
+  enabled: boolean;
   targetLanguage: string;
   nativeLanguage: string;
   vocabularyLevel: number;
+  isSubscribed: boolean;
 }
 
 // Storage keys for chrome.storage.local
 const STORAGE_KEYS = {
   TARGET_LANGUAGE: 'targetLanguage',
   NATIVE_LANGUAGE: 'nativeLanguage',
-  VOCABULARY_LEVEL: 'vocabularyLevel'
+  VOCABULARY_LEVEL: 'vocabularyLevel',
+  IS_SUBSCRIBED: 'isSubscribed'
 } as const;
 
 // Supported languages mapping (Netflix code -> DeepL code)
@@ -77,9 +80,11 @@ const legacySection = document.getElementById('legacy-section') as HTMLDivElemen
 
 // State management
 let currentSettings: SmartSubtitlesSettings = {
+  enabled: true,
   targetLanguage: '',
   nativeLanguage: '',
-  vocabularyLevel: 0
+  vocabularyLevel: 0,
+  isSubscribed: false
 };
 
 let isProcessing = false;
@@ -127,6 +132,10 @@ async function loadSettings(): Promise<void> {
 
       console.log('Smart Netflix Subtitles: No Supabase settings, using local storage or defaults');
     }
+
+    // Load subscription status from chrome.storage.local (mockup)
+    const subscriptionResult = await chrome.storage.local.get([STORAGE_KEYS.IS_SUBSCRIBED]);
+    currentSettings.isSubscribed = subscriptionResult[STORAGE_KEYS.IS_SUBSCRIBED] || false;
 
     // Update UI with loaded settings
     targetLanguageSelect.value = currentSettings.targetLanguage;
@@ -328,7 +337,14 @@ function handleLanguageChange(): void {
 // Function to process subtitles
 async function processSubtitles(): Promise<void> {
   console.log('Smart Netflix Subtitles: Processing subtitles with settings:', currentSettings);
-  
+
+  // Check subscription status first
+  if (!currentSettings.isSubscribed) {
+    console.log('Smart Netflix Subtitles: User not subscribed, redirecting to subscribe page');
+    chrome.tabs.create({ url: `${WEBAPP_URL}/subscribe` });
+    return;
+  }
+
   if (!validateForm()) {
     return;
   }

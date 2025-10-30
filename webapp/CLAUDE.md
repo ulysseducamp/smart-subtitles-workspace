@@ -90,6 +90,19 @@ OAuth redirects to `/onboarding/languages`, then React checks:
 
 Webapp syncs auth session to Chrome extension via `chrome.runtime.sendMessage()` after OAuth success. See `src/lib/syncExtension.ts`.
 
+**Extension ID** (in `syncExtension.ts`): `hpgaiiooldnocggkkmehaboncfbmhkhf`
+
+**Extension manifest.json** must include in `externally_connectable`:
+```json
+{
+  "matches": [
+    "http://localhost:5173/*",
+    "https://staging-subly-extension.vercel.app/*",
+    "https://subly-extension.vercel.app/*"
+  ]
+}
+```
+
 ## Common Issues
 
 ### OAuth redirects to wrong URL

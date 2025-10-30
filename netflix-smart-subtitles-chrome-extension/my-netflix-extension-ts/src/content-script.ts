@@ -197,7 +197,8 @@ function handlePageScriptMessage(event: MessageEvent): void {
             enabled: true,
             targetLanguage: result.targetLanguage,
             nativeLanguage: result.nativeLanguage,
-            vocabularyLevel: result.vocabularyLevel
+            vocabularyLevel: result.vocabularyLevel,
+            isSubscribed: result.isSubscribed || false
           };
         }
         

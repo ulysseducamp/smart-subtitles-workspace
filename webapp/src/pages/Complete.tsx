@@ -1,13 +1,15 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
+import { ManageSubscriptionButton } from '@/components/ManageSubscriptionButton'
 
 export default function Complete() {
   const { signOut } = useAuth()
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Logout button */}
-      <div className="absolute top-4 right-4">
+      {/* Header buttons */}
+      <div className="absolute top-4 right-4 flex gap-2">
+        <ManageSubscriptionButton />
         <Button variant="ghost" onClick={signOut}>
           Log out
         </Button>

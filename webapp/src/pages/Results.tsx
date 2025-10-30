@@ -51,8 +51,8 @@ export default function Results() {
           </ul>
         </div>
 
-        <Button onClick={() => navigate('/onboarding/pin-extension')} className="w-full">
-          OK
+        <Button onClick={() => navigate('/onboarding/pricing')} className="w-full">
+          Continue
         </Button>
       </div>
 

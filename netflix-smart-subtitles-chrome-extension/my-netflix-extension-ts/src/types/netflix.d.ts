@@ -113,6 +113,7 @@ export interface SmartSubtitlesSettings {
   targetLanguage: string;
   nativeLanguage: string;
   vocabularyLevel: number;
+  isSubscribed: boolean;
 }
 
 export interface ChromeResponse {

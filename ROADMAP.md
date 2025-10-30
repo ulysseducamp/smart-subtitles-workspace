@@ -217,10 +217,18 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
   - [ ] Positioning options
   - [ ] Inline translation styling
 
-- [ ] **Popup UI Design**
-  - [ ] Settings panel redesign
-  - [ ] Language selector UI
-  - [ ] Quick actions menu
+- [x] **Popup UI Design** ✅ (January 28, 2025)
+  - [x] Settings panel redesign (removed toggle, added vocab Card)
+  - [x] Language selector UI (kept existing dropdowns)
+  - [x] Quick actions menu (added "Test my level" button + feedback banner)
+  - **Implementation details:**
+    - Removed Smart Subtitles toggle (always enabled)
+    - Replaced vocab level dropdown with read-only Shadcn Card
+    - Added "Test my level" button linking to `/onboarding/vocab-test`
+    - Added feedback banner with contact email
+    - Fixed WEBAPP_URL in background.ts (uses env variable)
+    - Fixed externally_connectable in manifest.json (includes staging URL)
+  - **Commit:** `bcd37d4` - feat(popup): Complete Phase 1B popup redesign
 
 
 **Duration**: 1 week (4h backend + rest for design)
