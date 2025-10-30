@@ -60,12 +60,6 @@ export function PricingCard({ context, onCheckout }: PricingCardProps) {
         <Button onClick={onCheckout} size="lg" className="w-full">
           {buttonText}
         </Button>
-
-        {context === 'expired' && (
-          <p className="text-sm text-center text-muted-foreground">
-            Already subscribed? <a href="/account" className="underline">Manage subscription</a>
-          </p>
-        )}
       </CardContent>
     </Card>
   )
