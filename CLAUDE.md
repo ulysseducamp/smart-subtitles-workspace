@@ -530,6 +530,16 @@ console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles avail
 - **Update Details**: Update task details if actual implementation differs from plan (e.g., different test values)
 - **Systematic Approach**: Read ROADMAP.md at start of session, check boxes as you complete each step, verify all related checkboxes are updated before moving to next major task
 
+### Migration Plan Tracking
+- **Check Off As You Go**: When following markdown migration plans (e.g., NEXT_MIGRATION_PLAN.md), ALWAYS check off `[ ]` → `[x]` for completed items immediately after finishing them
+- **Mark Phase Status**: Update phase headers with status indicators:
+  - `✅ COMPLÉTÉ` for fully completed phases
+  - `🚧 EN COURS (1/9 pages)` for partially completed phases with progress count
+  - `⏳ À TESTER` for items awaiting user testing/validation
+- **Real-Time Updates**: Update checkboxes during work, not after the entire session
+- **Test Tracking**: Mark intermediate test results with `✅ RÉUSSI` or `❌ ÉCHOUÉ` to track validation
+- **Never Skip This**: Checking off items prevents confusion about what's done and what remains
+
 ### Railway Deployment
 - **Cache Issues**: Railway caches Docker layers aggressively - use cache busting or modify requirements.txt to force rebuilds
 - **Test Locally First**: Always test new dependencies locally before Railway deployment
