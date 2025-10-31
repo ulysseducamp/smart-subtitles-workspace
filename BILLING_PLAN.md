@@ -50,7 +50,7 @@
 - [x] Create `updateSubscriptionStatus()` function to show/hide text
 - [x] Modify `processSubtitles()` to redirect to `/subscribe` when not subscribed
 - [x] Build extension: `npm run build:staging` ✅
-- [ ] **✅ TEST 6:** Load extension, test subscription check with console commands
+- [x] **✅ TEST 6:** Load extension, test subscription check with console commands
 
 ### Step 7: End-to-End Flow Testing (1h)
 - [x] **Flow 1:** Complete onboarding → Pricing mockup ✅ PASSED (January 30, 2025)

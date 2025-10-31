@@ -236,48 +236,133 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
 
 ---
 
-## 📋 PHASE 2 - BILLING & SUBSCRIPTION (WEEK 2)
+## 📋 PHASE 2 - BILLING & SUBSCRIPTION (REVISED - Week 2-3)
 
-**Objective**: Implement payment system with Stripe for subscription management
+**Status**: Phase 2A complete ✅, Phase 2B in progress
+**Objective**: Migrate to Next.js and implement Stripe payment system
 
-### Stripe Setup (Day 1 - 2 hours)
+---
 
-- [ ] **Stripe Account** (30min)
-  - [ ] Create Stripe account
-  - [ ] Enable test mode
-  - [ ] Configure products and pricing
-  - [ ] Note: API keys (test + production)
+### 🎉 PHASE 2A - FRONTEND MOCKUPS (COMPLETED ✅ January 30, 2025)
 
-- [ ] **Stripe Integration** (1h 30min)
-  - [ ] Install Stripe SDK in webapp
-  - [ ] Create checkout session endpoint
-  - [ ] Setup webhook endpoint for Stripe events
-  - [ ] Configure Supabase Edge Function for webhooks [voir Code 8]
+**Duration**: 6 hours
+**Deliverables**: UI flows with mockups (no backend)
 
-### Billing UI (Day 2 - 2 hours)
+- [x] **Pricing & Subscribe Pages** (2h)
+  - [x] `/onboarding/pricing` page with 14-day trial offer
+  - [x] `/subscribe` page for expired subscriptions
+  - [x] Reusable `<PricingCard>` component
 
-- [ ] **Pricing Page** (1h)
-  - [ ] Display subscription plans
-  - [ ] "Subscribe" button → Stripe Checkout
-  - [ ] Free trial banner
+- [x] **Manage Subscription** (1h)
+  - [x] `<ManageSubscriptionButton>` component
+  - [x] Added to PinExtension, Complete, WelcomeBack pages
 
-- [ ] **Account Management** (1h)
-  - [ ] View current subscription
-  - [ ] Cancel subscription button
-  - [ ] Update payment method
-  - [ ] Billing history
+- [x] **Extension Integration** (1h)
+  - [x] Subscription check in popup (redirect to /subscribe)
+  - [x] Added `isSubscribed` field to types
 
-### Testing & Validation (Day 3 - 2 hours)
+- [x] **Testing** (2h)
+  - [x] Flow 1: Onboarding → Pricing ✅
+  - [x] Flow 2: Manage Subscription button ✅
+  - [x] Flow 3: Extension popup redirect ✅
 
-- [ ] **End-to-End Testing**
-  - [ ] Test checkout flow (test cards)
-  - [ ] Test webhook reception
-  - [ ] Test subscription activation
+**Result**: Fully functional UI with alert mockups, ready for backend integration
+
+---
+
+### 🚧 PHASE 2B - NEXT.JS MIGRATION (IN PROGRESS - Days 1-2)
+
+**Decision made**: January 30, 2025
+**Rationale**: Next.js provides integrated full-stack architecture (frontend + backend API routes) vs maintaining separate Vite frontend + FastAPI backend for billing
+
+**Duration**: 1-2 days (10-14h)
+**Goal**: Migrate from Vite to Next.js 15 with App Router
+
+**Day 1: Setup & Migration (6-8h)**
+
+- [ ] **Initialize Next.js** (1h)
+  - [ ] Create Next.js 15 project with App Router
+  - [ ] Configure TypeScript, Tailwind, Shadcn UI
+  - [ ] Setup project structure
+
+- [ ] **Migrate Supabase** (1h)
+  - [ ] Copy Supabase client setup
+  - [ ] Configure env vars
+  - [ ] Test auth connection
+
+- [ ] **Migrate Components** (2-3h)
+  - [ ] Copy all React components
+  - [ ] Add `'use client'` directives
+  - [ ] Update imports for Next.js structure
+
+- [ ] **Migrate Pages** (2-3h)
+  - [ ] All onboarding pages
+  - [ ] Subscribe page
+  - [ ] Welcome/welcome-back pages
+  - [ ] Test navigation and routing
+
+**Day 2: Stripe Integration (4-6h)**
+
+- [x] **Stripe Setup** (30min) ✅ COMPLETED
+  - [x] Created Stripe "Subly" business (test mode)
+  - [x] Product: "Subly Premium" (ID: `prod_TKYdxerk6gjUJe`)
+  - [x] Price: $1/month (ID: `price_1SNtWWCdkaUrc0RrUnNRVpya`)
+  - [x] Enabled Customer Portal with cancellation
+
+- [ ] **Create API Routes** (2-3h)
+  - [ ] `/app/api/stripe/checkout/route.ts` - Create session with trial
+  - [ ] `/app/api/stripe/portal/route.ts` - Customer portal session
+  - [ ] `/app/api/stripe/webhook/route.ts` - Handle Stripe events
+
+- [ ] **Frontend Integration** (1h)
+  - [ ] Replace mockups with real API calls
+  - [ ] Update PricingCard and ManageSubscriptionButton
+
+- [ ] **Webhook Configuration** (30min)
+  - [ ] Deploy to Vercel staging
+  - [ ] Configure webhook in Stripe Dashboard
+  - [ ] Test webhook events
+
+- [ ] **End-to-End Testing** (1h)
+  - [ ] Test full checkout flow
+  - [ ] Test subscription management
+  - [ ] Verify Supabase sync
+
+**Architecture after Phase 2B:**
+```
+Next.js Monolith (Vercel)
+  ├─ Frontend (React App Router pages)
+  ├─ Backend (API routes for Stripe)
+  └─ Calls FastAPI (subtitle processing - unchanged)
+
+Supabase (Database + Auth - unchanged)
+Stripe (Payment processing)
+```
+
+---
+
+### 🎯 PHASE 2C - PRODUCTION DEPLOYMENT (Day 3)
+
+**Duration**: 2 hours
+**Goal**: Deploy to production and validate
+
+- [ ] **Environment Configuration** (30min)
+  - [ ] Add production Stripe keys to Vercel
+  - [ ] Update Supabase URLs
+  - [ ] Configure production webhook
+
+- [ ] **Production Testing** (1h)
+  - [ ] Test with real card (refund after)
+  - [ ] Verify webhook reception
   - [ ] Test cancellation flow
-  - [ ] Verify RLS policies enforce subscription status
 
-**Duration**: 1 week (6h billing + rest for polish)
-**Target completion**: October 29, 2025
+- [ ] **Monitoring** (30min)
+  - [ ] Setup error tracking
+  - [ ] Monitor Stripe webhooks
+  - [ ] **✅ FINAL:** Production ready
+
+**Total Phase 2 Duration**: 2-3 days (was 1 week)
+**Target completion**: February 2, 2025
 
 ---
 
@@ -355,6 +440,33 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
   - Extension-first OAuth: Rejected (onboarding already in React webapp)
   - Cookie-based: Rejected (requires sensitive permissions, complex setup)
   - Double login: Rejected (bad UX)
+
+**Vite vs Next.js for Webapp** (January 30, 2025)
+- ✅ **Decision**: Migrate from Vite to Next.js 15 (App Router)
+- **Reason**: Full-stack architecture needed for Stripe integration (billing backend)
+- **Analysis**:
+  - **Before**: Vite frontend + separate FastAPI backend for billing = 2 deployments, CORS, auth complexity
+  - **After**: Next.js monolith = frontend + backend API routes in one codebase
+- **Benefits**:
+  - Industry standard for SaaS (Stripe docs recommend Next.js)
+  - Built-in API routes (no separate backend service needed)
+  - Future-proof for analytics, admin dashboard, server actions
+  - Better DX (hot reload frontend + backend)
+  - No technical debt vs FastAPI billing split
+- **What stays unchanged**:
+  - FastAPI subtitle processing backend (Railway) - called as external API
+  - Supabase database schema (no changes)
+  - Chrome extension (no changes)
+  - React components (copy-paste with `'use client'`)
+- **Migration cost**: 1-2 days now vs 2-4 days later + refactor billing
+- **Alternatives Considered**:
+  - Option A: Add billing routes to existing FastAPI (subtitle processing) backend
+    - Rejected: Mixes subtitle processing + billing concerns, not clean architecture
+  - Option B: Keep Vite + create separate FastAPI billing backend
+    - Rejected: 2 backends to maintain, CORS complexity, auth sharing issues
+  - Option C: Supabase Edge Functions for billing
+    - Rejected: Deno runtime (not Node.js), cold start latency, debugging harder
+- **Consensus**: ChatGPT + Claude + Senior Dev analysis all recommended Next.js
 
 **Future Architecture Reevaluation** (Phase 3 Note)
 - **Trigger**: When popup UI is migrated to React + Shadcn

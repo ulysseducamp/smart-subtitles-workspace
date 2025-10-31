@@ -6,6 +6,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **KEEP IT SIMPLE** - Always prefer the simplest solution that works. Avoid over-engineering, premature abstractions, and complex data structures when simple constants or if/else statements suffice. Follow YAGNI (You Aren't Gonna Need It) - only build what's needed NOW, not what might be needed later.
 
+## 🔒 CRITICAL: Security Principles
+
+**NEVER compromise on security.** Always follow these principles:
+
+### Secrets & API Keys
+- **NEVER commit** API keys, secrets, tokens, or credentials to git
+- **ALWAYS use environment variables** for sensitive data (Stripe keys, Supabase keys, API secrets)
+- **NEVER expose** backend API keys in client-side code (extension or webapp)
+- Use `.env` files for local development, Railway/Vercel env vars for production
+- When adding new secrets, immediately update `.gitignore` to exclude them
+
+### Code Security Patterns
+- **Server-side only**: Stripe secret keys, webhook secrets, admin operations
+- **Client-side safe**: Stripe publishable keys, Supabase anon keys (with RLS enabled)
+- **Validate ALL user inputs** before processing (both frontend and backend)
+- **Use Row Level Security (RLS)** in Supabase for data isolation
+- **Rate limiting**: Implement on all public endpoints to prevent abuse
+- **HTTPS only**: Never transmit sensitive data over HTTP
+
+### Stripe-Specific Security
+- **Test mode first**: Always test with `pk_test_*` and `sk_test_*` keys before production
+- **Webhook signature verification**: ALWAYS verify webhook signatures before processing
+- **Idempotency**: Handle duplicate webhook events gracefully
+- **Never trust client data**: Always verify prices/products server-side, not from client
+
+### When in Doubt
+- If unsure about security implications, **ASK before implementing**
+- Follow principle of least privilege: give minimum permissions necessary
+- Security > convenience: If a feature requires compromising security, reject it
+
 ---
 
 ## Project Overview
