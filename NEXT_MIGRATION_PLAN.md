@@ -126,7 +126,7 @@
 
 ---
 
-### 📄 Phase 5 : Migration Pages - Partie 1 (2h) 🚧 **EN COURS (1/9 pages)**
+### 📄 Phase 5 : Migration Pages - Partie 1 (2h) ✅ **COMPLÉTÉ (9/9 pages)**
 
 **Objectif :** Migrer les pages d'onboarding (approche incrémentale)
 
@@ -142,28 +142,28 @@
 - [x] Bouton "Create account" visible
 - [x] Pas d'erreurs console (404 image mineure non-bloquante)
 
-**Étape 5.2 : Pages Onboarding**
-- [ ] Créer `app/onboarding/languages/page.tsx`
-- [ ] Créer `app/onboarding/vocab-test/page.tsx`
-- [ ] Créer `app/onboarding/results/page.tsx`
-- [ ] Créer `app/onboarding/pricing/page.tsx`
-- [ ] Créer `app/onboarding/pin-extension/page.tsx`
-- [ ] Créer `app/onboarding/complete/page.tsx`
-- [ ] Pour chaque page : copier code + ajouter `'use client'` + fixer imports
+**Étape 5.2 : Pages Onboarding** ✅ **COMPLÉTÉ**
+- [x] Créer `app/onboarding/languages/page.tsx`
+- [x] Créer `app/onboarding/vocab-test/page.tsx`
+- [x] Créer `app/onboarding/results/page.tsx`
+- [x] Créer `app/onboarding/pricing/page.tsx`
+- [x] Créer `app/onboarding/pin-extension/page.tsx`
+- [x] Créer `app/onboarding/complete/page.tsx`
+- [x] Pour chaque page : copier code + ajouter `'use client'` + fixer imports
 
-**✅ TEST INTERMÉDIAIRE #6 (5 min)**
-- [ ] Naviguer manuellement vers chaque URL (`/onboarding/languages`, etc.)
-- [ ] Vérifier que toutes les pages s'affichent
-- [ ] Pas d'erreurs 404 ou compilation
+**✅ TEST INTERMÉDIAIRE #6 (5 min)** ✅ **RÉUSSI**
+- [x] Naviguer manuellement vers chaque URL (`/onboarding/languages`, etc.)
+- [x] Vérifier que toutes les pages s'affichent - Build réussi avec 11 routes
+- [x] Pas d'erreurs 404 ou compilation - TypeScript OK
 
-**Étape 5.3 : Autres pages**
-- [ ] Créer `app/subscribe/page.tsx`
-- [ ] Créer `app/welcome-back/page.tsx`
-- [ ] Copier code + fixer imports
+**Étape 5.3 : Autres pages** ✅ **COMPLÉTÉ**
+- [x] Créer `app/subscribe/page.tsx`
+- [x] Créer `app/welcome-back/page.tsx`
+- [x] Copier code + fixer imports
 
-**✅ TEST INTERMÉDIAIRE #7 (2 min)**
-- [ ] Pages `/subscribe` et `/welcome-back` s'affichent
-- [ ] Projet compile toujours
+**✅ TEST INTERMÉDIAIRE #7 (2 min)** ✅ **RÉUSSI**
+- [x] Pages `/subscribe` et `/welcome-back` s'affichent
+- [x] Projet compile toujours - Build production réussi
 
 ---
 
