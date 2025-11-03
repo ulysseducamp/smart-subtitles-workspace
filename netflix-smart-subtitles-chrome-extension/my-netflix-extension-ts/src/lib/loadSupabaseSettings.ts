@@ -4,6 +4,7 @@ export interface UserSettings {
   targetLanguage: string
   nativeLanguage: string
   vocabularyLevel: number
+  isSubscribed: boolean
 }
 
 /**
@@ -47,16 +48,31 @@ export async function loadSupabaseSettings(): Promise<UserSettings | null> {
       return null
     }
 
+    // Load subscription status
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .select('status')
+      .eq('user_id', session.user.id)
+      .single()
+
+    // Check if subscription is valid (trialing or active)
+    const isSubscribed = subscription && !subscriptionError
+      ? ['trialing', 'active'].includes(subscription.status)
+      : false
+
     console.log('Smart Netflix Subtitles: Loaded settings from Supabase:', {
       targetLanguage: settings.target_lang,
       nativeLanguage: settings.native_lang,
-      vocabularyLevel: vocabData.level
+      vocabularyLevel: vocabData.level,
+      subscriptionStatus: subscription?.status,
+      isSubscribed
     })
 
     return {
       targetLanguage: settings.target_lang,
       nativeLanguage: settings.native_lang,
-      vocabularyLevel: vocabData.level
+      vocabularyLevel: vocabData.level,
+      isSubscribed
     }
   } catch (error) {
     console.error('Smart Netflix Subtitles: Error loading settings from Supabase:', error)

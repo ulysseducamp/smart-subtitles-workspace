@@ -278,28 +278,55 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
 **Duration**: 1-2 days (10-14h)
 **Goal**: Migrate from Vite to Next.js 15 with App Router
 
-**Day 1: Setup & Migration (6-8h)**
+**Day 1: Setup & Migration (6-8h)** ✅ **COMPLETED (October 31, 2025)**
 
-- [ ] **Initialize Next.js** (1h)
-  - [ ] Create Next.js 15 project with App Router
-  - [ ] Configure TypeScript, Tailwind, Shadcn UI
-  - [ ] Setup project structure
+- [x] **Initialize Next.js** (1h) ✅
+  - [x] Create Next.js 15 project with App Router
+  - [x] Configure TypeScript, Tailwind, Shadcn UI
+  - [x] Setup project structure
 
-- [ ] **Migrate Supabase** (1h)
-  - [ ] Copy Supabase client setup
-  - [ ] Configure env vars
-  - [ ] Test auth connection
+- [x] **Migrate Supabase** (1h) ✅
+  - [x] Install @supabase/ssr package (cookie-based auth for Next.js)
+  - [x] Create browser + server Supabase clients
+  - [x] Create middleware for session refresh
+  - [x] Configure env vars (.env.local)
+  - [x] Test auth connection
 
-- [ ] **Migrate Components** (2-3h)
-  - [ ] Copy all React components
-  - [ ] Add `'use client'` directives
-  - [ ] Update imports for Next.js structure
+- [x] **Migrate Components** (2-3h) ✅
+  - [x] Copy all React components (PricingCard, ManageSubscriptionButton, etc.)
+  - [x] Add `'use client'` directives
+  - [x] Update imports for Next.js structure
+  - [x] Migrate utils (mockups.ts)
 
-- [ ] **Migrate Pages** (2-3h)
-  - [ ] All onboarding pages
-  - [ ] Subscribe page
-  - [ ] Welcome/welcome-back pages
-  - [ ] Test navigation and routing
+- [x] **Migrate Pages** (2-3h) ✅
+  - [x] All 9 pages: welcome, welcome-back, subscribe, onboarding/* (languages, vocab-test, results, pricing, pin-extension, complete)
+  - [x] Update routing to Next.js file-based structure (app/welcome/page.tsx)
+  - [x] Replace useNavigate() with useRouter() from next/navigation
+  - [x] Test navigation and routing
+
+- [x] **AuthContext Migration** (1h) ✅
+  - [x] Create contexts/AuthContext.tsx with 'use client'
+  - [x] Create components/ClientProviders.tsx wrapper
+  - [x] Integrate with app/layout.tsx
+  - [x] Install sonner for toasts
+  - [x] Create lib/syncExtension.ts
+
+- [x] **End-to-End Auth Testing** (2h) ✅
+  - [x] Test 7.1: Google OAuth (welcome → languages) ✅
+  - [x] Test 7.2: Complete onboarding flow (7 pages) ✅
+  - [x] Test 7.3: Session persistence (F5 refresh) ✅
+  - [x] Test 7.4: RLS isolation (3 Google accounts tested) ✅
+
+**Bugs Fixed During Day 1:**
+- 🐛 Images missing (ulysse-photo.jpg, pin-extension-demo.gif, Netflix+pop-up.jpg) → Copied to public/
+- 🐛 OAuth redirect wrong domain → Supabase URLs updated (localhost:3000 added)
+- 🐛 401 Unauthorized on user_settings → RLS policies WITH CHECK added (USING + WITH CHECK required for upsert)
+- 🐛 Hydration mismatch on pricing page → Date formatting fixed with explicit 'en-US' locale
+- 🐛 @types/chrome missing → Installed for TypeScript compilation
+
+**Reference Documentation:**
+- Full migration plan: `NEXT_MIGRATION_PLAN.md`
+- All phases + tests documented with checkboxes
 
 **Day 2: Stripe Integration (4-6h)**
 

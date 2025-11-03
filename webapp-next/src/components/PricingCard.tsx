@@ -24,6 +24,13 @@ export function PricingCard({ context, onCheckout }: PricingCardProps) {
   const trialEndDate = new Date()
   trialEndDate.setDate(trialEndDate.getDate() + 14)
 
+  // Format date consistently for SSR (avoid hydration mismatch)
+  const formattedDate = trialEndDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
@@ -53,7 +60,7 @@ export function PricingCard({ context, onCheckout }: PricingCardProps) {
 
         {context === 'onboarding' && (
           <p className="text-sm text-muted-foreground">
-            Trial ends: {trialEndDate.toLocaleDateString()}
+            Trial ends: {formattedDate}
             <br />
             You won't be charged until then
           </p>

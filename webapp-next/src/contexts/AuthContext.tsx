@@ -59,15 +59,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/onboarding/languages`
+        redirectTo: `${window.location.origin}/auth/callback`
       }
     })
     if (error) throw error
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+
+      // Redirect to welcome page after successful sign out
+      window.location.href = '/welcome'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast.error('Failed to sign out')
+    }
   }
 
   return (

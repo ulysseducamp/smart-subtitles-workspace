@@ -3,17 +3,39 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { PricingCard } from '@/components/PricingCard'
-import { simulateStripeCheckout } from '@/utils/mockups'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function Pricing() {
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
-  const handleCheckout = () => {
-    simulateStripeCheckout(() => {
-      router.push('/onboarding/pin-extension')
-    })
+  const handleCheckout = async () => {
+    if (!user) return
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          email: user.email,
+        }),
+      })
+
+      const { url } = await response.json()
+
+      if (url) {
+        window.location.href = url  // Redirect to Stripe Checkout
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+      alert('Failed to start checkout. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

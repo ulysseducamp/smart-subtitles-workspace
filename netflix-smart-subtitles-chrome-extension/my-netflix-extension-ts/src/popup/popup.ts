@@ -116,6 +116,7 @@ async function loadSettings(): Promise<void> {
       currentSettings.targetLanguage = supabaseSettings.targetLanguage;
       currentSettings.nativeLanguage = supabaseSettings.nativeLanguage;
       currentSettings.vocabularyLevel = supabaseSettings.vocabularyLevel;
+      currentSettings.isSubscribed = supabaseSettings.isSubscribed;
 
       console.log('Smart Netflix Subtitles: Loaded settings from Supabase:', currentSettings);
     } else {
@@ -129,13 +130,10 @@ async function loadSettings(): Promise<void> {
       currentSettings.targetLanguage = result[STORAGE_KEYS.TARGET_LANGUAGE] || '';
       currentSettings.nativeLanguage = result[STORAGE_KEYS.NATIVE_LANGUAGE] || '';
       currentSettings.vocabularyLevel = result[STORAGE_KEYS.VOCABULARY_LEVEL] || 0;
+      currentSettings.isSubscribed = false; // No subscription if not authenticated
 
       console.log('Smart Netflix Subtitles: No Supabase settings, using local storage or defaults');
     }
-
-    // Load subscription status from chrome.storage.local (mockup)
-    const subscriptionResult = await chrome.storage.local.get([STORAGE_KEYS.IS_SUBSCRIBED]);
-    currentSettings.isSubscribed = subscriptionResult[STORAGE_KEYS.IS_SUBSCRIBED] || false;
 
     // Update UI with loaded settings
     targetLanguageSelect.value = currentSettings.targetLanguage;

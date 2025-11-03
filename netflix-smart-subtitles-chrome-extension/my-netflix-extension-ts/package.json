@@ -4,6 +4,7 @@
   "description": "Download subtitles from Netflix episodes and movies - TypeScript version",
   "main": "dist/popup.js",
   "scripts": {
+    "build:local": "SMART_SUBS_ENV=local webpack --mode=production",
     "build:staging": "SMART_SUBS_ENV=development webpack --mode=production",
     "build:production": "SMART_SUBS_ENV=production webpack --mode=production",
     "dev": "webpack --mode=development --watch",

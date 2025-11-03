@@ -6,11 +6,11 @@
 import { supabase } from './lib/supabase'
 
 // Webapp URL (set by webpack based on environment)
-const WEBAPP_URL = process.env.WEBAPP_URL || 'http://localhost:5173';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'http://localhost:3000';
 
 // Allowed origins for message passing (security)
 const ALLOWED_ORIGINS = [
-  'http://localhost:5173',                              // Local dev
+  'http://localhost:3000',                              // Local dev (Next.js)
   'https://staging-subly-extension.vercel.app',         // Staging
   'https://subly-extension.vercel.app',                 // Production
 ]

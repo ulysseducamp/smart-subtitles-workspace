@@ -47,9 +47,11 @@ module.exports = {
   plugins: [
     new webpack.EnvironmentPlugin({
       SMART_SUBS_ENV: 'development', // Valeur par défaut
-      WEBAPP_URL: process.env.SMART_SUBS_ENV === 'production'
-        ? 'https://subly-extension.vercel.app'
-        : 'https://staging-subly-extension.vercel.app'
+      WEBAPP_URL: process.env.SMART_SUBS_ENV === 'local'
+        ? 'http://localhost:3000'
+        : process.env.SMART_SUBS_ENV === 'production'
+          ? 'https://subly-extension.vercel.app'
+          : 'https://staging-subly-extension.vercel.app'
     }),
     new CopyPlugin({
       patterns: [

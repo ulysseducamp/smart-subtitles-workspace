@@ -89,7 +89,67 @@ npm run lint
 - **Branch production**: `main` → auto-deploy to production API
 - **WEBAPP_URL**: Configured via webpack.config.js, injected at build time (no manual changes needed)
 
-### Webapp (React + Vite)
+### Webapp Next.js (Active - Phase 2B in progress)
+```bash
+cd webapp-next/
+
+# Development server with hot reload
+npm run dev  # Runs on http://localhost:3000
+
+# Build for production
+npm run build
+```
+
+**Tech Stack:** Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Supabase SSR (@supabase/ssr)
+
+**Why Next.js?**
+- **Backend integration**: Stripe API routes (checkout, webhook, portal) in same codebase
+- **No separate backend needed**: Frontend + Backend unified (vs Vite + separate Node.js backend)
+- **Industry standard**: Recommended by Stripe for SaaS in 2025
+
+**Onboarding Flow (7 pages):**
+1. `/welcome` - Welcome + Google OAuth
+2. `/onboarding/languages` - Target language (PT-BR/FR only) + Native language (13 options) selection
+3. `/onboarding/vocab-test` - Dynamic vocab test (PT/FR word lists, 12 levels: 100-5000)
+4. `/onboarding/results` - Display vocab level result
+5. `/onboarding/pricing` - Pricing card with Stripe checkout (mockup in Phase 1, real Stripe in Phase 2)
+6. `/onboarding/pin-extension` - GIF demo showing how to pin extension
+7. `/onboarding/complete` - Final instructions with popup screenshot
+8. `/welcome-back` - Returning users redirect
+9. `/subscribe` - Standalone subscribe page (expired trial)
+
+**Assets Location:** Static files (GIFs, images) go in `webapp-next/public/`
+
+**Toast System:** Sonner (top-center position) - displays "Connected with {email}" after OAuth
+
+**Supabase Auth Pattern:**
+- **Package**: `@supabase/ssr` (replaces `@supabase/supabase-js`)
+- **2 clients**: `lib/supabase/client.ts` (browser) + `lib/supabase/server.ts` (server components)
+- **Middleware**: `middleware.ts` for automatic session refresh (HTTP-only cookies)
+- **AuthContext**: `contexts/AuthContext.tsx` with 'use client' for client-side auth state
+
+**Deployment (future):**
+- **Staging**: TBD (branch: `develop`)
+- **Production**: TBD (branch: `main`)
+- **Environment Variables**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, Stripe keys
+
+**Supabase OAuth Configuration:**
+- **Site URL**: `https://subly-extension.vercel.app` (production default)
+- **Redirect URLs**: Both wildcards (`/*`) AND exact URLs (`/onboarding/languages`) required
+  - `http://localhost:3000/*` + `http://localhost:3000/onboarding/languages` (Next.js port)
+  - `http://localhost:5173/*` + `http://localhost:5173/onboarding/languages` (Vite legacy)
+  - `https://staging-subly-extension.vercel.app/*` + `.../onboarding/languages`
+  - `https://subly-extension.vercel.app/*` + `.../onboarding/languages`
+- **Why Both**: OAuth checks exact URLs first, falls back to wildcards
+
+**Key Differences from Vite:**
+- **Routing**: File-based (`app/welcome/page.tsx`) vs React Router (`src/pages/Welcome.tsx`)
+- **Navigation**: `useRouter()` from `next/navigation` vs `useNavigate()` from `react-router-dom`
+- **'use client' directive**: Required for components using useState, useEffect, event handlers, browser APIs
+- **Env vars**: `NEXT_PUBLIC_*` prefix (client-accessible) vs `VITE_*` prefix
+- **Port**: `3000` vs `5173`
+
+### Webapp Vite (Legacy - Phase 1B complete, will be archived)
 ```bash
 cd webapp/
 
@@ -100,35 +160,14 @@ npm run dev  # Runs on http://localhost:5173
 npm run build
 ```
 
+**Status:** ✅ Phase 1B complete (auth + onboarding working). Being replaced by Next.js for Stripe integration (Phase 2B).
+
 **Tech Stack:** React 19 + Vite + TypeScript + Tailwind CSS v3 + Shadcn UI + Supabase Auth
-
-**Onboarding Flow (7 pages):**
-1. `/welcome` - Welcome + Google OAuth
-2. `/onboarding/languages` - Target language (PT-BR/FR only) + Native language (13 options) selection
-3. `/onboarding/vocab-test` - Dynamic vocab test (PT/FR word lists, 12 levels: 100-5000)
-4. `/onboarding/results` - Display vocab level result
-5. `/onboarding/pin-extension` - GIF demo showing how to pin extension
-6. `/onboarding/complete` - Final instructions with popup screenshot
-7. `/welcome-back` - Returning users redirect
-
-**Assets Location:** Static files (GIFs, images) go in `webapp/public/`
-
-**Toast System:** Sonner (top-center position) - displays "Connected with {email}" after OAuth
 
 **Deployment:**
 - **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`)
 - **Production**: `subly-extension.vercel.app` (branch: `main`)
-- **Auto-deploy**: Push to `develop`/`main` triggers Vercel deployment
-- **SPA Routing**: `vercel.json` with rewrites for React Router
-- **Environment Variables**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` set in Vercel
-
-**Supabase OAuth Configuration:**
-- **Site URL**: `https://subly-extension.vercel.app` (production default)
-- **Redirect URLs**: Both wildcards (`/*`) AND exact URLs (`/onboarding/languages`) required
-  - `http://localhost:5173/*` + `http://localhost:5173/onboarding/languages`
-  - `https://staging-subly-extension.vercel.app/*` + `.../onboarding/languages`
-  - `https://subly-extension.vercel.app/*` + `.../onboarding/languages`
-- **Why Both**: OAuth checks exact URLs first, falls back to wildcards
+- **Note**: Will be replaced by Next.js deployment URLs after Phase 2B complete
 
 ### FastAPI Backend
 ```bash
@@ -167,13 +206,15 @@ docker run -p 3000:3000 smartsub-api
 - **State Management**: Persistent settings via `chrome.storage.local`
 - **Manual Processing**: User must click "Process Subtitles" button (auto-processing disabled to prevent Netflix preload corruption)
 
-### Webapp Architecture (October 2025)
-- **Tech Stack**: React 19 + Vite + TypeScript + Tailwind CSS v3 + Shadcn UI
-- **Routing**: React Router with `/onboarding` and `/dashboard` routes
-- **Auth Strategy**: Supabase Auth (Google OAuth + Email/Password) - Phase 1B in progress
+### Webapp Architecture (October 2025 - Next.js Migration)
+- **Tech Stack**: Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI
+- **Routing**: File-based routing with App Router (`app/welcome/page.tsx`)
+- **Auth Strategy**: Supabase SSR (@supabase/ssr) with cookie-based sessions - Phase 2B in progress
+- **Backend**: Next.js API Routes for Stripe (checkout, webhook, portal) - Phase 2B todo
 - **Data Sync**: Supabase database for multi-device synchronization
 - **Pattern**: External webapp (not extension pages) for auth + subscription management
-- **Development**: Hot reload at `localhost:5173`, production deployment via Vercel/Netlify
+- **Development**: Hot reload at `localhost:3000`, production deployment via Vercel
+- **Legacy**: Vite webapp (`localhost:5173`) still exists, will be archived after Phase 2B complete
 
 ### API Backend Architecture
 - **Pure Python Fusion**: Direct function calls to Python subtitle fusion algorithm (migrated from TypeScript)
