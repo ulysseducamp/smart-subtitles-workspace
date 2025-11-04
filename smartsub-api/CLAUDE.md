@@ -6,6 +6,11 @@ Documentation pour Claude Code sur l'architecture et le fonctionnement du backen
 
 Le backend FastAPI traite les sous-titres en fusionnant intelligemment les pistes de langue cible (PT) et langue native (FR) selon le niveau de vocabulaire de l'utilisateur.
 
+**Architecture système:**
+- **Webapp**: Next.js 15 (`webapp-next/`) pour auth + billing (Supabase + Stripe)
+- **API Backend**: FastAPI (ce repo) pour traitement de sous-titres uniquement
+- **Extension**: Chrome extension intègre webapp + API
+
 **Flow principal:**
 ```
 Client HTTP → FastAPI Endpoint → Subtitle Fusion Engine → OpenAI/DeepL Translation → Processed Subtitles

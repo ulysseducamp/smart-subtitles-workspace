@@ -1,8 +1,13 @@
-# Webapp - CLAUDE.md
+# Webapp (Vite) - CLAUDE.md
+
+⚠️ **DEPRECATED - Legacy Vite webapp. Use `webapp-next/` (Next.js) for active development.**
 
 ## Overview
 
-React SPA for user onboarding, authentication, and account management. Deployed on Vercel with Supabase backend.
+React SPA for user onboarding, authentication, and account management. Replaced by Next.js for Stripe integration (Phase 2B).
+
+**Active webapp:** `webapp-next/` (Next.js 15 + Stripe)
+**Status:** To be archived after production deployment
 
 ## Tech Stack
 

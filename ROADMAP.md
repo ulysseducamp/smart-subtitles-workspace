@@ -328,7 +328,7 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
 - Full migration plan: `NEXT_MIGRATION_PLAN.md`
 - All phases + tests documented with checkboxes
 
-**Day 2: Stripe Integration (4-6h)**
+**Day 2: Stripe Integration (4-6h)** ✅ **COMPLETED (November 3, 2025)**
 
 - [x] **Stripe Setup** (30min) ✅ COMPLETED
   - [x] Created Stripe "Subly" business (test mode)
@@ -336,24 +336,28 @@ Session in webapp localStorage is NOT accessible to extension chrome.storage.loc
   - [x] Price: $1/month (ID: `price_1SNtWWCdkaUrc0RrUnNRVpya`)
   - [x] Enabled Customer Portal with cancellation
 
-- [ ] **Create API Routes** (2-3h)
-  - [ ] `/app/api/stripe/checkout/route.ts` - Create session with trial
-  - [ ] `/app/api/stripe/portal/route.ts` - Customer portal session
-  - [ ] `/app/api/stripe/webhook/route.ts` - Handle Stripe events
+- [x] **Create API Routes** (2-3h) ✅ COMPLETED
+  - [x] `/app/api/stripe/checkout/route.ts` - Create session with 14-day trial
+  - [x] `/app/api/stripe/portal/route.ts` - Customer portal session
+  - [x] `/app/api/stripe/webhook/route.ts` - Handle Stripe events (customer.subscription.*)
 
-- [ ] **Frontend Integration** (1h)
-  - [ ] Replace mockups with real API calls
-  - [ ] Update PricingCard and ManageSubscriptionButton
+- [x] **Frontend Integration** (1h) ✅ COMPLETED
+  - [x] Replace mockups with real API calls in `/onboarding/pricing` and `/subscribe`
+  - [x] Update PricingCard and ManageSubscriptionButton components
 
-- [ ] **Webhook Configuration** (30min)
-  - [ ] Deploy to Vercel staging
-  - [ ] Configure webhook in Stripe Dashboard
-  - [ ] Test webhook events
-
-- [ ] **End-to-End Testing** (1h)
-  - [ ] Test full checkout flow
-  - [ ] Test subscription management
-  - [ ] Verify Supabase sync
+- [x] **Localhost Testing** (2h) ✅ ALL TESTS PASSED
+  - [x] **Phase 9 Tests**: Stripe CLI + localhost:3000
+    - [x] Test 9.1: Signup → Trial → Stripe Checkout ✅
+    - [x] Test 9.2: Webhook events (checkout.session.completed) ✅
+    - [x] Test 9.3: Customer Portal (cancel subscription) ✅
+    - [x] Test 9.4: RLS isolation (multi-user) ✅
+  - [x] **Phase 10 Tests**: Extension localhost configuration
+    - [x] Test 10.1: Extension opens localhost:3000 ✅
+    - [x] Test 10.2: Extension reads subscription from Supabase ✅
+  - [x] **Phase 11 Tests**: Complete E2E flow
+    - [x] Test 11.1: Signup → Trial → Extension verification ✅
+    - [x] Test 11.2: Subscription created in Supabase (status: trialing) ✅
+    - [x] All Stripe CLI webhooks returned [200] ✅
 
 **Architecture after Phase 2B:**
 ```
@@ -368,28 +372,117 @@ Stripe (Payment processing)
 
 ---
 
+### ✅ PHASE 12 - STAGING DEPLOYMENT (COMPLETED - November 4, 2025)
+
+**Duration**: 4 hours (cache issues added complexity)
+**Goal**: Deploy to Vercel staging and validate E2E flow with real webhooks
+
+**Staging Deployment** ✅ **COMPLETED**
+- [x] Git commit and push to develop branch
+- [x] Vercel auto-deployment triggered for staging-subly-extension.vercel.app
+- [x] Stripe webhook configured for staging URL
+- [x] Webhook signing secret added to Vercel environment variables
+- [x] Vercel redeployment to apply new env vars
+- [x] Extension built in staging mode (`npm run build:staging`)
+
+**🐛 CRITICAL ISSUE - Vercel Wrong Directory** ✅ **RESOLVED**
+
+**Root Cause**: Vercel was building wrong directory (`webapp/` Vite instead of `webapp-next/` Next.js)
+
+**Resolution**:
+- [x] Changed Vercel Framework Preset: Vite → Next.js
+- [x] Changed Vercel Root Directory: `webapp` → `webapp-next`
+- [x] Fixed Stripe `apiVersion` TypeScript error (removed parameter)
+- [x] Added Supabase OAuth callback URLs for staging/production
+- [x] Configured `NEXT_PUBLIC_APP_URL` per environment (Development/Preview/Production)
+
+**Commits**:
+- `5f2f327` - fix(stripe): Remove apiVersion to use Stripe default
+- `017d73c` - fix(vercel): Add prebuild script to clear .next cache before build
+
+**Staging Tests** ✅ **ALL PASSED**
+- [x] Test 12.1: Signup → Trial → Stripe Checkout (staging) ✅
+- [x] Test 12.2: Webhook received by Vercel (not Stripe CLI) ✅
+- [x] Test 12.3: OAuth redirect to `/onboarding/languages` ✅
+- [x] Test 12.4: Stripe redirect to `/onboarding/pin-extension` ✅
+- [x] Test 12.5: Complete E2E flow on staging ✅
+
+**Environment Configuration Finalized**:
+- **Development**: `NEXT_PUBLIC_APP_URL=http://localhost:3000`
+- **Preview**: `NEXT_PUBLIC_APP_URL=https://staging-subly-extension.vercel.app`
+- **Production**: `NEXT_PUBLIC_APP_URL=https://subly-extension.vercel.app`
+
+---
+
 ### 🎯 PHASE 2C - PRODUCTION DEPLOYMENT (Day 3)
 
-**Duration**: 2 hours
-**Goal**: Deploy to production and validate
+**Duration**: 4-6 hours (realistic estimate)
+**Goal**: Deploy Next.js webapp to production with live Stripe integration
 
-- [ ] **Environment Configuration** (30min)
-  - [ ] Add production Stripe keys to Vercel
-  - [ ] Update Supabase URLs
-  - [ ] Configure production webhook
+**📄 Detailed checklist: [PHASE_2C_PRODUCTION.md](./PHASE_2C_PRODUCTION.md)**
 
-- [ ] **Production Testing** (1h)
-  - [ ] Test with real card (refund after)
-  - [ ] Verify webhook reception
-  - [ ] Test cancellation flow
+- [ ] **Pre-Deployment Setup** (1h)
+  - [ ] Backup Supabase database
+  - [ ] Create git tag v1.0.0-pre-production
+  - [ ] Document rollback plan
 
-- [ ] **Monitoring** (30min)
-  - [ ] Setup error tracking
-  - [ ] Monitor Stripe webhooks
+- [ ] **Stripe Live Mode Setup** (1h 30min)
+  - [ ] Create "Subly Premium" product in LIVE mode
+  - [ ] Create $1/month price with 14-day trial (note price_id)
+  - [ ] Create production webhook + copy signing secret
+  - [ ] Test webhook with Stripe CLI (--live mode)
+  - [ ] Add STRIPE_PRICE_ID_MONTHLY env var to code (if hardcoded)
+
+- [ ] **Vercel Configuration** (30min)
+  - [ ] Add production Stripe keys (sk_live_*, whsec_live_*, price_id)
+  - [ ] Verify Supabase env vars unchanged (same instance as staging)
+  - [ ] Verify NEXT_PUBLIC_APP_URL set to production domain
+
+- [ ] **Git Workflow & Deployment** (30min)
+  - [ ] Create PR: develop → main
+  - [ ] Review (verify no secrets in code)
+  - [ ] Merge PR (Vercel auto-deploys)
+  - [ ] Create git tag v1.0.0-production
+
+- [ ] **Production Testing** (2h)
+  - [ ] E2E flow: Signup → Onboarding → Stripe Checkout (test card 4242...)
+  - [ ] Verify webhook [200 OK] in Stripe Dashboard
+  - [ ] Verify subscription created in Supabase (status: trialing)
+  - [ ] Test Customer Portal (cancel subscription)
+  - [ ] Build extension production mode + test integration
+  - [ ] RLS isolation test (2 Google accounts)
+
+- [ ] **Monitoring** (1h)
+  - [ ] Setup Vercel error alerts
+  - [ ] Enable Stripe webhook failure alerts
+  - [ ] Monitor webhook delivery (1-2h)
+  - [ ] Check Vercel/Stripe/Supabase logs (no errors)
+
+- [ ] **Post-Deployment** (30min)
+  - [ ] Update ROADMAP.md (check boxes, add completion date)
+  - [ ] Final smoke tests
   - [ ] **✅ FINAL:** Production ready
 
 **Total Phase 2 Duration**: 2-3 days (was 1 week)
 **Target completion**: February 2, 2025
+
+---
+
+### 🧹 NETTOYAGE POST-MIGRATION (30 min)
+
+**Objectif**: Supprimer l'ancien webapp Vite une fois Next.js validé en production
+
+**🚨 ATTENTION: Faire ces étapes SEULEMENT après déploiement production Next.js réussi**
+
+- [ ] Tester staging Next.js pendant 24-48h (pas de bugs critiques)
+- [ ] Déployer Next.js en production (`git push origin main`)
+- [ ] Vérifier que production fonctionne (auth, billing, extension)
+- [ ] **BACKUP webapp/ Vite** (zip ou git tag) avant suppression
+- [ ] Supprimer dossier `webapp/` (ancien Vite)
+- [ ] Renommer `webapp-next/` → `webapp/` (optionnel)
+- [ ] Mettre à jour `.gitignore` si nécessaire
+- [ ] Supprimer `NEXT_MIGRATION_PLAN.md` (migration complète)
+- [ ] Commit: `git commit -m "chore: Remove old Vite webapp after Next.js migration"`
 
 ---
 
