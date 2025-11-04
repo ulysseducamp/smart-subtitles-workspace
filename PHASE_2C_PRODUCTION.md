@@ -1,9 +1,9 @@
 # Phase 2C - Production Deployment
 
-**Status**: Not started
+**Status**: In progress - Deployment complete, testing pending
 **Duration**: 4-6 hours (realistic estimate)
 **Goal**: Deploy Next.js webapp to production with live Stripe integration
-**Date**: TBD
+**Date**: Started November 4, 2025
 
 ---
 
@@ -44,54 +44,54 @@ This phase transitions from **test mode** (staging) to **live mode** (production
 
 #### 1.1 Backup & Safety (15min)
 
-- [ ] **Backup Supabase database** (optionnel - skip si données de test uniquement)
+- [x] **Backup Supabase database** (optionnel - skip si données de test uniquement)
   ```bash
   # Supabase Dashboard → Database → Backups
   # Create manual backup before deployment
   # Note: Pas nécessaire si toutes les données sont de test
+  # SKIPPED - Données de test uniquement
   ```
 
-- [ ] **Create git tag for current state**
+- [x] **Create git tag for current state**
   ```bash
   git checkout develop
   git pull origin develop
   git tag v1.0.0-pre-production
   git push origin v1.0.0-pre-production
+  # ✅ DONE - Tag créé et poussé
   ```
 
-- [ ] **Document rollback plan** (see section below)
+- [x] **Document rollback plan** (see section below)
 
 #### 1.2 Stripe Live Mode Setup (45min)
 
-- [ ] **1. Login to Stripe Dashboard → Switch to LIVE mode** (top-left toggle)
+- [x] **1. Login to Stripe Dashboard → Switch to LIVE mode** (top-left toggle)
 
-- [ ] **2. Create product "Subly Premium" in LIVE mode**
+- [x] **2. Create product "Subly Premium" in LIVE mode**
   - Navigate to: Products → Add product
-  - Name: `Subly Premium`
+  - Name: `Subly Subscription` ✅
   - Description: `Smart subtitles for language learning on Netflix`
   - Click "Add product"
-  - **Note Product ID**: `prod_XXXXX` (save for reference)
+  - **Product ID**: `prod_TMQvpzU3HvABuW` ✅
 
-- [ ] **3. Create price $1/month with 14-day trial**
+- [x] **3. Create price $1/month with 14-day trial**
   - In product page → Add another price
-  - Price: `$1.00 USD`
-  - Billing period: `Monthly`
+  - Price: `$1.00 USD` ✅
+  - Billing period: `Monthly` ✅
   - Click "Add pricing"
-  - Click on the new price → Edit
-  - Enable "Free trial" → `14 days`
-  - Save
-  - **Copy Price ID**: `price_1XXXXX` (CRITICAL - needed for env vars)
+  - Trial configured in code (subscription_data.trial_period_days: 14) ✅
+  - **Price ID**: `price_1SPi44Cpd12v3sCmzkzCiDBf` ✅
 
-- [ ] **4. Verify Customer Portal enabled in LIVE mode**
+- [x] **4. Verify Customer Portal enabled in LIVE mode**
   - Settings → Billing → Customer portal
-  - Toggle "Enable customer portal" ON
-  - Enable "Cancel subscription" option
+  - Toggle "Enable customer portal" ON ✅
+  - Enable "Cancel subscription" option ✅
   - Save
 
-- [ ] **5. Get live API keys**
+- [x] **5. Get live API keys**
   - Developers → API keys → Reveal live secret key
-  - **Copy `sk_live_XXXXX`** (CRITICAL - keep secure)
-  - **Copy `pk_live_XXXXX`** (publishable key - not currently needed but good to have)
+  - **Copied `sk_live_XXXXX`** ✅ (added to Vercel)
+  - **Copied `pk_live_XXXXX`** ✅ (publishable key)
 
 ---
 
@@ -99,20 +99,20 @@ This phase transitions from **test mode** (staging) to **live mode** (production
 
 #### 2.1 Create Production Webhook
 
-- [ ] **1. Create webhook endpoint in Stripe Dashboard (LIVE mode)**
+- [x] **1. Create webhook endpoint in Stripe Dashboard (LIVE mode)**
   - Developers → Webhooks → Add endpoint
-  - Endpoint URL: `https://subly-extension.vercel.app/api/stripe/webhook`
-  - Description: `Subly Production Webhook`
+  - Endpoint URL: `https://subly-extension.vercel.app/api/stripe/webhook` ✅
+  - Description: `Subly Production Webhook` ✅
   - Events to listen to (select 4):
-    - `checkout.session.completed`
-    - `customer.subscription.created`
-    - `customer.subscription.updated`
-    - `customer.subscription.deleted`
-  - Click "Add endpoint"
+    - `checkout.session.completed` ✅
+    - `customer.subscription.created` ✅
+    - `customer.subscription.updated` ✅
+    - `customer.subscription.deleted` ✅
+  - Click "Add endpoint" ✅
 
-- [ ] **2. Copy webhook signing secret**
+- [x] **2. Copy webhook signing secret**
   - Click on the newly created webhook
-  - **Copy Signing Secret**: `whsec_XXXXX` (CRITICAL)
+  - **Copied Signing Secret**: `whsec_XXXXX` ✅ (added to Vercel)
 
 #### 2.2 Test Webhook (BEFORE deployment)
 
@@ -139,11 +139,11 @@ This phase transitions from **test mode** (staging) to **live mode** (production
 
 ### 3️⃣ Vercel Environment Configuration (30min)
 
-- [ ] **1. Navigate to Vercel Dashboard**
-  - Project: `subly-extension` (or your project name)
-  - Settings → Environment Variables
+- [x] **1. Navigate to Vercel Dashboard**
+  - Project: `subly-extension` ✅
+  - Settings → Environment Variables ✅
 
-- [ ] **2. Add/Update Production environment variables**
+- [x] **2. Add/Update Production environment variables**
 
 **IMPORTANT**: Select "Production" environment for each variable below:
 
@@ -152,9 +152,9 @@ This phase transitions from **test mode** (staging) to **live mode** (production
 | `NEXT_PUBLIC_APP_URL` | `https://subly-extension.vercel.app` | Production | ✅ Already set |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://dqjbkbdgvtewrgxrfqil.supabase.co` | Production | ✅ Already set (same as staging) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` | Production | ✅ Already set (same as staging) |
-| `STRIPE_SECRET_KEY` | `sk_live_XXXXX` | Production | 🔄 **UPDATE** with live key |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_XXXXX` | Production | 🔄 **UPDATE** with production webhook secret |
-| `STRIPE_PRICE_ID_MONTHLY` | `price_1XXXXX` | Production | ⭐ **NEW** - Add live price ID |
+| `STRIPE_SECRET_KEY` | `sk_live_XXXXX` | Production | ✅ **ADDED** live key |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_XXXXX` | Production | ✅ **ADDED** production webhook secret |
+| `STRIPE_PRICE_ID` | `price_1SPi44Cpd12v3sCmzkzCiDBf` | Production | ✅ **ADDED** live price ID |
 
 **How to add/update:**
 - Click "Add New" (or "Edit" for existing vars)
@@ -163,27 +163,25 @@ This phase transitions from **test mode** (staging) to **live mode** (production
 - Environments: Check ONLY "Production"
 - Save
 
-- [ ] **3. Verify Preview (staging) environment variables unchanged**
-  - `STRIPE_SECRET_KEY` should still be `sk_test_*` for Preview
-  - `STRIPE_WEBHOOK_SECRET` should still be `whsec_test_*` for Preview
-  - `STRIPE_PRICE_ID_MONTHLY` should still be test price for Preview
+- [x] **3. Verify Preview (staging) environment variables unchanged**
+  - `STRIPE_SECRET_KEY` still `sk_test_*` for Preview ✅
+  - `STRIPE_WEBHOOK_SECRET` still `whsec_test_*` for Preview ✅
+  - `STRIPE_PRICE_ID` still test price for Preview ✅
 
 ---
 
 ### 4️⃣ Code Update (ONLY if using hardcoded price_id) (15min)
 
-**Skip this step if you already use `process.env.STRIPE_PRICE_ID_MONTHLY`**
+**Skip this step if you already use `process.env.STRIPE_PRICE_ID`** ✅ **SKIPPED**
 
-- [ ] **1. Verify code uses environment variable**
+- [x] **1. Verify code uses environment variable**
   ```bash
   # Check if hardcoded:
   grep -r "price_1SNtWW" webapp-next/src/
-
-  # If found, replace with:
-  process.env.STRIPE_PRICE_ID_MONTHLY
+  # ✅ Code already uses process.env.STRIPE_PRICE_ID (line 15 checkout/route.ts)
   ```
 
-- [ ] **2. If code needs update:**
+- [x] **2. If code needs update:**
   ```typescript
   // webapp-next/src/app/api/stripe/checkout/route.ts
 
@@ -211,40 +209,37 @@ This phase transitions from **test mode** (staging) to **live mode** (production
 
 ### 5️⃣ Git Workflow & Deployment (30min)
 
-- [ ] **1. Create PR from develop to main**
+- [x] **1. Create PR from develop to main**
   ```bash
-  # Option A: Via GitHub UI (recommended)
-  # - Go to GitHub repo → Pull requests → New PR
-  # - Base: main, Compare: develop
-  # - Title: "Phase 2C - Production Deployment"
-  # - Description: "Deploy Next.js webapp to production with live Stripe"
-
-  # Option B: Via command line
-  gh pr create --base main --head develop --title "Phase 2C - Production Deployment"
+  # Used direct merge instead of PR (user preference)
+  # git checkout main && git merge develop
+  # ✅ DONE - Direct merge completed
   ```
 
-- [ ] **2. Review PR**
-  - Verify no secrets in code (run `git grep -i "sk_live"` → should be empty)
-  - Check environment variables configured in Vercel
-  - Verify staging still stable
+- [x] **2. Review PR**
+  - Verified no secrets in code (git grep -i "sk_live" → empty) ✅
+  - Environment variables configured in Vercel ✅
+  - Staging stable ✅
 
-- [ ] **3. Merge PR**
-  - Click "Merge pull request" on GitHub
-  - Confirm merge
-  - **Vercel auto-deploys to production** (wait 2-3 minutes)
+- [x] **3. Merge PR**
+  - Direct merge: develop → main ✅
+  - **Vercel auto-deployed to production** ✅
+  - Deployment time: 50s
 
-- [ ] **4. Create production tag**
+- [x] **4. Create production tag**
   ```bash
   git checkout main
   git pull origin main
   git tag v1.0.0-production
   git push origin v1.0.0-production
+  # ✅ DONE - Tag v1.0.0-production created and pushed
   ```
 
-- [ ] **5. Verify Vercel deployment**
-  - Vercel Dashboard → Deployments → Check latest deployment status
-  - Should show: "Ready" with production domain
-  - Click "View deployment" → Should open `https://subly-extension.vercel.app`
+- [x] **5. Verify Vercel deployment**
+  - Vercel Dashboard → Deployments ✅
+  - Status: **Ready** ✅
+  - Environment: **Production** ✅
+  - Domain: `subly-extension.vercel.app` ✅
 
 - [ ] **6. Check build logs**
   - Vercel deployment → Build logs
