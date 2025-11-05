@@ -468,21 +468,21 @@ Stripe (Payment processing)
 
 ---
 
-### 🧹 NETTOYAGE POST-MIGRATION (30 min)
+### 🧹 NETTOYAGE POST-MIGRATION ✅ (November 4, 2025)
 
 **Objectif**: Supprimer l'ancien webapp Vite une fois Next.js validé en production
 
 **🚨 ATTENTION: Faire ces étapes SEULEMENT après déploiement production Next.js réussi**
 
-- [ ] Tester staging Next.js pendant 24-48h (pas de bugs critiques)
-- [ ] Déployer Next.js en production (`git push origin main`)
-- [ ] Vérifier que production fonctionne (auth, billing, extension)
-- [ ] **BACKUP webapp/ Vite** (zip ou git tag) avant suppression
-- [ ] Supprimer dossier `webapp/` (ancien Vite)
-- [ ] Renommer `webapp-next/` → `webapp/` (optionnel)
-- [ ] Mettre à jour `.gitignore` si nécessaire
-- [ ] Supprimer `NEXT_MIGRATION_PLAN.md` (migration complète)
-- [ ] Commit: `git commit -m "chore: Remove old Vite webapp after Next.js migration"`
+- [x] Tester staging Next.js pendant 24-48h (pas de bugs critiques)
+- [x] Déployer Next.js en production (`git push origin main`)
+- [x] Vérifier que production fonctionne (auth, billing, extension)
+- [x] **BACKUP webapp/ Vite** (git tag: `vite-webapp-backup`)
+- [x] Supprimer dossier `webapp/` (ancien Vite)
+- [x] Renommer `webapp-next/` → `webapp/` (skipped - kept webapp-next)
+- [x] Mettre à jour `.gitignore` si nécessaire (N/A)
+- [x] Supprimer `NEXT_MIGRATION_PLAN.md` (migration complète)
+- [x] Commit: `git commit -m "chore: Remove old Vite webapp after Next.js migration"`
 
 ---
 
