@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 
-const EXTENSION_ID = 'lhkamocmjgilkhmfiogfdjhlhfrfoaaek'
+const EXTENSION_ID = 'lhkamocmjgjikhmfiogfdjhlhffoaaek'
 
 /**
  * Syncs the Supabase session to the Chrome extension
