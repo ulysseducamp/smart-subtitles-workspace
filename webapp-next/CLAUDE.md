@@ -9,8 +9,10 @@ Next.js 15 full-stack webapp for user onboarding, authentication, and billing. D
 - **Framework**: Next.js 15 + App Router + TypeScript
 - **UI**: Tailwind CSS v4 + Shadcn UI
 - **Auth**: Supabase SSR (@supabase/ssr)
-- **Payments**: Stripe (test mode)
+- **Payments**: Stripe (test mode staging, live mode production)
 - **Notifications**: Sonner
+
+**Status**: ✅ PRODUCTION LIVE (Phase 2C complete - Nov 2025)
 
 ## Development
 
@@ -23,7 +25,7 @@ npm run build
 
 ### Environments
 - **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`) ✅
-- **Production**: `subly-extension.vercel.app` (branch: `main`) - pending
+- **Production**: `subly-extension.vercel.app` (branch: `main`) ✅ LIVE
 
 ### Vercel Configuration
 - **Framework Preset**: Next.js
@@ -87,23 +89,26 @@ Add BOTH wildcards AND exact callbacks for all environments:
 
 ### Product
 - **Name**: "Subly Premium"
-- **Price**: $1/month (ID: `price_1SNtWWCdkaUrc0RrUnNRVpya`)
-- **Trial**: 14 days
-- **Mode**: Test (use card: 4242 4242 4242 4242)
+- **Price**: $1/month
+- **Trial**: 14 days (configured in code via `subscription_data.trial_period_days`)
+- **Staging**: TEST mode (card: 4242 4242 4242 4242, price ID: `price_1SNtWWCdkaUrc0RrUnNRVpya`)
+- **Production**: LIVE mode (real cards, separate price ID in env vars)
 
 ### Webhooks
-- **URL**: `https://staging-subly-extension.vercel.app/api/stripe/webhook`
+- **Staging**: `https://staging-subly-extension.vercel.app/api/stripe/webhook`
+- **Production**: `https://subly-extension.vercel.app/api/stripe/webhook`
 - **Events**: `checkout.session.completed`, `customer.subscription.*`
-- **Signature verification**: Required via `STRIPE_WEBHOOK_SECRET`
+- **Signature verification**: Required via `STRIPE_WEBHOOK_SECRET` (different per environment)
 
 ### Customer Portal
-Enabled in Stripe Dashboard for subscription management (cancel, update payment).
+Enabled in Stripe Dashboard (both TEST and LIVE modes) for subscription management.
 
 ## Extension Integration
 
 Webapp syncs auth session to Chrome extension via `chrome.runtime.sendMessage()` after OAuth. See `lib/syncExtension.ts`.
 
-**Extension ID**: `hpgaiiooldnocggkkmehaboncfbmhkhf`
+**Extension ID**: `lhkamocmjgilkhmfiogfdjhlhfrfoaaek` (Chrome Web Store)
+**Status**: Submitted to Chrome Web Store (Phase 3)
 
 Extension `manifest.json` must include in `externally_connectable.matches`:
 - `http://localhost:3000/*`

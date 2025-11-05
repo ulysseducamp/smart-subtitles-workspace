@@ -421,47 +421,47 @@ Stripe (Payment processing)
 
 **📄 Detailed checklist: [PHASE_2C_PRODUCTION.md](./PHASE_2C_PRODUCTION.md)**
 
-- [ ] **Pre-Deployment Setup** (1h)
-  - [ ] Backup Supabase database
-  - [ ] Create git tag v1.0.0-pre-production
-  - [ ] Document rollback plan
+- [x] **Pre-Deployment Setup** ✅ (November 4, 2025)
+  - [x] Backup Supabase database - N/A (test data only)
+  - [x] Create git tag v1.0.0-pre-production
+  - [x] Document rollback plan - N/A (simple git revert if needed)
 
-- [ ] **Stripe Live Mode Setup** (1h 30min)
-  - [ ] Create "Subly Premium" product in LIVE mode
-  - [ ] Create $1/month price with 14-day trial (note price_id)
-  - [ ] Create production webhook + copy signing secret
-  - [ ] Test webhook with Stripe CLI (--live mode)
-  - [ ] Add STRIPE_PRICE_ID_MONTHLY env var to code (if hardcoded)
+- [x] **Stripe Live Mode Setup** ✅ (November 4, 2025)
+  - [x] Create "Subly Premium" product in LIVE mode
+  - [x] Create $1/month price with 14-day trial (note price_id)
+  - [x] Create production webhook + copy signing secret
+  - [x] Test webhook with Stripe CLI (--live mode) - Tested with real payment
+  - [x] Add STRIPE_PRICE_ID_MONTHLY env var to code (already in env vars)
 
-- [ ] **Vercel Configuration** (30min)
-  - [ ] Add production Stripe keys (sk_live_*, whsec_live_*, price_id)
-  - [ ] Verify Supabase env vars unchanged (same instance as staging)
-  - [ ] Verify NEXT_PUBLIC_APP_URL set to production domain
+- [x] **Vercel Configuration** ✅ (November 4, 2025)
+  - [x] Add production Stripe keys (sk_live_*, whsec_live_*, price_id)
+  - [x] Verify Supabase env vars unchanged (same instance as staging)
+  - [x] Verify NEXT_PUBLIC_APP_URL set to production domain
 
-- [ ] **Git Workflow & Deployment** (30min)
-  - [ ] Create PR: develop → main
-  - [ ] Review (verify no secrets in code)
-  - [ ] Merge PR (Vercel auto-deploys)
-  - [ ] Create git tag v1.0.0-production
+- [x] **Git Workflow & Deployment** ✅ (November 4, 2025)
+  - [x] Create PR: develop → main - Direct push used
+  - [x] Review (verify no secrets in code)
+  - [x] Merge PR (Vercel auto-deploys)
+  - [x] Create git tag v1.0.0-production
 
-- [ ] **Production Testing** (2h)
-  - [ ] E2E flow: Signup → Onboarding → Stripe Checkout (test card 4242...)
-  - [ ] Verify webhook [200 OK] in Stripe Dashboard
-  - [ ] Verify subscription created in Supabase (status: trialing)
-  - [ ] Test Customer Portal (cancel subscription)
-  - [ ] Build extension production mode + test integration
-  - [ ] RLS isolation test (2 Google accounts)
+- [x] **Production Testing** ✅ (November 4, 2025)
+  - [x] E2E flow: Signup → Onboarding → Stripe Checkout (real card tested)
+  - [x] Verify webhook [200 OK] in Stripe Dashboard
+  - [x] Verify subscription created in Supabase (status: trialing)
+  - [x] Test Customer Portal (cancel subscription)
+  - [x] Build extension production mode + test integration
+  - [x] RLS isolation test (2 Google accounts) - Skipped (single user testing)
 
-- [ ] **Monitoring** (1h)
+- [ ] **Monitoring** (Optional - Post-Launch)
   - [ ] Setup Vercel error alerts
   - [ ] Enable Stripe webhook failure alerts
   - [ ] Monitor webhook delivery (1-2h)
   - [ ] Check Vercel/Stripe/Supabase logs (no errors)
 
-- [ ] **Post-Deployment** (30min)
-  - [ ] Update ROADMAP.md (check boxes, add completion date)
-  - [ ] Final smoke tests
-  - [ ] **✅ FINAL:** Production ready
+- [x] **Post-Deployment** ✅ (November 4, 2025)
+  - [x] Update ROADMAP.md (check boxes, add completion date)
+  - [x] Final smoke tests (webapp-extension sync fixed)
+  - [x] **✅ FINAL:** Production ready
 
 **Total Phase 2 Duration**: 2-3 days (was 1 week)
 **Target completion**: February 2, 2025
@@ -492,23 +492,23 @@ Stripe (Payment processing)
 
 ### Production Setup
 
-- [ ] **Infrastructure**
-  - [ ] Deploy webapp to Vercel/Netlify
-  - [ ] Update Supabase redirect URLs (production domain)
-  - [ ] Update Stripe webhook URL (production)
-  - [ ] Configure environment variables
+- [x] **Infrastructure** ✅ (Completed in Phase 2C)
+  - [x] Deploy webapp to Vercel/Netlify
+  - [x] Update Supabase redirect URLs (production domain) - N/A (same Supabase for all environments)
+  - [x] Update Stripe webhook URL (production)
+  - [x] Configure environment variables
 
-- [ ] **Extension Build**
-  - [ ] Build extension for production (`npm run build:production`)
-  - [ ] Test production build locally
-  - [ ] Prepare Chrome Web Store assets
+- [x] **Extension Build** ✅
+  - [x] Build extension for production (`npm run build:production`)
+  - [x] Test production build locally (Netflix smoke test passed)
+  - [x] Prepare Chrome Web Store assets (manifest.json key fixed)
 
 ### Launch
 
-- [ ] **Chrome Web Store Submission**
-  - [ ] Upload extension package
-  - [ ] Add screenshots and description
-  - [ ] Submit for review
+- [x] **Chrome Web Store Submission** ✅ (November 4, 2025)
+  - [x] Upload extension package
+  - [x] Add screenshots and description
+  - [x] Submit for review
 
 - [ ] **Monitoring**
   - [ ] Setup error tracking (Sentry)

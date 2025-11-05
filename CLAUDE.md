@@ -118,10 +118,11 @@ npm run build
 - **Product**: "Subly Premium" - $1/month with 14-day trial
 - **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*`
 
-**Deployment (Phase 12 ✅):**
+**Deployment:**
 - **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`)
-- **Production**: `subly-extension.vercel.app` (branch: `main`) - pending
+- **Production**: `subly-extension.vercel.app` (branch: `main`) ✅ LIVE
 - **Vercel Settings**: Framework: Next.js, Root: `webapp-next`
+- **Stripe**: Live mode configured with $1/month + 14-day trial
 
 **Environment Variables (per environment):**
 - **Development**: `NEXT_PUBLIC_APP_URL=http://localhost:3000`
@@ -152,14 +153,11 @@ npm run dev  # Runs on http://localhost:5173
 npm run build
 ```
 
-**Status:** ✅ Phase 1B complete (auth + onboarding working). Being replaced by Next.js for Stripe integration (Phase 2B).
+**Status:** ✅ Phase 1B complete (auth + onboarding working). **LEGACY - Replaced by Next.js webapp (Phase 2B/2C complete).**
 
 **Tech Stack:** React 19 + Vite + TypeScript + Tailwind CSS v3 + Shadcn UI + Supabase Auth
 
-**Deployment:**
-- **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`)
-- **Production**: `subly-extension.vercel.app` (branch: `main`)
-- **Note**: Will be replaced by Next.js deployment URLs after Phase 2B complete
+**Note**: This webapp is now archived. Next.js webapp is live in production.
 
 ### FastAPI Backend
 ```bash
@@ -279,6 +277,13 @@ python -m pytest tests/ -v
 - Multi-stage Docker build with Node.js + Python runtime
 - Environment variables for API keys and configuration
 - Health checks and monitoring enabled
+
+### Chrome Web Store
+- **Status**: ✅ Submitted (Phase 3)
+- **Extension ID**: `lhkamocmjgilkhmfiogfdjhlhfrfoaaek`
+- **Name**: Subly - Smart Netflix Subtitles
+- **Version**: 1.0.3
+- **Note**: manifest.json `"key"` field must match Chrome Web Store for updates
 
 ### Local Development
 - Chrome extension runs locally via developer mode
