@@ -1,5 +1,6 @@
 un
 à
+au
 en
 le
 et
@@ -36,6 +37,7 @@ si
 avant
 y
 dire
+dit
 elle
 devoir
 donner
@@ -47,6 +49,7 @@ aussi
 celui
 bien
 cela
+ça
 fois
 vous
 encore
@@ -85,6 +88,7 @@ venir
 personne
 rendre
 part
+merci
 dernier
 lequel
 pendant
@@ -1066,7 +1070,6 @@ malade
 portée
 élève
 contrôler
-merci
 vitesse
 visite
 assemblée
