@@ -4,58 +4,14 @@ Migrated from TypeScript logic.ts
 """
 
 from typing import List, Set, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
 import re
 import time
 import logging
-import string
 from srt_parser import Subtitle
 from frequency_loader import get_frequency_loader
 
-@dataclass
-class TokenMapping:
-    """Mapping pour maintenir l'alignement entre mots originaux et traités"""
-    original_index: int      # Index dans le texte original
-    original_word: str       # Mot original avec ponctuation
-    normalized_word: str     # Mot après normalisation (vide si filtré)
-    lemmatized_word: str     # Mot après lemmatisation (vide si filtré)
-    is_filtered: bool        # True si supprimé par normalize_words
-
 # Configure logger
 logger = logging.getLogger(__name__)
-
-def clean_word_for_translation(word: str) -> str:
-    """
-    Nettoie un mot pour traduction selon best practices NLP
-    - Enlève ponctuation de début/fin (leading/trailing uniquement)
-    - Préserve ponctuation interne (traits d'union, apostrophes)
-
-    Exemples:
-        "tensão]" → "tensão"
-        "[ofegando]" → "ofegando"
-        "motor." → "motor"
-        "pré-lavagem" → "pré-lavagem" (garde trait d'union)
-        "d'água" → "d'água" (garde apostrophe)
-        "—Olá!" → "Olá" (tiret dialogue Unicode)
-    """
-    # Ponctuation étendue : ASCII + caractères Unicode courants
-    extended_punctuation = string.punctuation + '—–…''""«»'
-    return word.strip(extended_punctuation)
-
-def extract_trailing_punctuation(word: str) -> str:
-    """
-    Extrait la ponctuation à la fin du mot
-
-    Exemples:
-        "motor." → "."
-        "tensão]" → "]"
-        "banco" → ""
-        "uísque?!" → "?!"
-    """
-    # Ponctuation étendue : ASCII + caractères Unicode courants
-    extended_punctuation = string.punctuation + '—–…''""«»'
-    clean = word.rstrip(extended_punctuation)
-    return word[len(clean):]
 
 def apply_translation(subtitle_text: str, word: str, translation: str) -> str:
     """
@@ -99,60 +55,6 @@ def apply_translation(subtitle_text: str, word: str, translation: str) -> str:
     new_text = pattern.sub(replacement, subtitle_text)
 
     return new_text
-
-def create_alignment_mapping(text: str, lang: str) -> List[TokenMapping]:
-    """
-    Crée un mapping complet avec alignement préservé entre mots originaux et traités
-
-    Args:
-        text: Texte du sous-titre (sans HTML)
-        lang: Code de langue pour la lemmatisation
-
-    Returns:
-        Liste des TokenMapping avec alignement préservé
-    """
-    from lemmatizer import smart_lemmatize_line
-    from srt_parser import normalize_words
-    import re
-
-    # 1. Extraire les mots originaux
-    original_words = text.split()
-
-    # 2. Normaliser et lemmatiser intelligemment
-    normalized_words = normalize_words(text)
-    normalized_line = ' '.join(normalized_words)
-    lemmatized_words = smart_lemmatize_line(normalized_line, lang) if normalized_words else []
-
-    # 3. Créer le mapping avec alignement
-    mappings = []
-    normalized_idx = 0
-
-    for orig_idx, original_word in enumerate(original_words):
-        # Normaliser ce mot individuellement pour vérifier s'il est filtré
-        single_word_normalized = normalize_words(original_word)
-
-        if single_word_normalized:  # Mot non filtré
-            normalized_word = single_word_normalized[0] if single_word_normalized else ""
-            lemmatized_word = lemmatized_words[normalized_idx] if normalized_idx < len(lemmatized_words) else ""
-
-            mappings.append(TokenMapping(
-                original_index=orig_idx,
-                original_word=original_word,
-                normalized_word=normalized_word,
-                lemmatized_word=lemmatized_word,
-                is_filtered=False
-            ))
-            normalized_idx += 1
-        else:  # Mot filtré
-            mappings.append(TokenMapping(
-                original_index=orig_idx,
-                original_word=original_word,
-                normalized_word="",
-                lemmatized_word="",
-                is_filtered=True
-            ))
-
-    return mappings
 
 class SubtitleFusionEngine:
     """
