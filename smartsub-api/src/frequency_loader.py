@@ -62,35 +62,35 @@ class FrequencyLoader:
     def get_top_n_words(self, language: str, top_n: int = 2000) -> Set[str]:
         """
         Get the top N most frequent words for a language.
-        
+
         Args:
             language: Language code (e.g., 'en', 'fr', 'pt')
             top_n: Number of top words to return (default: 2000)
-            
+
         Returns:
             Set of the top N most frequent words
-            
+
         Raises:
             ValueError: If language is not supported
             FileNotFoundError: If frequency list file doesn't exist
         """
         # Normalize language code
         language = language.lower().strip()
-        
+
         if language not in self._language_files:
             raise ValueError(f"Unsupported language: {language}. Supported: {list(self._language_files.keys())}")
-        
+
         filename = self._language_files[language]
         file_path = self.frequency_lists_dir / filename
-        
+
         if not file_path.exists():
             raise FileNotFoundError(f"Frequency list file not found: {file_path}")
-        
+
         # Check cache first
         cache_key = f"{language}_{top_n}"
         if cache_key in self._cache:
             return self._cache[cache_key]
-        
+
         # Load and cache the frequency list
         try:
             words = []
@@ -101,16 +101,69 @@ class FrequencyLoader:
                     word = line.strip().lower()
                     if word:  # Skip empty lines
                         words.append(word)
-            
+
             logger.info(f"Loaded top {len(words)} words for {language} from {filename}")
-            
+
             # Convert to set for O(1) lookup
             word_set = set(words)
             self._cache[cache_key] = word_set
             return word_set
-            
+
         except Exception as e:
             logger.error(f"Error loading frequency list for {language}: {e}")
+            raise
+
+    def get_full_list(self, language: str) -> Set[str]:
+        """
+        Get the complete frequency list (ALL words) for a language.
+
+        Used to distinguish real words (even rare) from proper nouns.
+
+        Args:
+            language: Language code (e.g., 'en', 'fr', 'pt')
+
+        Returns:
+            Set of ALL words in the frequency list
+
+        Raises:
+            ValueError: If language is not supported
+            FileNotFoundError: If frequency list file doesn't exist
+        """
+        # Normalize language code
+        language = language.lower().strip()
+
+        if language not in self._language_files:
+            raise ValueError(f"Unsupported language: {language}. Supported: {list(self._language_files.keys())}")
+
+        filename = self._language_files[language]
+        file_path = self.frequency_lists_dir / filename
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"Frequency list file not found: {file_path}")
+
+        # Check cache first
+        cache_key = f"{language}_full"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        # Load and cache the complete frequency list
+        try:
+            words = []
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    word = line.strip().lower()
+                    if word:  # Skip empty lines
+                        words.append(word)
+
+            logger.info(f"Loaded complete list of {len(words)} words for {language} from {filename}")
+
+            # Convert to set for O(1) lookup
+            word_set = set(words)
+            self._cache[cache_key] = word_set
+            return word_set
+
+        except Exception as e:
+            logger.error(f"Error loading complete frequency list for {language}: {e}")
             raise
     
     

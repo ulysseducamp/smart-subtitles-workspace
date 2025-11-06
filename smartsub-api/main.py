@@ -230,10 +230,13 @@ async def fuse_subtitles(
         
         # Get frequency list from in-memory loader
         frequency_loader = get_frequency_loader()
-        
+
         # Get top N words in frequency order (most frequent first)
         known_words = frequency_loader.get_top_n_words(target_language, top_n_words)
-        
+
+        # Get FULL frequency list (for proper noun detection)
+        full_frequency_list = frequency_loader.get_full_list(target_language)
+
         # Log configuration section
         logger.info("=== CONFIGURATION ===")
         logger.info(f"Niveau choisi: {top_n_words} mots les plus fréquents")
@@ -282,6 +285,7 @@ async def fuse_subtitles(
             target_subs=target_subs,
             native_subs=native_subs,
             known_words=known_words,
+            full_frequency_list=full_frequency_list,
             lang=target_language,
             enable_inline_translation=enable_inline_translation,
             deepl_api=deepl_api,

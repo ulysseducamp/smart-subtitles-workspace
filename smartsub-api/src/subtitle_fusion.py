@@ -57,6 +57,49 @@ def extract_trailing_punctuation(word: str) -> str:
     clean = word.rstrip(extended_punctuation)
     return word[len(clean):]
 
+def apply_translation(subtitle_text: str, word: str, translation: str) -> str:
+    """
+    Applique une traduction inline avec regex + word boundaries.
+
+    Cette fonction utilise regex avec word boundaries (\b) et le flag IGNORECASE
+    pour trouver toutes les occurrences du mot dans le texte original et ajouter
+    la traduction inline.
+
+    Args:
+        subtitle_text: Texte original du sous-titre
+        word: Mot normalisé à chercher (sans ponctuation, lowercase)
+        translation: Traduction à insérer
+
+    Returns:
+        Texte avec traduction inline: "word (translation)"
+
+    Exemples:
+        apply_translation("Il mange du pain.", "mange", "eats")
+        → "Il mange (eats) du pain."
+
+        apply_translation("Mange ton repas!", "mange", "eat")
+        → "Mange (eat) ton repas!"
+
+        apply_translation("mange, mange!", "mange", "eat")
+        → "mange (eat), mange (eat)!"
+    """
+    # Escape le mot pour regex (caractères spéciaux comme ., ?, +, etc.)
+    escaped_word = re.escape(word)
+
+    # Pattern avec word boundaries + case insensitive
+    # \b assure qu'on matche uniquement le mot entier, pas une partie d'un autre mot
+    pattern = re.compile(r'\b' + escaped_word + r'\b', re.IGNORECASE)
+
+    # Remplace avec traduction inline
+    # On utilise une fonction lambda pour préserver la casse originale du mot matché
+    def replacement(match):
+        original_word = match.group(0)
+        return f"{original_word} ({translation})"
+
+    new_text = pattern.sub(replacement, subtitle_text)
+
+    return new_text
+
 def create_alignment_mapping(text: str, lang: str) -> List[TokenMapping]:
     """
     Crée un mapping complet avec alignement préservé entre mots originaux et traités
@@ -217,6 +260,122 @@ class SubtitleFusionEngine:
             "ain't": ["am", "not"],
         }
     
+    def _analyze_subtitle_words(self, subtitle_text: str, lang: str, known_words: Set[str], full_frequency_list: Set[str]) -> Dict[str, Any]:
+        """
+        Analyse les mots d'un sous-titre selon le flow en 2 phases.
+
+        Returns dict avec:
+        - normalized_words: liste des mots normalisés (lowercase, pas ponctuation)
+        - lemmatized_words: liste des lemmes (même longueur que normalized_words)
+        - word_statuses: liste des statuts ("known", "unknown", "proper_noun")
+        - proper_nouns: liste des noms propres détectés
+        - unknown_words: liste des mots inconnus (à traduire)
+        """
+        from lemmatizer import lemmatize_single_line
+
+        # a. Enlever HTML tags
+        text = re.sub(r'<[^>]*>', '', subtitle_text)
+
+        # b. Enlever ponctuation (garder capitales)
+        text_no_punct = re.sub(r'[^\w\s]', ' ', text)
+
+        # c. Split en mots
+        words_with_caps = text_no_punct.split()
+
+        # d. Filtrer mots courts (< 2 lettres)
+        words_with_caps = [w for w in words_with_caps if len(w) >= 2]
+
+        if not words_with_caps:
+            return {
+                'normalized_words': [],
+                'lemmatized_words': [],
+                'word_statuses': [],
+                'proper_nouns': [],
+                'unknown_words': []
+            }
+
+        # e. PHASE 1 - Marquage basé sur capitalisation
+        word_categories = []  # "confirmed_proper", "potential_proper", "normal"
+
+        for i, word in enumerate(words_with_caps):
+            if word[0].isupper():
+                if i == 0:
+                    # Premier mot avec majuscule → potentiel
+                    word_categories.append("potential_proper")
+                else:
+                    # Majuscule au milieu → confirmé nom propre
+                    word_categories.append("confirmed_proper")
+            else:
+                word_categories.append("normal")
+
+        # f. Convertir TOUS les mots en minuscules
+        normalized_words = [w.lower() for w in words_with_caps]
+
+        # g. Lemmatiser sélectivement
+        lemmatized_words = []
+        for i, norm_word in enumerate(normalized_words):
+            category = word_categories[i]
+
+            if category == "confirmed_proper":
+                # Ne PAS lemmatiser les noms propres confirmés
+                lemmatized_words.append(norm_word)
+            else:
+                # Lemmatiser les autres (potentiel + normal)
+                # lemmatize_single_line retourne une liste, prendre le premier élément
+                lemmas = lemmatize_single_line(norm_word, lang)
+                lemma = lemmas[0] if lemmas else norm_word
+                lemmatized_words.append(lemma)
+
+        # h. PHASE 2 - Vérification et analyse
+        word_statuses = []
+        proper_nouns = []
+        unknown_words = []
+
+        for i in range(len(normalized_words)):
+            norm_word = normalized_words[i]
+            lemma = lemmatized_words[i]
+            category = word_categories[i]
+
+            # Check if number
+            if lemma.isdigit():
+                word_statuses.append("known")
+                continue
+
+            if category == "confirmed_proper":
+                # Nom propre confirmé → CONNU
+                word_statuses.append("known")
+                proper_nouns.append(norm_word)
+
+            elif category == "potential_proper":
+                # Nom propre potentiel → vérifier
+                if lemma in known_words:
+                    # Dans top N → mot commun CONNU
+                    word_statuses.append("known")
+                elif lemma in full_frequency_list:
+                    # Dans liste complète mais pas top N → mot INCONNU
+                    word_statuses.append("unknown")
+                    unknown_words.append(norm_word)
+                else:
+                    # Pas dans liste du tout → NOM PROPRE
+                    word_statuses.append("known")
+                    proper_nouns.append(norm_word)
+
+            else:  # category == "normal"
+                # Mot normal
+                if lemma in known_words:
+                    word_statuses.append("known")
+                else:
+                    word_statuses.append("unknown")
+                    unknown_words.append(norm_word)
+
+        return {
+            'normalized_words': normalized_words,
+            'lemmatized_words': lemmatized_words,
+            'word_statuses': word_statuses,
+            'proper_nouns': proper_nouns,
+            'unknown_words': unknown_words
+        }
+
     def is_proper_noun(self, word: str, sentence: str, frequency_list: Set[str]) -> bool:
         """
         Determines if a word is a proper noun according to the following rules:
@@ -226,7 +385,7 @@ class SubtitleFusionEngine:
            - If it does NOT exist in the frequency list, it's a proper noun.
         """
         import re
-        
+
         # Remove HTML tags from the word
         no_html_word = re.sub(r'<[^>]*>', '', word)
         # Remove leading/trailing punctuation from the word
@@ -681,6 +840,7 @@ class SubtitleFusionEngine:
                       target_subs: List[Subtitle],
                       native_subs: List[Subtitle],
                       known_words: Set[str],
+                      full_frequency_list: Set[str],
                       lang: str,
                       enable_inline_translation: bool = False,
                       deepl_api: Optional[Any] = None,
@@ -717,55 +877,40 @@ class SubtitleFusionEngine:
         for i, current_target_sub in enumerate(target_subs):
             if current_target_sub.index in processed_target_indices:
                 continue
-            
-            # Create alignment mapping for this subtitle
-            subtitle_text = strip_html(current_target_sub.text)
-            token_mappings = create_alignment_mapping(subtitle_text, lang)
 
-            # Extract non-filtered mappings for processing
-            active_mappings = [mapping for mapping in token_mappings if not mapping.is_filtered]
+            # NEW: Analyze subtitle words using 2-phase proper noun detection
+            analysis = self._analyze_subtitle_words(
+                current_target_sub.text,
+                lang,
+                known_words,
+                full_frequency_list
+            )
 
-            # Add null check for active mappings
-            if not active_mappings:
-                logger.warning(f"No active mappings found for subtitle {current_target_sub.index}, skipping.")
+            # Extract results from analysis
+            normalized_words = analysis['normalized_words']
+            lemmatized_words_list = analysis['lemmatized_words']
+            word_statuses = analysis['word_statuses']
+            proper_nouns = analysis['proper_nouns']
+            unknown_words = analysis['unknown_words']
+
+            # Add null check for empty analysis
+            if not normalized_words:
+                logger.warning(f"No words found in subtitle {current_target_sub.index}, skipping.")
                 final_subtitles.append(current_target_sub)
                 processed_target_indices.add(current_target_sub.index)
                 continue
-            
+
             # DETAIL FOR FIRST 20 SUBTITLES
             should_show_details = debug_shown < 20
-            
-            # Analyze each word using token mappings
-            proper_nouns = []
-            lemmatized_words_list = []
-            unknown_words_list = []
 
-            unknown_words = []
-            for mapping in active_mappings:
-                lemmatized_word = mapping.lemmatized_word
-                original_word = mapping.original_word
-
-                is_known = self.is_word_known(lemmatized_word, known_words, lang, original_word=original_word, subtitle_index=current_target_sub.index)
-                is_proper = self.is_proper_noun(original_word, current_target_sub.text, known_words)
-
-                # Check if word is a number (consists entirely of digits)
-                is_number = lemmatized_word.isdigit()
-
-                lemmatized_words_list.append(lemmatized_word)
-
-                if is_proper:
-                    proper_nouns.append(original_word)
-                elif not is_known and not is_number:
-                    unknown_words_list.append(lemmatized_word)
-
-                if not is_known and not is_proper and not is_number:
-                    unknown_words.append(lemmatized_word)
-            
             # DECISION FINALE LOG: Récapitulatif de la décision pour ce sous-titre
             total_words = len(lemmatized_words_list)
             unknown_count = len(unknown_words)
             proper_count = len(proper_nouns)
             known_count = total_words - unknown_count - proper_count
+
+            # For logging compatibility: create unknown_words_list with lemmas
+            unknown_words_list = [lemmatized_words_list[i] for i, word in enumerate(normalized_words) if word in unknown_words]
 
             # Disabled verbose logging - only log critical decisions
             # logger.info(f"DECISION_FINALE[{current_target_sub.index}]: total_mots={total_words}, connus={known_count}, inconnus={unknown_count}, noms_propres={proper_count}")
@@ -795,25 +940,18 @@ class SubtitleFusionEngine:
             # Handle single unknown word with inline translation
             if len(unknown_words) == 1 and enable_inline_translation and native_lang:
                 # logger.info(f"DECISION_FINALE[{current_target_sub.index}]: TRADUCTION_INLINE (1 mot inconnu)")
-                # Find the original word corresponding to the lemmatized unknown word using mappings
-                unknown_lemma = unknown_words[0]
-                original_word = unknown_lemma  # Fallback
-
-                # Find the mapping for this unknown lemmatized word
-                for mapping in active_mappings:
-                    if mapping.lemmatized_word == unknown_lemma:
-                        original_word = mapping.original_word
-                        break
+                # NEW: Directly use the normalized unknown word (no alignment mapping needed)
+                unknown_word = unknown_words[0]  # Already normalized (no punctuation, lowercase)
 
                 # BATCH TRANSLATION: Collect (word, subtitle) tuple for batch translation
                 # No deduplication - if same word appears in 10 subtitles, we translate 10 times
                 # This prevents subtitle loss (Bug #1 fix)
-                subtitles_to_translate.append((original_word, current_target_sub))
+                subtitles_to_translate.append((unknown_word, current_target_sub))
                 
                 if should_show_details:
                     # Format words with ranks for better debugging
                     words_with_ranks = self._format_words_with_ranks(lemmatized_words_list, lang, top_n)
-                    
+
                     # Use helper function for atomic logging
                     self._log_subtitle_details(
                         subtitle_index=current_target_sub.index,
@@ -822,7 +960,7 @@ class SubtitleFusionEngine:
                         words_ranks=words_with_ranks,
                         unknown_words=unknown_words_list,
                         decision="inline translation for single unknown word (COLLECTED FOR BATCH)",
-                        reason=f"1 unknown word detected, collecting original word '{original_word}' (lemmatized: '{unknown_words[0]}') for batch translation",
+                        reason=f"1 unknown word detected, collecting normalized word '{unknown_word}' for batch translation",
                         final_text=current_target_sub.text
                     )
                 
@@ -1011,22 +1149,15 @@ class SubtitleFusionEngine:
             logger.info(f"\n🔄 BATCH TRANSLATION: Processing {len(subtitles_to_translate)} subtitles with unique contexts...")
 
             # Build list of (word, context) tuples for translation
-            # Clean words before sending to OpenAI (remove punctuation/brackets)
+            # NEW: Words are already normalized (no punctuation), no cleaning needed
             words_with_contexts = []
-            word_cleaning_map = {}  # Mapping: clean_word → original_word
 
             for word, subtitle in subtitles_to_translate:
-                # Clean the word for translation (remove leading/trailing punctuation)
-                clean_word = clean_word_for_translation(word)
-
-                # Store mapping for reapplication after translation
-                word_cleaning_map[clean_word] = word
-
-                # Send cleaned word to OpenAI
-                words_with_contexts.append((clean_word, strip_html(subtitle.text)))
+                # Send normalized word directly to OpenAI with context
+                words_with_contexts.append((word, strip_html(subtitle.text)))
 
             # Log unique words vs duplicates
-            unique_words = set(clean_word for clean_word, _ in words_with_contexts)
+            unique_words = set(word for word, _ in words_with_contexts)
             logger.info(f"   📊 Translation stats: {len(words_with_contexts)} total words, {len(unique_words)} unique words ({len(words_with_contexts) - len(unique_words)} duplicates)")
 
             # Log first 10 words with context for debugging
@@ -1061,8 +1192,8 @@ class SubtitleFusionEngine:
                 try:
                     logger.info(f"🔄 Using DeepL fallback (no context)...")
 
-                    # Extract words for DeepL translation (cleaned)
-                    words_only = [clean_word_for_translation(word) for word, _ in subtitles_to_translate]
+                    # Extract words for DeepL translation (already normalized)
+                    words_only = [word for word, _ in subtitles_to_translate]
                     translations = deepl_api.translate_batch(words_only, lang, native_lang)
 
                     logger.info(f"✅ DeepL fallback successful! Translated {len(translations)} subtitles")
@@ -1079,27 +1210,20 @@ class SubtitleFusionEngine:
                 # DIAGNOSTIC: Log before applying translations
                 logger.info(f"   [FUSION] 🔧 Applying translations: {len(subtitles_to_translate)} words, {len(translations)} translations available")
 
-                for original_word, subtitle in subtitles_to_translate:
-                    # Clean the word for lookup (same cleaning as before sending to OpenAI)
-                    clean_word = clean_word_for_translation(original_word)
-
-                    # Check if we have a translation for this word (using cleaned word)
-                    if clean_word in translations:
-                        translation = translations[clean_word]
+                for word, subtitle in subtitles_to_translate:
+                    # NEW: Word is already normalized (no punctuation, lowercase)
+                    # Check if we have a translation for this normalized word
+                    if word in translations:
+                        translation = translations[word]
 
                         # DIAGNOSTIC: Log every translation application
-                        logger.info(f"   [FUSION]    '{original_word}' → '{translation}' (subtitle {subtitle.index})")
+                        logger.info(f"   [FUSION]    '{word}' → '{translation}' (subtitle {subtitle.index})")
 
-                        # Extract trailing punctuation from original word
-                        trailing_punct = extract_trailing_punctuation(original_word)
-
-                        # Build replacement: clean_word (translation)trailing_punct
-                        # Example: "tensão]" → "tensão (tension)]"
-                        replacement = f"{clean_word} ({translation}){trailing_punct}"
-
-                        # Replace the word in the subtitle text
-                        pattern = re.compile(re.escape(original_word), re.IGNORECASE)
-                        new_text = pattern.sub(replacement, subtitle.text)
+                        # NEW: Use apply_translation() with regex + word boundaries
+                        # Finds all occurrences of the normalized word in the original text
+                        # and adds inline translation: "word (translation)"
+                        # Word boundaries ensure we don't replace inside other words (e.g., "et" in "Antoinette")
+                        new_text = apply_translation(subtitle.text, word, translation)
 
                         # Create new subtitle with inline translation
                         translated_sub = Subtitle(
@@ -1112,10 +1236,9 @@ class SubtitleFusionEngine:
                         final_subtitles.append(translated_sub)
                         inline_translation_count += 1
                     else:
-                        # No translation available for this word - Try FR native fallback
-                        logger.warning(f"⚠️  TRANSLATION FAILED for word '{original_word}' in subtitle {subtitle.index}")
+                        # No translation available for this word - Try native fallback
+                        logger.warning(f"⚠️  TRANSLATION FAILED for word '{word}' in subtitle {subtitle.index}")
                         logger.warning(f"   📝 Context: \"{subtitle.text}\"")
-                        logger.warning(f"   🧹 Clean word sent to OpenAI: '{clean_word}'")
 
                         # Find the index of this subtitle in target_subs
                         target_index = next((i for i, sub in enumerate(target_subs) if sub.index == subtitle.index), None)
@@ -1128,7 +1251,7 @@ class SubtitleFusionEngine:
                                 target_subs=target_subs,
                                 native_subs=native_subs,
                                 processed_indices=processed_target_indices,
-                                original_word=original_word,
+                                original_word=word,
                                 native_lang=native_lang,
                                 target_lang=lang
                             )

@@ -67,32 +67,29 @@ def generate_srt(subtitles: List[Subtitle]) -> str:
 
 def normalize_words(text: str) -> List[str]:
     """
-    Normalize text by removing punctuation and converting to lowercase
-    Migrated from TypeScript normalizeWords function
+    Normalize text by removing ALL punctuation (including apostrophes, hyphens, etc.)
+    and converting to lowercase.
+
+    Simplified version: treats all punctuation uniformly - no special handling needed
+    for apostrophes or hyphens as they're all replaced with spaces.
+
+    Examples:
+        "l'école"                 -> ["école"]
+        "Marie-Antoinette"        -> ["marie", "antoinette"]
+        "C'est Marie-Antoinette!" -> ["est", "marie", "antoinette"]
+        "a-t-il"                  -> ["il"]  (a, t filtered as single letters)
     """
     import re
-    
+
     # Remove HTML tags first
     text = re.sub(r'<[^>]*>', '', text)
-    
-    # Split on apostrophes BEFORE other processing to handle contractions
-    words_with_apostrophes = text.split()
-    expanded_words = []
-    for word in words_with_apostrophes:
-        if "'" in word:
-            expanded_words.extend(word.split("'"))
-        else:
-            expanded_words.append(word)
-    
-    # Join back and normalize
-    text = ' '.join(expanded_words)
-    
-    # Replace non-letter/number/space with spaces
+
+    # Replace ALL punctuation with spaces (apostrophes, hyphens, commas, periods, etc.)
     # Use \w to support Unicode characters (accents, etc.)
     text = re.sub(r'[^\w\s]', ' ', text)
-    
+
     # Convert to lowercase and split by whitespace
     words = text.lower().split()
-    
-    # Filter out single letters (pronouns, articles) and empty strings
-    return [word for word in words if len(word) > 1 and word.strip()]
+
+    # Filter out single letters and empty strings
+    return [word for word in words if len(word) > 1]
