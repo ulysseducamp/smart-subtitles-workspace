@@ -89,9 +89,35 @@ def test_analyze_subtitle_words():
     assert result['unknown_words'] == [], f"Expected no unknown words"
     print("   ✅ Test 2 PASS\n")
 
-    # Test 3: Mot rare au début (dans full_list mais PAS dans known_words)
+    # Test 3: Mot CONNU au début (avec majuscule)
     print("─" * 70)
-    print("Test 3: 'Oscille entre deux'")
+    print("Test 3: 'Mange du pain'")
+    print("   Attendu: 'Mange' potentiel (majuscule début) → lemme 'manger'")
+    print("           → DANS known_words")
+    print("           → MOT CONNU (pas de traduction)")
+
+    result = engine._analyze_subtitle_words(
+        "Mange du pain",
+        "fr",
+        known_words,
+        full_frequency_list
+    )
+
+    print(f"\n   Résultat:")
+    print(f"   - Mots normalisés: {result['normalized_words']}")
+    print(f"   - Lemmes: {result['lemmatized_words']}")
+    print(f"   - Statuts: {result['word_statuses']}")
+    print(f"   - Mots inconnus: {result['unknown_words']}")
+    print(f"   - Noms propres: {result['proper_nouns']}")
+
+    assert "mange" not in result['unknown_words'], f"'mange' should be known"
+    assert "mange" not in result['proper_nouns'], f"'mange' should not be a proper noun"
+    assert result['word_statuses'][0] == 'known', f"Expected 'mange' status to be 'known', got {result['word_statuses'][0]}"
+    print("   ✅ Test 3 PASS\n")
+
+    # Test 4: Mot rare au début (dans full_list mais PAS dans known_words)
+    print("─" * 70)
+    print("Test 4: 'Oscille entre deux'")
     print("   Attendu: 'Oscille' potentiel → lemme 'osciller'")
     print("           → PAS dans known_words")
     print("           → DANS full_frequency_list")
@@ -111,11 +137,11 @@ def test_analyze_subtitle_words():
 
     assert "oscille" in result['unknown_words'], f"Expected 'oscille' in unknown words"
     assert "oscille" not in result['proper_nouns'], f"'oscille' should not be a proper noun"
-    print("   ✅ Test 3 PASS\n")
+    print("   ✅ Test 4 PASS\n")
 
-    # Test 4: Vrai nom propre au début (pas dans full_list)
+    # Test 5: Vrai nom propre au début (pas dans full_list)
     print("─" * 70)
-    print("Test 4: 'Netflix est génial'")
+    print("Test 5: 'Netflix est génial'")
     print("   Attendu: 'Netflix' potentiel → lemme 'netflix'")
     print("           → PAS dans known_words")
     print("           → PAS dans full_frequency_list")
@@ -135,11 +161,11 @@ def test_analyze_subtitle_words():
 
     assert "netflix" in result['proper_nouns'], f"Expected 'netflix' in proper nouns"
     assert "netflix" not in result['unknown_words'], f"'netflix' should not be unknown"
-    print("   ✅ Test 4 PASS\n")
+    print("   ✅ Test 5 PASS\n")
 
-    # Test 5: Marie-Antoinette (le cas original!)
+    # Test 6: Marie-Antoinette (le cas original!)
     print("─" * 70)
-    print("Test 5: 'Il a appartenu à Marie-Antoinette et il'")
+    print("Test 6: 'Il a appartenu à Marie-Antoinette et il'")
     print("   Attendu: 'Marie' et 'Antoinette' au milieu → noms propres confirmés")
     print("           'et' normal → connu")
 
@@ -158,7 +184,7 @@ def test_analyze_subtitle_words():
     assert "marie" in result['proper_nouns'], f"Expected 'marie' in proper nouns"
     assert "antoinette" in result['proper_nouns'], f"Expected 'antoinette' in proper nouns"
     assert "et" not in result['unknown_words'], f"'et' should be known"
-    print("   ✅ Test 5 PASS - Le cas original fonctionne!\n")
+    print("   ✅ Test 6 PASS - Le cas original fonctionne!\n")
 
     print("=" * 70)
     print("🎉 TOUS LES TESTS PASSENT!")
