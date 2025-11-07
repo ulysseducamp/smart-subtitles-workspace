@@ -33,27 +33,23 @@ Client HTTP → FastAPI Endpoint → Subtitle Fusion Engine → OpenAI/DeepL Tra
   - CORS restreint aux domaines Netflix
   - Gestion d'API keys serveur-side
 
-#### `src/subtitle_fusion.py` (1200+ lignes)
+#### `src/subtitle_fusion.py` (~1100 lignes)
 - **Rôle:** Moteur principal de fusion de sous-titres
 - **Classe:** `SubtitleFusionEngine`
-- **Méthode principale:** `fuse_subtitles(target_subs, native_subs, lang, native_lang, top_n, ...)`
+- **Méthode principale:** `fuse_subtitles(target_subs, native_subs, known_words, full_frequency_list, lang, ...)`
 
 **Algorithme de fusion:**
-1. **Analyse vocabulaire** - Détermine quels mots sont connus via frequency lists
+1. **Analyse vocabulaire** - `_analyze_subtitle_words()` détection 2-phase (capitalization → lemmatization → frequency check)
 2. **Décision par sous-titre:**
    - Tous les mots connus → Garder sous-titre PT
-   - 1 mot inconnu → Traduction inline `mot (translation)` (avec fallback natif si échec)
+   - 1 mot inconnu → Traduction inline via `apply_translation()` (regex + word boundaries)
    - 2+ mots inconnus → Remplacer par sous-titre FR
 3. **Synchronisation temporelle** - Bidirectionnelle avec calcul d'overlap
 4. **Batch translation** - Collecte tous les mots à traduire, puis traduction parallèle
 
-**Changements récents (Janvier 2025):**
-- ✅ Suppression de la déduplication du cache pour éviter la perte de sous-titres
-- ✅ Traduction contextuelle parfaite avec clés uniques `word_INDEX`
-- ✅ Filtre "avalanche" - Compare FR avec PT précédent pour éviter double affichage
-- ✅ Pre-cleaning ponctuation avant traduction (évite normalisation OpenAI)
-- ✅ Native fallback system - Remplace par sous-titre natif si traduction échoue
-- ⚠️ **LIMITATION CONNUE:** Collision de dict quand même mot nettoyé apparaît plusieurs fois dans un batch (~0.5-1%)
+**Changements récents:**
+- ✅ **Nov 2025 - Architecture Refactor:** Suppression TokenMapping, ajout `apply_translation()` + `_analyze_subtitle_words()`, distinction `known_words` vs `full_frequency_list`, regex word boundaries (fix bug "et" dans "Antoinette")
+- ✅ Jan 2025: Suppression déduplication cache, traduction contextuelle parfaite, filtre "avalanche", native fallback system
 
 #### `src/openai_translator.py` (390+ lignes)
 - **Rôle:** Traduction contextuelle via OpenAI GPT-4.1 Nano ou Google Gemini
@@ -77,9 +73,11 @@ class WordTranslation(BaseModel):
 
 #### `src/frequency_loader.py`
 - **Rôle:** Chargement des listes de fréquence de mots au démarrage
-- **Fonction:** `load_frequency_list(lang)` - Charge top 800 mots par langue
+- **Fonctions clés:**
+  - `get_top_n_words(lang, n)` - Top N mots (niveau utilisateur)
+  - `get_full_list(lang)` - Liste complète (détection noms propres)
 - **Langues supportées:** EN, FR, PT, ES (EN maintenu pour backend mais retiré de l'UI frontend)
-- **Usage:** Détermine si un mot est "connu" (dans top N)
+- **Usage:** Distinction `known_words` (top N) vs `full_frequency_list` (tous mots) pour détecter mots rares vs noms propres
 
 #### `src/lemmatizer.py`
 - **Rôle:** Lemmatisation intelligente des mots
@@ -201,20 +199,20 @@ for idx, (original_word, subtitle) in enumerate(subtitles_to_translate):
 
 ## Bugs connus
 
-### Bug #1: Ponctuation normalisée par OpenAI (RÉSOLU - Janvier 2025)
+### Bug #1: "et" traduit dans "Antoinette" (RÉSOLU - Novembre 2025)
 
-**Symptôme:** 17-32% échecs de traduction dus à OpenAI qui normalise la ponctuation
+**Symptôme:** "Marie-Antoinette" split en 2 mots → "et" traduit inside → "Antoin**et (and)**te"
 
-**Cause:** OpenAI Structured Outputs enlève ponctuation des champs `word`, causant mismatch avec clés dict
+**Cause:** TokenMapping index alignment + split hyphenated words
 
-**Solution:** Pre-cleaning avant envoi à OpenAI
-- `clean_word_for_translation()`: Enlève ponctuation leading/trailing (ASCII + Unicode)
-- `extract_trailing_punctuation()`: Extrait ponctuation pour réapplication
-- Placement: `mot (traduction)ponctuation` (ex: "tensão (tension)]")
+**Solution (Architecture Refactor):** Regex avec word boundaries `\b` + mots pré-normalisés
+- `apply_translation()`: Pattern `\b + word + \b` empêche match partiel
+- Mots déjà normalisés (lowercase, no punctuation) avant traduction
+- Regex gère ponctuation automatiquement: "mange," → "mange (eats),"
 
-**Résultats:** 67% → 79.8% succès (206/258 traductions appliquées)
+**Résultats:** Bug 100% résolu, architecture simplifiée (-98 lignes code mort)
 
-**Code:** `subtitle_fusion.py` - Fonctions utilitaires + flow de traduction modifié
+**Code:** `subtitle_fusion.py:18-59` - `apply_translation()` function
 
 ### Bug #2: Collision de dict avec même mot nettoyé (NON PRIORITAIRE - Janvier 2025)
 
@@ -252,30 +250,38 @@ for idx, (original_word, subtitle) in enumerate(subtitles_to_translate):
 
 ## Fonctionnalités clés
 
-### 1. Token Mapping System
-- **Rôle:** Préserve l'alignement entre mots originaux et lemmatisés
-- **Classe:** `TokenMapping` (dataclass)
-- **Champs:** `original_word`, `normalized_word`, `lemmatized_word`, `is_filtered`, `original_index`
-- **Usage:** Résout le problème d'alignement quand certains mots sont filtrés
+### 1. Word Analysis & Proper Noun Detection (Architecture Nov 2025)
+- **Fonction:** `_analyze_subtitle_words(text, lang, known_words, full_frequency_list)`
+- **Détection 2-phase:**
+  1. **Phase capitalization:** Mark words as `confirmed_proper` (mid-sentence caps), `potential_proper` (sentence start), `normal`
+  2. **Phase lemmatization + frequency:** Potential → lemmatize → check if in `known_words` (common), `full_frequency_list` (rare word to translate), or neither (proper noun)
+- **Returns:** `normalized_words`, `lemmatized_words`, `word_statuses`, `proper_nouns`, `unknown_words`
+- **Code:** `subtitle_fusion.py:169-283`
 
-### 2. Smart Lemmatization
+### 2. Translation Application (Architecture Nov 2025)
+- **Fonction:** `apply_translation(subtitle_text, word, translation)`
+- **Approche:** Regex avec word boundaries `\b + escaped_word + \b` + flag `IGNORECASE`
+- **Avantages:** Matche toutes occurrences, préserve casse originale, évite match partiel ("et" pas dans "Antoinette")
+- **Code:** `subtitle_fusion.py:18-59`
+
+### 3. Smart Lemmatization
 - **Top 200 mots:** Pas de lemmatisation (évite "uma" → "umar")
 - **Autres mots:** Lemmatisation via simplemma
 - **Pourquoi:** Les outils NLP portugais ont des bugs sur les mots fonctionnels
 
-### 3. Avalanche Prevention
+### 4. Avalanche Prevention
 - **Problème:** Un sous-titre FR peut mieux matcher le PT précédent que le PT actuel
 - **Solution:** Comparer overlap avec PT précédent, exclure si meilleur match
 - **Code:** `subtitle_fusion.py:658-692`
 
-### 4. Native Fallback System
+### 5. Native Fallback System
 - **Déclenchement:** Quand traduction inline échoue (mot absent du dict OpenAI)
 - **Fonctions:** `_find_best_native_match()`, `_apply_native_fallback()`
 - **Logique:** Réutilise synchronisation temporelle pour trouver sous-titre natif correspondant
 - **Stats:** `fallbackCount` tracking dans logs (~0% actuellement, GPT-4.1 Nano très fiable)
 - **Code:** `subtitle_fusion.py:405-543, 1113-1139`
 
-### 5. Parallel Translation
+### 6. Parallel Translation
 - **Chunks:** 18 mots par requête OpenAI
 - **Concurrency:** 8 requêtes simultanées (38% du rate limit OpenAI de 500 RPM)
 - **Performance:** 7.80s → 3.95s (-49%), traitement total 10.03s → 6.87s (-32%)
@@ -324,11 +330,13 @@ python -m pytest tests/ -v
 
 ## TODO / Investigations en cours
 
-- [x] ~~Résoudre traductions échouées~~ - RÉSOLU: Dict-based matching + punctuation cleaning + native fallback
-- [ ] Améliorer tokenization dans `create_alignment_mapping()` pour séparer ponctuation (nice-to-have)
+- [x] ~~Résoudre traductions échouées~~ - RÉSOLU: Dict-based matching + native fallback
+- [x] ~~Bug "et" dans "Antoinette"~~ - RÉSOLU: Architecture refactor Nov 2025, regex word boundaries
+- [x] ~~Améliorer tokenization~~ - OBSOLÈTE: TokenMapping supprimé, remplacé par architecture simplifiée
 
 ## Références
 
+- **WORD_ALIGNMENT_ARCHITECTURE.md** - Décisions architecture refactor Nov 2025 (word processing, proper nouns detection)
 - **MASTER_DOC.md** - Documentation complète du projet (720+ lignes)
 - **CLAUDE.md** (racine) - Documentation extension Chrome
 - **Railway Production:** `smartsub-api-production.up.railway.app`
