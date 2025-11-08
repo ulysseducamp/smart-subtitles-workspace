@@ -22,7 +22,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: {
-    popup: './src/popup/popup.ts',
+    popup: './src/popup/index.tsx',
     'content-script': './src/content-script.ts',
     'page-script': './src/page-script.ts',
     background: './src/background.ts'
@@ -35,14 +35,21 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.tsx?$/,
         use: 'ts-loader',
         exclude: /node_modules/
+      },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader', 'postcss-loader']
       }
     ]
   },
   resolve: {
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js', '.tsx', '.jsx'],
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
   },
   plugins: [
     new webpack.EnvironmentPlugin({
@@ -57,6 +64,7 @@ module.exports = {
       patterns: [
         { from: 'src/popup/popup.html', to: 'popup.html' },
         { from: 'src/popup/popup.css', to: 'popup.css' },
+        { from: 'src/popup/images', to: 'images' },
         { from: 'manifest.json', to: 'manifest.json' }
       ]
     })

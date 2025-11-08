@@ -559,6 +559,23 @@ console.log('Smart Netflix Subtitles: Auto-processing disabled - subtitles avail
 
 **Key Lesson**: Simple solutions for simple problems. Complex architecture only when complexity is genuinely needed (YAGNI principle).
 
+## Extension-Webapp Supabase Sync (January 2025)
+
+### Current Implementation: Inline Sync (KISS)
+When user changes language in popup → Updates 2 places:
+1. `chrome.storage.local` (instant, local persistence)
+2. Supabase `user_settings` table (multi-device sync) - **INLINE in handlers**
+
+**Why Inline?** YAGNI principle - Only 2 call sites, simple UPDATE query, easier debugging.
+
+**Security:** ✅ RLS policies enforce user isolation, session validated before UPDATE.
+
+**Future Trigger:** If sync logic becomes complex (retry, offline queue, >3 fields) → Refactor to centralized service.
+
+**Code:** `src/popup/Popup.tsx` lines 285-329
+
+---
+
 ## Development Best Practices (Lessons Learned)
 
 ### ROADMAP Progress Tracking

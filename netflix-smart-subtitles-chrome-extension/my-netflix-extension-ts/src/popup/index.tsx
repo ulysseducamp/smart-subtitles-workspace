@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<!--
+/*
  * Smart Netflix Subtitles
  * Copyright (C) 2025 Based on Subadub by Russel Simmons
  *
@@ -15,14 +14,29 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
- -->
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-  <div id="root"></div>
-  <script src="popup.js"></script>
-</body>
-</html>
+ */
+
+// React entry point for the popup
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Popup } from './Popup';
+
+// Import Tailwind CSS styles
+import './styles.css';
+
+console.log('Smart Netflix Subtitles: Popup script loaded (React)');
+console.log('Smart Netflix Subtitles: WEBAPP_URL =', process.env.WEBAPP_URL);
+
+// Mount React app
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(
+    <React.StrictMode>
+      <Popup />
+    </React.StrictMode>
+  );
+  console.log('Smart Netflix Subtitles: React app mounted');
+} else {
+  console.error('Smart Netflix Subtitles: Root element not found');
+}
