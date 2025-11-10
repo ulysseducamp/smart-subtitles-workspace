@@ -190,10 +190,10 @@ docker run -p 3000:3000 smartsub-api
 ## Core Architecture Patterns
 
 ### Chrome Extension Architecture
-- **Three-script pattern**: `popup.ts` ↔ `content-script.ts` ↔ `page-script.ts`
+- **Three-script pattern**: `Popup.tsx` (React) ↔ `content-script.ts` ↔ `page-script.ts`
 - **JSON Hijacking**: Intercepts Netflix API responses by overriding `JSON.parse()`
 - **Message Passing**: Chrome extension message system for cross-context communication
-- **State Management**: Persistent settings via `chrome.storage.local`
+- **State Management**: Supabase (primary) + `chrome.storage.local` (fallback)
 - **Manual Processing**: User must click "Process Subtitles" button (auto-processing disabled to prevent Netflix preload corruption)
 
 ### Webapp Architecture (Next.js - Production Ready)
@@ -328,7 +328,8 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 
 ### Chrome Extension Core Files
 - `src/page-script.ts` - Netflix integration and JSON hijacking (918 lines)
-- `src/popup/popup.ts` - User interface and settings management
+- `src/popup/Popup.tsx` - React UI with Shadcn + Tailwind v4
+- `src/popup/index.tsx` - React entry point
 - `src/content-script.ts` - Message passing coordination
 - `src/api/railwayClient.ts` - API communication client
 
@@ -368,12 +369,25 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 **Auth**: Google OAuth + Supabase session sync between webapp and extension
 **Popup Redesign**:
 - Removed Smart Subtitles toggle (always enabled)
-- Replaced vocab dropdown with read-only Shadcn Card displaying level from Supabase
+- Replaced vocab dropdown with read-only Card displaying level from Supabase
 - Added "Test my level" button linking to `/onboarding/vocab-test`
 - Added feedback banner with contact email
 - Fixed `background.ts` to use `WEBAPP_URL` env variable (staging/production)
 - Fixed `manifest.json` `externally_connectable` to allow staging + production URLs
-**Code**: `src/popup/popup.{ts,html,css}`, `src/background.ts`, `manifest.json`
+**Code**: `src/popup/popup.{ts,html,css}` (vanilla JS - migrated to React in Phase 1C)
+
+### Phase 1C - Extension Popup React Migration ✅ **COMPLETED** (November 2025)
+**Tech Stack**: React 19 + Shadcn UI + Tailwind v4 + Webpack 5
+**Implementation**:
+- Migrated vanilla JS popup to React + TypeScript
+- Added Shadcn components (Button, Select, Card, Label)
+- Configured Tailwind v4 with PostCSS (CSS-first config)
+- Welcome popup for new users (no vocab level)
+- Inline Supabase sync on language change (KISS - reuses `loadSettings()`)
+- Fixed vocab level reload bug when switching languages
+
+**Bundle**: 480KB (React + Shadcn), acceptable for popup
+**Code**: `src/popup/{Popup.tsx,index.tsx,styles.css}`, `postcss.config.js`, `components.json`
 
 ---
 
@@ -385,7 +399,7 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 - **UI Enhancement**: Dynamic native language dropdown with "(Undetected)" state and help text
 - **Error Reduction**: Removed false-positive error messages due to Netflix lazy loading
 
-**Code Location**: `deepl_api.py`, `content-script.ts`, `popup.ts`, `popup.html`
+**Code Location**: `deepl_api.py`, `content-script.ts`, `Popup.tsx`
 
 ### Word Alignment Bug Resolution ✅ **COMPLETED** (Nov 2025 - Architecture Refactor)
 **Problem**: "Marie-Antoinette" split into 2 words → "et" incorrectly translated inside "Antoin**et (and)**te"
