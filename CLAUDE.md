@@ -632,3 +632,69 @@ When user changes language in popup → Updates 2 places:
 - **Diagnostic Logging**: Essential for debugging LLM API inconsistencies
 - **Contextual Translation**: Each (word, subtitle) pair needs unique context for quality language learning
 - **Known Limitation**: Dict collisions when same cleaned word appears multiple times in one batch (~0.5-1% frequency)
+
+---
+
+## 🔄 Technical Debt & Future Refactoring
+
+### Current Architecture (Phase 1 - MVP - January 2025)
+
+**Onboarding Flow:**
+- **Approach:** Hybrid (structured but simple - no over-engineering)
+- **Components:** Separate files for ProgressBar, BackButton, FeedbackBanner, ImagePlaceholder
+  - Reason: Ultra-simple (10-15 lines each), keeps layout readable
+  - Total: 6 files, ~130 lines
+- **Context:** Simple React state only (no sessionStorage, no persistence)
+  - Decision: YAGNI - Users can restart onboarding if they refresh (rare case)
+- **What we avoided:** sessionStorage, clearOnboardingData(), complex state management
+
+**Why this approach?**
+- ✅ Avoids premature optimization (YAGNI principle)
+- ✅ Future-proof (components ready for reuse without refactoring)
+- ✅ Maintainable (layout stays <100 lines even with Phase 2/3 additions)
+- ✅ Standard (follows Next.js/Shadcn UI patterns)
+
+### Future Refactoring Triggers
+
+**Add sessionStorage when:**
+- Analytics show >5% of users refresh during onboarding and lose data
+- Support requests about lost onboarding progress become frequent
+- Implementation: ~30 lines in OnboardingContext.tsx
+
+**Refactor layout when:**
+- OnboardingLayout.tsx exceeds 200 lines
+- Need to reuse components (ProgressBar, etc.) in dashboard or other pages outside onboarding
+- Consider: Extract to shared components library
+
+**Consider state management library when:**
+- App has >5 contexts with complex interdependencies
+- Need global state synchronization across multiple features
+- Options: Zustand (lightweight), Redux Toolkit (enterprise)
+
+**Add form validation library when:**
+- Onboarding forms become more complex (>5 input fields per page)
+- Need advanced validation (async validation, dependent fields)
+- Options: Zod + React Hook Form
+
+### Technical Debt Monitoring
+
+**Low Priority (monitor, don't fix yet):**
+- sessionStorage for onboarding persistence
+- Split components into shared library
+
+**Medium Priority (fix if it becomes painful):**
+- Refactor OnboardingLayout if it exceeds 200 lines
+- Add analytics to track user drop-off points
+
+**High Priority (fix immediately if occurs):**
+- Context provider nesting exceeds 3 levels
+- Component files exceed 300 lines
+- Duplication of same code in >3 places
+
+### Decision Log
+
+**January 2025 - Onboarding Architecture:**
+- ✅ Chose hybrid approach (structured but simple)
+- ❌ Rejected full KISS (everything in 1 file) - would become unmaintainable
+- ❌ Rejected full structure (sessionStorage, complex state) - premature optimization
+- **Result:** Sweet spot for MVP that scales to Phase 2/3

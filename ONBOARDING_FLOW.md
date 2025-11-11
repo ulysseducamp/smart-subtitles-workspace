@@ -5,6 +5,30 @@
 **Pricing:** $9/year subscription + 3-day free trial
 **Auth Strategy:** Delayed auth (after vocab test) for higher conversion
 **Email Reminder:** Non (pas de mention dans l'UI)
+**Architecture:** Hybrid approach (structured but simple - no over-engineering)
+
+---
+
+## 🏗️ Architecture Decision: Hybrid Approach
+
+### What We Keep SIMPLE (KISS)
+✅ **No sessionStorage** - Users can restart if they refresh (rare case)
+✅ **No clearOnboardingData()** - YAGNI (not used anywhere)
+✅ **Simple Context** - Just React state, no persistence logic
+
+### What We Structure NOW
+✅ **Separate components** (ProgressBar, BackButton, FeedbackBanner, ImagePlaceholder)
+- Reason: Ultra-simple (10-15 lines each), but keeps layout readable
+- Benefit: Easy to maintain as project grows in Phase 2/3
+- Cost: Only 10 extra minutes vs inline
+
+### Why Hybrid?
+- **Avoid over-engineering:** No premature abstractions (sessionStorage, complex state)
+- **Future-proof:** Components ready for reuse without refactoring later
+- **Maintainable:** Layout stays <100 lines even with Phase 2/3 additions
+- **Standard:** Follows Next.js/Shadcn UI patterns
+
+**Total Code:** 6 files, ~130 lines (vs 1 file with 300+ lines in 2 months)
 
 ---
 
