@@ -12,7 +12,10 @@
     "tabs"
   ],
   "host_permissions": [
-    "*://www.netflix.com/*"
+    "*://www.netflix.com/*",
+    "http://localhost:3000/*",
+    "https://staging-subly-extension.vercel.app/*",
+    "https://subly-extension.vercel.app/*"
   ],
   "action": {
     "default_popup": "popup.html",
