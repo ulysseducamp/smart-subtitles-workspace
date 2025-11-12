@@ -107,7 +107,7 @@ npm run build
 2. `/onboarding/languages` - Target/native language selection
 3. `/onboarding/vocab-test` - Dynamic vocab test (12 levels: 100-5000)
 4. `/onboarding/results` - Display vocab level
-5. `/onboarding/pricing` - Stripe checkout ($1/month, 14-day trial)
+5. `/onboarding/pricing` - Stripe checkout ($9/year, 3-day trial)
 6. `/onboarding/pin-extension` - Pin extension guide
 7. `/onboarding/complete` - Setup complete
 8. `/welcome-back` - Returning users
@@ -115,14 +115,14 @@ npm run build
 
 **Stripe Integration (Phase 2B ✅):**
 - **API Routes**: `/api/stripe/checkout`, `/api/stripe/webhook`, `/api/stripe/portal`
-- **Product**: "Subly Premium" - $1/month with 14-day trial
+- **Product**: "Subly Premium" - $9/year with 3-day trial
 - **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*`
 
 **Deployment:**
 - **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`)
 - **Production**: `subly-extension.vercel.app` (branch: `main`) ✅ LIVE
 - **Vercel Settings**: Framework: Next.js, Root: `webapp-next`
-- **Stripe**: Live mode configured with $1/month + 14-day trial
+- **Stripe**: Live mode configured with $9/year + 3-day trial
 
 **Environment Variables (per environment):**
 - **Development**: `NEXT_PUBLIC_APP_URL=http://localhost:3000`

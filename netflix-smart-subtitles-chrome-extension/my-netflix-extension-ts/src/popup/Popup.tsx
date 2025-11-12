@@ -338,6 +338,36 @@ export function Popup() {
     chrome.tabs.create({ url });
   }
 
+  // Open Stripe Customer Portal
+  async function handleManageSubscription(): Promise<void> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        console.log('Smart Netflix Subtitles: No user session, redirecting to login');
+        chrome.tabs.create({ url: `${WEBAPP_URL}/welcome` });
+        return;
+      }
+
+      // Send message to background script (avoids CORS issues)
+      chrome.runtime.sendMessage(
+        {
+          type: 'OPEN_STRIPE_PORTAL',
+          userId: session.user.id,
+        },
+        (response) => {
+          if (!response || !response.success) {
+            console.error('Smart Netflix Subtitles: Failed to open portal:', response?.error);
+            showStatus('Failed to open subscription portal', 'error');
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Smart Netflix Subtitles: Error opening portal:', error);
+      showStatus('Failed to open subscription portal', 'error');
+    }
+  }
+
   // Get language name from code
   function getLanguageName(code: string): string {
     const languageNames: Record<string, string> = {
@@ -387,7 +417,15 @@ export function Popup() {
 
   return (
     <div className="w-[400px] p-4 space-y-4">
-      <h2 className="text-2xl font-bold">Smart Netflix Subtitles</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Subly</h2>
+        <button
+          onClick={handleManageSubscription}
+          className="text-sm underline hover:no-underline"
+        >
+          manage subscription
+        </button>
+      </div>
 
       {/* Target Language */}
       <div className="space-y-2">

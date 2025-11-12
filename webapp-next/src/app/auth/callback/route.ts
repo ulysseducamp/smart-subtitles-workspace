@@ -45,9 +45,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/welcome-back`)
     }
 
-    // New user - redirect to onboarding
-    console.log('🆕 New user detected - redirecting to /onboarding/languages')
-    return NextResponse.redirect(`${origin}/onboarding/languages`)
+    // New user - redirect to pricing-intro (nouveau flow 20 écrans)
+    console.log('🆕 New user detected - redirecting to /onboarding/pricing-intro')
+    return NextResponse.redirect(`${origin}/onboarding/pricing-intro`)
   }
 
   // No code - redirect to welcome

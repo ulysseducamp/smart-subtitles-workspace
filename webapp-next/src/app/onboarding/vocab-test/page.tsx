@@ -1,12 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useOnboarding } from '@/contexts/OnboardingContext'
 
 // Portuguese word lists
 const PT_WORDS = [
@@ -40,122 +37,98 @@ const FR_WORDS = [
   { level: 5000, words: 'résistant, optique, reportage, gémissement, résulter, amande' },
 ]
 
+const LEVELS = [100, 200, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 4000, 5000]
+
 export default function VocabTest() {
-  const { user, signOut } = useAuth()
   const router = useRouter()
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(null)
-  const [targetLang, setTargetLang] = useState<string>('')
-  const [saving, setSaving] = useState(false)
-  const supabase = createClient()
+  const searchParams = useSearchParams()
+  const { targetLang, setVocabLevel } = useOnboarding()
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    // Fetch target_lang from user_settings
-    const fetchTargetLang = async () => {
-      const { data } = await supabase
-        .from('user_settings')
-        .select('target_lang')
-        .eq('user_id', user?.id)
-        .single()
-
-      if (data) setTargetLang(data.target_lang)
-    }
-
-    fetchTargetLang()
-  }, [user, supabase])
-
-  const handleConfirm = async () => {
-    if (!selectedLevel) return
-
-    setSaving(true)
-    try {
-      // Save to vocab_levels table
-      const { error: dbError } = await supabase
-        .from('vocab_levels')
-        .upsert({
-          user_id: user?.id,
-          language: targetLang,
-          level: selectedLevel,
-          tested_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,language'
-        })
-
-      if (dbError) throw dbError
-
-      router.push('/onboarding/results')
-    } catch (err) {
-      console.error('Error saving vocab level:', err)
-    } finally {
-      setSaving(false)
-    }
-  }
+  // Get current level from URL (default 100)
+  const currentLevel = parseInt(searchParams.get('level') || '100')
 
   // Get word lists for current target language
   const wordLists = targetLang === 'fr' ? FR_WORDS : PT_WORDS
+  const currentWords = wordLists.find(w => w.level === currentLevel)
+
+  // Get language name
+  const languageName = targetLang === 'fr' ? 'French' : 'Brazilian Portuguese'
+
+  // Get next level
+  const currentIndex = LEVELS.indexOf(currentLevel)
+  const nextLevel = LEVELS[currentIndex + 1]
+
+  const handleDontKnow = () => {
+    setLoading(true)
+    setVocabLevel(currentLevel)
+
+    // Show loading for 3 seconds, then redirect
+    setTimeout(() => {
+      router.push('/onboarding/results')
+    }, 3000)
+  }
+
+  const handleKnowAll = () => {
+    if (nextLevel) {
+      // Go to next level
+      router.push(`/onboarding/vocab-test?level=${nextLevel}`)
+    } else {
+      // Completed all levels
+      setVocabLevel(5000)
+      setLoading(true)
+      setTimeout(() => {
+        router.push('/onboarding/results')
+      }, 3000)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <h1 className="text-2xl font-bold mb-8">Analyzing your results...</h1>
+        <div className="w-full max-w-md h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }} />
+        </div>
+      </div>
+    )
+  }
+
+  if (!currentWords) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <p className="text-red-500">Invalid level</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen flex flex-col pb-20">
-      {/* Logout button */}
-      <div className="absolute top-4 right-4">
-        <Button variant="ghost" onClick={signOut}>
-          Log out
-        </Button>
-      </div>
+    <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
+      <h1 className="text-4xl font-bold text-center mb-6">
+        {currentWords.words}
+      </h1>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto w-full">
-        <h1 className="text-3xl font-bold text-center mb-4">
-          Estimate your vocabulary level
-        </h1>
+      <p className="text-center text-muted-foreground mb-12">
+        (Those words are part of the <strong>{currentLevel}</strong> most used words in <strong>{languageName}</strong>)
+      </p>
 
-        <p className="text-sm text-muted-foreground mb-6 text-center max-w-xl">
-          Select the first group of words in which there is at least one word you don't know.
-          You should read each group one by one, and as soon as you find a group that contains
-          a word you don't know, stop there and select that group.
-          <br /><br />
-          These groups are based on the list of the 10,000 most commonly used words in your target language.
-          The first group is made up of randomly selected words from the 100 most common words,
-          the second group comes from the 200 most common words, and so on.
-          <br /><br />
-          This way, your answer will help me roughly estimate how many of the most common
-          words you already know in your target language.
-        </p>
-
-        <RadioGroup
-          value={selectedLevel?.toString()}
-          onValueChange={(value) => setSelectedLevel(parseInt(value))}
-          className="w-full space-y-3"
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
+        <Button
+          onClick={handleDontKnow}
+          variant="outline"
+          size="lg"
+          className="flex-1"
         >
-          {wordLists.map(({ level, words }) => (
-            <div key={level} className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value={level.toString()} id={`level-${level}`} />
-              <Label htmlFor={`level-${level}`} className="flex-1 cursor-pointer">
-                {words} ({level} words)
-              </Label>
-            </div>
-          ))}
-
-          {/* Special option: knows all words */}
-          <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
-            <RadioGroupItem value="5000" id="level-all" />
-            <Label htmlFor="level-all" className="flex-1 cursor-pointer font-semibold">
-              I know all the words above (5000 words - advanced level)
-            </Label>
-          </div>
-        </RadioGroup>
+          There is one or several words I don't know
+        </Button>
 
         <Button
-          onClick={handleConfirm}
-          disabled={!selectedLevel || saving}
-          className="w-full mt-6"
+          onClick={handleKnowAll}
+          size="lg"
+          className="flex-1"
         >
-          {saving ? 'Saving...' : 'Confirm'}
+          I know all the words
         </Button>
-      </div>
-
-      {/* Fixed feedback banner */}
-      <div className="fixed bottom-0 left-0 right-0 bg-muted p-4 text-center text-sm">
-        Any feedback? Please, send me an email at unducamp.pro@gmail.com
       </div>
     </div>
   )

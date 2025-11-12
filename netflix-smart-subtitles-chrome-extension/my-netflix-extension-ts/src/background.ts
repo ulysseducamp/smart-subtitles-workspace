@@ -25,6 +25,44 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// Listen for messages from popup (internal)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('📨 Received internal message:', message)
+
+  // Handle OPEN_STRIPE_PORTAL message
+  if (message.type === 'OPEN_STRIPE_PORTAL' && message.userId) {
+    // Make API call from background (no CORS issues)
+    fetch(`${WEBAPP_URL}/api/stripe/portal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: message.userId }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.url) {
+          // Open portal in new tab
+          chrome.tabs.create({ url: data.url })
+          sendResponse({ success: true })
+        } else {
+          console.error('❌ Failed to get portal URL:', data.error)
+          sendResponse({ success: false, error: data.error })
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error calling portal API:', error)
+        sendResponse({ success: false, error: error.message })
+      })
+
+    // Return true to indicate we'll respond asynchronously
+    return true
+  }
+
+  // Unknown message type
+  console.warn('⚠️ Unknown internal message type:', message.type)
+  sendResponse({ success: false, error: 'Unknown message type' })
+  return true
+})
+
 // Listen for session sync messages from webapp
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
   console.log('📨 Received message from webapp:', message, 'from:', sender.url)

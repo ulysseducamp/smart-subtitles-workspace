@@ -62,7 +62,7 @@ NEXT_PUBLIC_APP_URL=https://subly-extension.vercel.app
 2. `/onboarding/languages` - Language selection (OAuth callback destination)
 3. `/onboarding/vocab-test` - Vocab test (12 levels)
 4. `/onboarding/results` - Test results
-5. `/onboarding/pricing` - Stripe checkout ($1/month, 14-day trial)
+5. `/onboarding/pricing` - Stripe checkout ($9/year, 3-day trial)
 6. `/onboarding/pin-extension` - Extension setup
 7. `/onboarding/complete` - Success screen
 8. `/welcome-back` - Returning users
@@ -89,9 +89,9 @@ Add BOTH wildcards AND exact callbacks for all environments:
 
 ### Product
 - **Name**: "Subly Premium"
-- **Price**: $1/month
-- **Trial**: 14 days (configured in code via `subscription_data.trial_period_days`)
-- **Staging**: TEST mode (card: 4242 4242 4242 4242, price ID: `price_1SNtWWCdkaUrc0RrUnNRVpya`)
+- **Price**: $9/year
+- **Trial**: 3 days (configured in code via `subscription_data.trial_period_days`)
+- **Staging**: TEST mode (card: 4242 4242 4242 4242, price ID: `price_1SScLTCpd12v3sCmb1baxznb`)
 - **Production**: LIVE mode (real cards, separate price ID in env vars)
 
 ### Webhooks

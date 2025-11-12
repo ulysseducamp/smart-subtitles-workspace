@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 
-export default function Results() {
+export default function VocabTestIntroPage() {
   const router = useRouter()
-  const { vocabLevel, targetLang } = useOnboarding()
+  const { targetLang } = useOnboarding()
 
-  // Get language name
+  // Get language name from code
   const getLanguageName = (code: string | null) => {
     if (code === 'fr') return 'French'
     if (code === 'pt-BR') return 'Brazilian Portuguese'
@@ -19,14 +19,16 @@ export default function Results() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
-      <div className="text-8xl mb-8">🎉</div>
-
       <h1 className="text-4xl font-bold text-center mb-8">
-        You know approximately <strong>{vocabLevel || 100}</strong> of the most used words in <strong>{languageName}</strong>
+        Now, it's time to test your vocabulary level
       </h1>
 
-      <Button onClick={() => router.push('/onboarding/vocab-benefits')} size="lg">
-        Ok
+      <p className="text-lg text-center mb-8">
+        To define your vocabulary level, we picked the list of the 5000 most used words in <strong>{languageName}</strong> ordered by frequency.
+      </p>
+
+      <Button onClick={() => router.push('/onboarding/vocab-test-explanation')} size="lg">
+        Continue
       </Button>
     </div>
   )

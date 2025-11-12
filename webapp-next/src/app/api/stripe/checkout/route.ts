@@ -17,12 +17,12 @@ export async function POST(req: NextRequest) {
         },
       ],
       subscription_data: {
-        trial_period_days: 14,
+        trial_period_days: 3,
         metadata: { user_id: userId },
       },
       metadata: { user_id: userId }, // ← Aussi au niveau session pour webhook checkout.session.completed
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/pin-extension`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/pricing`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/complete`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/pricing-details`,
     })
 
     return NextResponse.json({ url: session.url })
