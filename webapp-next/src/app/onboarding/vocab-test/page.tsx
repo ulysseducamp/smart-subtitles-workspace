@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useOnboarding } from '@/contexts/OnboardingContext'
@@ -39,7 +39,7 @@ const FR_WORDS = [
 
 const LEVELS = [100, 200, 300, 500, 700, 1000, 1500, 2000, 2500, 3000, 4000, 5000]
 
-export default function VocabTest() {
+function VocabTestContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { targetLang, setVocabLevel } = useOnboarding()
@@ -131,5 +131,13 @@ export default function VocabTest() {
         </Button>
       </div>
     </div>
+  )
+}
+
+export default function VocabTest() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center">Loading...</div>}>
+      <VocabTestContent />
+    </Suspense>
   )
 }
