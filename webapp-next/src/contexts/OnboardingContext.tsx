@@ -30,7 +30,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         if (data.targetLang) setTargetLang(data.targetLang)
         if (data.nativeLang) setNativeLang(data.nativeLang)
         if (data.vocabLevel) setVocabLevel(data.vocabLevel)
-        console.log('✅ Restored from sessionStorage:', data)
       } catch (e) {
         console.error('Failed to restore sessionStorage:', e)
       }
@@ -42,7 +41,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     if (targetLang || nativeLang || vocabLevel) {
       const data = { targetLang, nativeLang, vocabLevel }
       sessionStorage.setItem('onboarding_data', JSON.stringify(data))
-      console.log('💾 Saved to sessionStorage:', data)
     }
   }, [targetLang, nativeLang, vocabLevel])
 
