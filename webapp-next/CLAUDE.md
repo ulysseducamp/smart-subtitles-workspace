@@ -12,7 +12,7 @@ Next.js 15 full-stack webapp for user onboarding, authentication, and billing. D
 - **Payments**: Stripe (test mode staging, live mode production)
 - **Notifications**: Sonner
 
-**Status**: ✅ PRODUCTION LIVE (Phase 2C complete - Nov 2025)
+**Status**: ✅ PRODUCTION LIVE (Phase 4 complete - January 13, 2025)
 
 ## Development
 
@@ -95,13 +95,14 @@ Add BOTH wildcards AND exact callbacks for all environments:
 - **Production**: LIVE mode (real cards, separate price ID in env vars)
 
 ### Webhooks
-- **Staging**: `https://staging-subly-extension.vercel.app/api/stripe/webhook`
-- **Production**: `https://subly-extension.vercel.app/api/stripe/webhook`
+- **Staging**: `https://staging-subly-extension.vercel.app/api/stripe/webhook` ✅ Tested
+- **Production**: `https://subly-extension.vercel.app/api/stripe/webhook` ✅ Verified (January 13, 2025)
 - **Events**: `checkout.session.completed`, `customer.subscription.*`
 - **Signature verification**: Required via `STRIPE_WEBHOOK_SECRET` (different per environment)
+- **Status**: All events returning 200 OK in production
 
 ### Customer Portal
-Enabled in Stripe Dashboard (both TEST and LIVE modes) for subscription management.
+✅ Active in both TEST and LIVE modes. Tested and functional for subscription management (cancel, update payment).
 
 ## Extension Integration
 

@@ -89,7 +89,7 @@ npm run lint
 - **Branch production**: `main` → auto-deploy to production API
 - **WEBAPP_URL**: Configured via webpack.config.js, injected at build time (no manual changes needed)
 
-### Webapp Next.js (Active - Production Ready ✅)
+### Webapp Next.js (Active - ✅ PRODUCTION LIVE)
 ```bash
 cd webapp-next/
 
@@ -101,6 +101,7 @@ npm run build
 ```
 
 **Tech Stack:** Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Supabase SSR + Stripe
+**Status:** ✅ Production deployment complete (January 13, 2025)
 
 **Onboarding Flow (9 pages):**
 1. `/welcome` - Welcome + Google OAuth
@@ -113,16 +114,16 @@ npm run build
 8. `/welcome-back` - Returning users
 9. `/subscribe` - Expired trial page
 
-**Stripe Integration (Phase 2B ✅):**
+**Stripe Integration (✅ LIVE):**
 - **API Routes**: `/api/stripe/checkout`, `/api/stripe/webhook`, `/api/stripe/portal`
 - **Product**: "Subly Premium" - $9/year with 3-day trial
-- **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*`
+- **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*` (verified in production)
+- **Customer Portal**: Active in both TEST and LIVE modes
 
 **Deployment:**
-- **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`)
-- **Production**: `subly-extension.vercel.app` (branch: `main`) ✅ LIVE
+- **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`) - Stripe TEST mode
+- **Production**: `subly-extension.vercel.app` (branch: `main`) ✅ LIVE - Stripe LIVE mode
 - **Vercel Settings**: Framework: Next.js, Root: `webapp-next`
-- **Stripe**: Live mode configured with $9/year + 3-day trial
 
 **Environment Variables (per environment):**
 - **Development**: `NEXT_PUBLIC_APP_URL=http://localhost:3000`
@@ -279,11 +280,12 @@ python -m pytest tests/ -v
 - Health checks and monitoring enabled
 
 ### Chrome Web Store
-- **Status**: ✅ Submitted (Phase 3)
+- **Status**: ✅ Production-ready (Phase 4 complete - January 13, 2025)
 - **Extension ID**: `lhkamocmjgilkhmfiogfdjhlhfrfoaaek`
 - **Name**: Subly - Smart Netflix Subtitles
-- **Version**: 1.0.3
+- **Version**: 1.1.0+ (production deployment with Stripe LIVE)
 - **Note**: manifest.json `"key"` field must match Chrome Web Store for updates
+- **Build**: Use `npm run build:production` for Chrome Web Store submissions
 
 ### Local Development
 - Chrome extension runs locally via developer mode
