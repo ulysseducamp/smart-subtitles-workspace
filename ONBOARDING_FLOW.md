@@ -1,8 +1,8 @@
 # Onboarding Flow - Subly Extension
 
 **Date:** January 2025
-**Last Updated:** January 12, 2025
-**Status:** ✅ Phase 3 (Images) COMPLÉTÉE - Visual Integration + Polish
+**Last Updated:** January 13, 2025
+**Status:** ✅ Phase 3 (A+B+C) COMPLÉTÉE - Staging Deployment Production-Ready
 **Pricing:** $9/year subscription + 3-day free trial
 **Auth Strategy:** Delayed auth (after vocab test) for higher conversion
 **Email Reminder:** Non (pas de mention dans l'UI)
@@ -518,16 +518,17 @@ cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/pricing-details`,  //
 - [x] **Intégrer image 6:** `extension_popup.png` dans `/onboarding/complete`
 - [x] **Test visuel:** Toutes les images affichées correctement ✅
 
-#### B. Extension Integration (À faire)
-- [ ] Ajouter bouton "Manage Subscription" dans `Popup.tsx`
-- [ ] Lier bouton → `/api/stripe/portal` → ouvre Customer Portal
-- [ ] Tester flow: Install extension → Onboarding → Paiement → Popup fonctionne
+#### B. Extension Integration ✅ COMPLÉTÉ (January 13, 2025)
+- [x] Ajouter bouton "Manage Subscription" dans `Popup.tsx`
+- [x] Lier bouton → `/api/stripe/portal` → ouvre Customer Portal
+- [x] Tester flow: Install extension → Onboarding → Paiement → Popup fonctionne
 
-#### C. Déploiement Staging (À faire)
-- [ ] Deploy sur Vercel staging (branch `develop`)
-- [ ] Configurer Stripe webhook staging
-- [ ] Test end-to-end sur staging
-- [ ] **✅ Test final Phase 3:** Flow complet production-ready
+#### C. Déploiement Staging ✅ COMPLÉTÉ (January 13, 2025)
+- [x] Deploy sur Vercel staging (branch `develop`)
+- [x] Configurer Stripe webhook staging (endpoint créé avec secret)
+- [x] Corriger variables d'environnement Stripe (clés TEST, price ID, webhook secret)
+- [x] Test end-to-end sur staging (paiement réussi, client créé, subscription Supabase OK)
+- [x] **✅ Test final Phase 3:** Flow complet production-ready
 
 ---
 
@@ -1085,6 +1086,6 @@ const PROGRESS_MAP: Record<string, number> = {
 
 ---
 
-**Last Updated:** January 2025
-**Status:** ✅ Ready for Phase 1 implementation
-**Next Steps:** Create layout + first 3 pages for Test #1
+**Last Updated:** January 13, 2025
+**Status:** ✅ Phase 3 COMPLETE - Staging Production-Ready
+**Next Steps:** Phase 4 (Production Deployment) or additional testing
