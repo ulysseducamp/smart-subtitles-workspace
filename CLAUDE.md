@@ -199,9 +199,10 @@ docker run -p 3000:3000 smartsub-api
 - **Permissions**: Uses `activeTab` instead of `tabs` to avoid "Read browsing history" warning (displays only Netflix site access warning)
 
 ### Webapp Architecture (Next.js - Production Ready)
-- **Tech Stack**: Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Stripe
+- **Tech Stack**: Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Stripe + Vercel Analytics
 - **Routing**: File-based routing (`app/welcome/page.tsx`)
 - **Auth**: Supabase SSR (@supabase/ssr) with cookie-based sessions
+- **Analytics**: Vercel Analytics for onboarding funnel tracking
 - **Backend**: Next.js API Routes for Stripe (checkout, webhook, portal) ✅
 - **Data Sync**: Supabase for multi-device synchronization
 - **Pattern**: External webapp for auth + subscription management

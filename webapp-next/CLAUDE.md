@@ -10,6 +10,7 @@ Next.js 15 full-stack webapp for user onboarding, authentication, and billing. D
 - **UI**: Tailwind CSS v4 + Shadcn UI
 - **Auth**: Supabase SSR (@supabase/ssr)
 - **Payments**: Stripe (test mode staging, live mode production)
+- **Analytics**: Vercel Analytics (page views, funnel tracking)
 - **Notifications**: Sonner
 
 **Status**: ✅ PRODUCTION LIVE (Phase 4 complete - January 13, 2025)
@@ -103,6 +104,15 @@ Add BOTH wildcards AND exact callbacks for all environments:
 
 ### Customer Portal
 ✅ Active in both TEST and LIVE modes. Tested and functional for subscription management (cancel, update payment).
+
+## Analytics
+
+**Vercel Analytics** tracks user behavior across onboarding flow. Automatically enabled via `<Analytics />` component in `app/layout.tsx`.
+
+- **Free tier**: 50K events/month
+- **Tracks**: Page views, unique visitors, bounce rate, top pages
+- **Use case**: Identify drop-off points in onboarding funnel
+- **Dashboard**: Vercel project → Analytics tab
 
 ## Extension Integration
 
