@@ -9,7 +9,7 @@
   },
   "permissions": [
     "storage",
-    "tabs"
+    "activeTab"
   ],
   "host_permissions": [
     "*://www.netflix.com/*",

@@ -196,6 +196,7 @@ docker run -p 3000:3000 smartsub-api
 - **Message Passing**: Chrome extension message system for cross-context communication
 - **State Management**: Supabase (primary) + `chrome.storage.local` (fallback)
 - **Manual Processing**: User must click "Process Subtitles" button (auto-processing disabled to prevent Netflix preload corruption)
+- **Permissions**: Uses `activeTab` instead of `tabs` to avoid "Read browsing history" warning (displays only Netflix site access warning)
 
 ### Webapp Architecture (Next.js - Production Ready)
 - **Tech Stack**: Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Stripe
@@ -394,6 +395,19 @@ MAX_FILE_SIZE=5242880  # 5MB in bytes
 ---
 
 ## Recent Critical Bug Fixes (January 2025)
+
+### Chrome Extension Permission Optimization ✅ **COMPLETED** (November 2025)
+**Problem**: Extension displayed alarming "Read your browsing history" warning during installation, reducing user trust.
+
+**Root Cause**: `"tabs"` permission grants access to sensitive tab properties (url, title) across all tabs, triggering privacy warning.
+
+**Solution**: Replaced `"tabs"` with `"activeTab"` permission in manifest.json.
+- **activeTab**: Temporary access to current tab only when user clicks extension icon (no warning)
+- **Zero code changes**: All `chrome.tabs.query()` and `chrome.tabs.sendMessage()` calls work identically
+
+**Results**: Installation warning reduced from 2 to 1 - only displays necessary "Read and change data on www.netflix.com" (required for subtitle injection).
+
+**Code Location**: `manifest.json` lines 10-13
 
 ### Multi-Language Support Extension ✅ **COMPLETED**
 **Feature**: Extended native language support from 3 to 13 languages with BCP47 normalization.
