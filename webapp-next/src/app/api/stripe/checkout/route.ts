@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer_email: email,
+      allow_promotion_codes: true, // ← Affiche le champ "Code promo" au checkout
       line_items: [
         {
           price: process.env.STRIPE_PRICE_ID, // $1/month
