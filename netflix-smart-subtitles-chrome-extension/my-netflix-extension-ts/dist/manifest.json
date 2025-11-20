@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Subly",
-  "description": "Intelligent bilingual subtitles for Netflix language learning.",
-  "version": "1.0.6",
+  "description": "Intelligent bilingual subtitles for Netflix language learning. Automatically switches between target and native languages based on your vocabulary knowledge.",
+  "version": "1.0.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwQT/Wey9at1GFevKn2hHBOGrGLQCepTayoWDC5UyDUGSIEwmYum+IpjHGcjo+ZI0ZPOScjqWILBHDIHG4SXohhey2IWgv69AYV4ur4fVlZQPPCSky5JZZDtYhYURwx1dsstk4DPR5S3HE7m3CrYUc6JJeD7jb+//xmuA3bPRAKYj8YYdwXC8XVBhg4r9EIaAhB+j/cxSMKnH5CFhQz2ikJE3wvPwiWYIqHtBcNOQCKjP5OxJ9+COzrRVIF77M6PeLgj02XDjq5Xog+U0KE9jX+Hrd2awmRgpVJxRweaFZhdHd8a81F1KHCi6yJ1WrlT+33JKNcE8dBp/j1iRsuUGiwIDAQAB",
   "icons": {
     "128": "icon128.png"
