@@ -43,9 +43,11 @@ export async function loadSupabaseSettings(): Promise<UserSettings | null> {
       .eq('language', settings.target_lang)
       .single()
 
+    // Default to 0 if no vocab level found for this language
+    const vocabularyLevel = vocabData?.level || 0
+
     if (vocabError || !vocabData) {
-      console.log('Smart Netflix Subtitles: No vocab level found for', settings.target_lang)
-      return null
+      console.log('Smart Netflix Subtitles: No vocab level found for', settings.target_lang, '- defaulting to 0')
     }
 
     // Load subscription status
@@ -63,7 +65,7 @@ export async function loadSupabaseSettings(): Promise<UserSettings | null> {
     console.log('Smart Netflix Subtitles: Loaded settings from Supabase:', {
       targetLanguage: settings.target_lang,
       nativeLanguage: settings.native_lang,
-      vocabularyLevel: vocabData.level,
+      vocabularyLevel: vocabularyLevel,
       subscriptionStatus: subscription?.status,
       isSubscribed
     })
@@ -71,7 +73,7 @@ export async function loadSupabaseSettings(): Promise<UserSettings | null> {
     return {
       targetLanguage: settings.target_lang,
       nativeLanguage: settings.native_lang,
-      vocabularyLevel: vocabData.level,
+      vocabularyLevel: vocabularyLevel,
       isSubscribed
     }
   } catch (error) {

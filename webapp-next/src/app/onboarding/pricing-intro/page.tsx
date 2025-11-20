@@ -32,12 +32,15 @@ export default function PricingIntroPage() {
         })
 
         // 2. Sauvegarder vocab_levels
-        await supabase.from('vocab_levels').upsert({
-          user_id: user.id,
-          language: targetLang,
-          level: vocabLevel,
-          tested_at: new Date().toISOString(),
-        })
+        await supabase.from('vocab_levels').upsert(
+          {
+            user_id: user.id,
+            language: targetLang,
+            level: vocabLevel,
+            tested_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,language' }
+        )
 
         // 3. Clean sessionStorage (plus besoin)
         sessionStorage.removeItem('onboarding_data')

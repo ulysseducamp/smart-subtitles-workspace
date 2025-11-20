@@ -97,6 +97,23 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     return true
   }
 
+  // Handle VOCAB_LEVEL_UPDATED message
+  if (message.type === 'VOCAB_LEVEL_UPDATED' && message.level && message.language) {
+    console.log('📊 Vocab level updated:', message.level, message.language)
+
+    // Update chrome.storage.local
+    chrome.storage.local.set({
+      vocabularyLevel: message.level,
+      targetLanguage: message.language
+    }, () => {
+      console.log('✅ Vocab level updated in storage')
+      sendResponse({ success: true })
+    })
+
+    // Return true to indicate we'll respond asynchronously
+    return true
+  }
+
   // Unknown message type
   console.warn('⚠️ Unknown message type:', message.type)
   sendResponse({ success: false, error: 'Unknown message type' })

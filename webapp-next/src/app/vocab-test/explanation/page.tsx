@@ -22,7 +22,7 @@ export default function VocabTestExplanationPage() {
         </p>
       </div>
 
-      <Button onClick={() => router.push('/onboarding/vocab-test')} size="lg">
+      <Button onClick={() => router.push('/vocab-test/test?level=100')} size="lg">
         Start
       </Button>
     </div>

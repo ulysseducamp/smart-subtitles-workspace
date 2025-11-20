@@ -93,6 +93,25 @@ export function Popup() {
     checkNetflixPage();
   }, []);
 
+  // Listen for storage changes (vocab level updated from webapp)
+  useEffect(() => {
+    const handleStorageChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
+      if (areaName === 'local' && (changes.vocabularyLevel || changes.targetLanguage)) {
+        console.log('🔄 Storage changed, reloading settings...');
+        loadSettings();
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
   // Load settings from Supabase (with chrome.storage.local fallback)
   async function loadSettings(): Promise<void> {
     try {
@@ -100,6 +119,7 @@ export function Popup() {
       const supabaseSettings = await loadSupabaseSettings();
 
       if (supabaseSettings) {
+        // User is authenticated - show normal popup
         setSettings({
           enabled: true,
           targetLanguage: supabaseSettings.targetLanguage,
@@ -108,14 +128,14 @@ export function Popup() {
           isSubscribed: supabaseSettings.isSubscribed,
         });
 
-        // If vocabulary level is 0, show Welcome popup
-        if (!supabaseSettings.vocabularyLevel || supabaseSettings.vocabularyLevel === 0) {
-          setShowWelcome(true);
-        }
+        setShowWelcome(false);
 
         console.log('Smart Netflix Subtitles: Loaded settings from Supabase:', supabaseSettings);
       } else {
-        // Fallback to chrome.storage.local (legacy or no auth)
+        // User is NOT authenticated - show Welcome screen
+        setShowWelcome(true);
+
+        // Still load local storage for fallback (in case extension is used without auth)
         const result = await chrome.storage.local.get([
           STORAGE_KEYS.TARGET_LANGUAGE,
           STORAGE_KEYS.NATIVE_LANGUAGE,
@@ -132,12 +152,7 @@ export function Popup() {
 
         setSettings(localSettings);
 
-        // If no vocabulary level, show Welcome popup
-        if (!localSettings.vocabularyLevel || localSettings.vocabularyLevel === 0) {
-          setShowWelcome(true);
-        }
-
-        console.log('Smart Netflix Subtitles: No Supabase settings, using local storage or defaults');
+        console.log('Smart Netflix Subtitles: No Supabase session, showing Welcome screen');
       }
     } catch (error) {
       console.error('Smart Netflix Subtitles: Error loading settings:', error);
@@ -331,11 +346,10 @@ export function Popup() {
 
   // Open vocab test page with current target language
   function handleTestLevel(): void {
-    const targetLang = settings.targetLanguage || '';
-    const url = targetLang
-      ? `${WEBAPP_URL}/onboarding/vocab-test?targetLanguage=${targetLang}`
-      : `${WEBAPP_URL}/onboarding/vocab-test`;
-    chrome.tabs.create({ url });
+    const targetLang = settings.targetLanguage;
+    chrome.tabs.create({
+      url: `${WEBAPP_URL}/vocab-test/intro?targetLanguage=${targetLang}`
+    });
   }
 
   // Open Stripe Customer Portal
