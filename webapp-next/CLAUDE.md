@@ -69,6 +69,14 @@ NEXT_PUBLIC_APP_URL=https://subly-extension.vercel.app
 8. `/welcome-back` - Returning users
 9. `/subscribe` - Expired trial
 
+### Vocab Test/Retest Flow (Standalone - ✅ Complete)
+1. `/vocab-test/intro` - Test introduction (triggered from extension)
+2. `/vocab-test/explanation` - Test explanation
+3. `/vocab-test/test` - Vocab test (12 levels: 100-5000)
+4. `/vocab-test/results` - Results + "Go back to Netflix" button
+
+**Features**: Separate VocabTestContext, saves to `vocab_levels` table, message passing to extension for auto-refresh.
+
 ### API Routes (Stripe)
 - `/api/stripe/checkout` - Create checkout session
 - `/api/stripe/webhook` - Handle Stripe webhooks

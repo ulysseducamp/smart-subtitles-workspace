@@ -40,16 +40,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is Smart Subtitles - a comprehensive language learning platform that creates personalized Netflix viewing experiences through intelligent bilingual subtitle adaptation. The system automatically switches between target language subtitles and native language subtitles based on the user's vocabulary knowledge.
+This is Smart Subtitles (Subly) - a comprehensive language learning platform that creates personalized Netflix viewing experiences through intelligent bilingual subtitle adaptation. The system automatically switches between target language subtitles and native language subtitles based on the user's vocabulary knowledge.
+
+**Production Status (January 21, 2025):**
+- ✅ **Webapp**: LIVE on `subly-extension.vercel.app` (Stripe LIVE mode active)
+- ⏳ **Extension**: Submitted to Chrome Web Store (awaiting approval, 1-2 days)
+- ✅ **API**: LIVE on `smartsub-api-production.up.railway.app`
+- ✅ **Features Complete**: Onboarding, Auth, Billing, Vocab Test/Retest, Subtitle Processing
 
 ## Architecture
 
-The project consists of four main components:
+The project consists of three main components:
 
-1. **Chrome Extension** (`netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/`) - Netflix integration for subtitle extraction and injection
-2. **Webapp** (`webapp/`) - React + Vite + Shadcn UI for onboarding, dashboard, settings, and account management
-3. **FastAPI Backend** (`smartsub-api/`) - Subtitle processing API with Python fusion algorithm
-4. **Reference Implementation** (`netflix-smart-subtitles-chrome-extension/reference/`) - Based on Subadub extension
+1. **Chrome Extension** (`netflix-smart-subtitles-chrome-extension/my-netflix-extension-ts/`) - React popup + Netflix integration
+2. **Webapp** (`webapp-next/`) - Next.js 15 for auth, onboarding, billing, vocab testing
+3. **FastAPI Backend** (`smartsub-api/`) - Python subtitle fusion algorithm API
 
 ### High-Level Data Flow
 ```
@@ -113,6 +118,15 @@ npm run build
 7. `/onboarding/complete` - Setup complete
 8. `/welcome-back` - Returning users
 9. `/subscribe` - Expired trial page
+
+**Vocab Test/Retest Flow (✅ COMPLETE - November 20, 2025):**
+- **Standalone flow**: `/vocab-test/intro` → `/vocab-test/explanation` → `/vocab-test/test` → `/vocab-test/results`
+- **Trigger**: Extension popup "Test My Level" button opens `/vocab-test/intro?targetLanguage=pt-BR`
+- **Context**: Separate `VocabTestContext` (independent from onboarding)
+- **Multi-language**: Each language has independent vocab level in Supabase
+- **Auto-refresh**: Message passing extension ↔ webapp updates popup without reload
+- **Storage**: `vocab_levels` table (user_id, language, level, tested_at) with UNIQUE constraint
+- **Documentation**: `VOCAB_TEST_RETEST_PLAN.md` - Full implementation details + test results
 
 **Stripe Integration (✅ LIVE):**
 - **API Routes**: `/api/stripe/checkout`, `/api/stripe/webhook`, `/api/stripe/portal`
