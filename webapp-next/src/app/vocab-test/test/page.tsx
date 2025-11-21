@@ -63,10 +63,10 @@ function VocabTestContent() {
     setLoading(true)
     setVocabLevel(currentLevel)
 
-    // Show loading for 3 seconds, then redirect
+    // Show loading for 2 seconds, then redirect
     setTimeout(() => {
       router.push('/vocab-test/results')
-    }, 3000)
+    }, 2000)
   }
 
   const handleKnowAll = () => {
@@ -79,7 +79,7 @@ function VocabTestContent() {
       setLoading(true)
       setTimeout(() => {
         router.push('/vocab-test/results')
-      }, 3000)
+      }, 2000)
     }
   }
 

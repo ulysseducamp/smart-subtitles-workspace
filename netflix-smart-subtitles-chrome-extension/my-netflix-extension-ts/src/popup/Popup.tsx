@@ -88,7 +88,6 @@ export function Popup() {
 
   // Load settings on mount
   useEffect(() => {
-    console.log('🟦 useEffect MOUNT triggered - calling loadSettings()');
     loadSettings();
     loadAvailableNativeLanguages();
     checkNetflixPage();
@@ -100,10 +99,8 @@ export function Popup() {
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
     ) => {
-      // Only reload when vocabularyLevel changes (external update from webapp)
-      // No need to reload for targetLanguage/nativeLanguage (internal updates from popup)
-      if (areaName === 'local' && changes.vocabularyLevel) {
-        console.log('🔄 Vocab level changed from webapp, reloading settings...');
+      if (areaName === 'local' && (changes.vocabularyLevel || changes.targetLanguage)) {
+        console.log('🔄 Storage changed, reloading settings...');
         loadSettings();
       }
     };
@@ -117,8 +114,6 @@ export function Popup() {
 
   // Load settings from Supabase (with chrome.storage.local fallback)
   async function loadSettings(): Promise<void> {
-    console.log('🟨 loadSettings() CALLED');
-    console.trace('🟨 Stack trace:');
     try {
       // Try loading from Supabase first
       const supabaseSettings = await loadSupabaseSettings();
@@ -303,18 +298,6 @@ export function Popup() {
 
   // Handle language change
   async function handleTargetLanguageChange(value: string): Promise<void> {
-    console.log('🔵 handleTargetLanguageChange CALLED with value:', value);
-    console.log('🔵 Current settings:', settings);
-
-    // Update local state immediately (for responsive UI)
-    const newSettings = { ...settings, targetLanguage: value };
-    setSettings(newSettings);
-    console.log('🔵 Local state updated:', newSettings);
-
-    // Save to chrome.storage.local (instant, local)
-    await saveSettings(newSettings);
-    console.log('🔵 Saved to chrome.storage.local');
-
     // Update Supabase (sync across devices)
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
@@ -324,12 +307,11 @@ export function Popup() {
         .eq('user_id', session.user.id);
 
       if (error) {
-        console.error('❌ Supabase sync failed (target_lang):', error);
+        console.error('Smart Netflix Subtitles: Supabase sync failed (target_lang):', error);
       } else {
-        console.log('✅ Supabase synced (target_lang):', value);
+        console.log('Smart Netflix Subtitles: Supabase synced (target_lang):', value);
         // Reload settings to get correct vocab level for new language
         await loadSettings();
-        console.log('✅ Settings reloaded after language change');
       }
     }
   }
@@ -447,9 +429,6 @@ export function Popup() {
     !isProcessing &&
     isOnNetflix;
 
-  // Debug log
-  console.log('🔴 RENDER - Current settings.targetLanguage:', settings.targetLanguage);
-
   return (
     <div className="w-[400px] p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -467,10 +446,8 @@ export function Popup() {
         <Label htmlFor="target-language">Target Language (Learning):</Label>
         <Select
           value={settings.targetLanguage}
-          onValueChange={(value) => {
-            console.log('🟢 Select onValueChange triggered with:', value);
-            handleTargetLanguageChange(value);
-          }}
+          onValueChange={handleTargetLanguageChange}
+          disabled={!isOnNetflix}
         >
           <SelectTrigger id="target-language">
             <SelectValue placeholder="Select a language" />
@@ -488,6 +465,7 @@ export function Popup() {
         <Select
           value={settings.nativeLanguage}
           onValueChange={handleNativeLanguageChange}
+          disabled={!isOnNetflix}
         >
           <SelectTrigger id="native-language">
             <SelectValue placeholder="Select a language" />
