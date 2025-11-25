@@ -5,7 +5,31 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, email } = await req.json()
+    const { userId, email, successUrl, cancelUrl } = await req.json()
+
+    // Validate URLs (whitelist - security)
+    const isValidUrl = (url?: string) => {
+      if (!url) return true // Optional - will use fallback
+      return url.startsWith('/onboarding/') || url.startsWith('/landing/')
+    }
+
+    if (!isValidUrl(successUrl)) {
+      return NextResponse.json(
+        { error: 'Invalid successUrl - must start with /onboarding/ or /landing/' },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidUrl(cancelUrl)) {
+      return NextResponse.json(
+        { error: 'Invalid cancelUrl - must start with /onboarding/ or /landing/' },
+        { status: 400 }
+      )
+    }
+
+    // Use provided URLs or fallback to onboarding defaults (backward compatibility)
+    const finalSuccessUrl = successUrl || '/onboarding/complete'
+    const finalCancelUrl = cancelUrl || '/onboarding/pricing-details'
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -22,8 +46,8 @@ export async function POST(req: NextRequest) {
         metadata: { user_id: userId },
       },
       metadata: { user_id: userId }, // ← Aussi au niveau session pour webhook checkout.session.completed
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/complete`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/pricing-details`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}${finalSuccessUrl}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${finalCancelUrl}`,
     })
 
     return NextResponse.json({ url: session.url })

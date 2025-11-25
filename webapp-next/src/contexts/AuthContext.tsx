@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 type AuthContextType = {
   user: User | null
   loading: boolean
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (redirectTo?: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -48,11 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectTo?: string) => {
+    // Build callback URL with optional redirect parameter
+    const callbackUrl = redirectTo
+      ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`
+      : `${window.location.origin}/auth/callback`
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: callbackUrl
       }
     })
     if (error) throw error

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const redirectParam = requestUrl.searchParams.get('redirect')
   const origin = requestUrl.origin
 
   if (code) {
@@ -24,6 +25,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/welcome`)
     }
 
+    // If redirect parameter is present, validate and use it (for landing flow)
+    if (redirectParam) {
+      // Validate redirect URL (whitelist - security against open redirect attacks)
+      const isValidRedirect = (url: string) => {
+        return url.startsWith('/landing/') || url.startsWith('/onboarding/')
+      }
+
+      if (!isValidRedirect(redirectParam)) {
+        console.error(`🚨 Security: Invalid redirect attempted - ${redirectParam}`)
+        return NextResponse.redirect(`${origin}/welcome?error=Invalid redirect URL`)
+      }
+
+      console.log(`🔀 Custom redirect detected - redirecting to ${redirectParam}`)
+      return NextResponse.redirect(`${origin}${redirectParam}`)
+    }
+
+    // Otherwise, use existing onboarding logic
     // Check if user has completed onboarding
     // 1. Check user_settings exists
     const { data: settings } = await supabase
