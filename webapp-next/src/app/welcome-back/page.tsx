@@ -1,15 +1,13 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { ManageSubscriptionButton } from '@/components/ManageSubscriptionButton'
 
 export default function WelcomeBack() {
+  const router = useRouter()
   const { signOut } = useAuth()
-
-  const handleOpenNetflix = () => {
-    window.open('https://www.netflix.com', '_blank')
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -22,26 +20,30 @@ export default function WelcomeBack() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-md mx-auto w-full">
-        <h1 className="text-4xl font-bold text-center mb-6">
-          Welcome back! 👋
+      <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-2xl mx-auto w-full">
+        <h1 className="text-4xl font-bold text-center mb-4">
+          Welcome back!
         </h1>
 
         <p className="text-lg text-center mb-8 text-muted-foreground">
-          Your extension is already set up and ready to use. Head to Netflix and enjoy
-          your personalized subtitles!
+          Please, pin the extension for quick access
         </p>
 
-        <Button onClick={handleOpenNetflix} size="lg" className="w-full">
-          Go to Netflix
-        </Button>
+        {/* GIF demonstration */}
+        <div className="mb-8">
+          <img
+            src="/pin-extension-demo.gif"
+            alt="How to pin the extension"
+            className="w-48 h-auto rounded-lg border border-border"
+          />
+        </div>
 
         <Button
-          variant="ghost"
-          onClick={() => window.close()}
-          className="mt-4"
+          onClick={() => router.push('/welcome-back/how-to-use')}
+          size="lg"
+          className="w-full max-w-md"
         >
-          Close this tab
+          I've done it
         </Button>
       </div>
 
