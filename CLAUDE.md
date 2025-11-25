@@ -149,6 +149,11 @@ npm run build
 - **Site URL**: `https://subly-extension.vercel.app`
 - **Callback**: `/auth/callback` → redirects to `/onboarding/languages` (new user) or `/welcome-back` (returning)
 - **Redirect URLs**: Both wildcards (`/*`) AND exact callbacks (`/auth/callback`) required for all environments (localhost:3000, staging, production)
+- **IMPORTANT - Manual Site URL switching**: Supabase only supports ONE Site URL at a time. Change it manually in Supabase Dashboard → Authentication → URL Configuration based on where you're testing:
+  - Testing on **localhost**: Set Site URL to `http://localhost:3000`
+  - Testing on **staging**: Set Site URL to `https://staging-subly-extension.vercel.app`
+  - Testing on **production**: Set Site URL to `https://subly-extension.vercel.app`
+  - This is a known Supabase limitation - Site URL acts as fallback when redirectTo doesn't match whitelist
 
 **Key Differences from Vite:**
 - File-based routing vs React Router
