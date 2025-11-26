@@ -42,13 +42,6 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session
       const userId = session.metadata?.user_id
 
-      console.log('🔍 checkout.session.completed data:', {
-        userId,
-        customer: session.customer,
-        subscription: session.subscription,
-        metadata: session.metadata,
-      })
-
       if (!userId) {
         console.warn('⚠️ Pas de userId dans metadata, INSERT ignoré')
         break
@@ -57,7 +50,7 @@ export async function POST(req: NextRequest) {
         user_id: userId,
         stripe_customer_id: session.customer as string,
         stripe_subscription_id: session.subscription as string,
-        status: 'trialing', // ← Option A: Stocké tel quel (pas de mapping)
+        status: 'trialing',
       })
 
       if (error) {
@@ -116,7 +109,7 @@ export async function POST(req: NextRequest) {
 
       await supabase
         .from('subscriptions')
-        .update({ status: subscription.status })  // ← Stocké tel quel: 'trialing', 'active', 'past_due', etc.
+        .update({ status: subscription.status })
         .eq('stripe_subscription_id', subscription.id)
       break
     }

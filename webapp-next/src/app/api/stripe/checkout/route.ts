@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer_email: email,
-      allow_promotion_codes: true, // ← Affiche le champ "Code promo" au checkout
+      allow_promotion_codes: true,
       line_items: [
         {
-          price: process.env.STRIPE_PRICE_ID, // $1/month
+          price: process.env.STRIPE_PRICE_ID,
           quantity: 1,
         },
       ],
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         trial_period_days: 3,
         metadata: { user_id: userId },
       },
-      metadata: sessionMetadata, // ← Inclut flow: 'landing' si applicable
+      metadata: sessionMetadata,
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}${finalSuccessUrl}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${finalCancelUrl}`,
     })
