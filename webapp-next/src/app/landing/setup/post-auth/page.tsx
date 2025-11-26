@@ -83,7 +83,7 @@ export default function PostAuthPage() {
           {/* Button */}
           <Button
             size="lg"
-            onClick={() => router.push('/landing/setup/reminder')}
+            onClick={() => router.push('/landing/setup/pricing')}
             className="w-full md:w-auto"
           >
             Try for 0.00$

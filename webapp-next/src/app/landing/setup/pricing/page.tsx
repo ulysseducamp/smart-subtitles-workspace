@@ -68,20 +68,6 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* In 2 days */}
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <div className="h-6 w-6 rounded-full bg-foreground flex-shrink-0"></div>
-              <div className="w-0.5 flex-1 bg-foreground"></div>
-            </div>
-            <div className="flex-1 space-y-1 pb-6">
-              <h3 className="text-xl font-semibold">In 2 days - Reminder</h3>
-              <p className="text-sm text-muted-foreground">
-                We'll send you an email that your trial is ending soon
-              </p>
-            </div>
-          </div>
-
           {/* In 3 days */}
           <div className="flex gap-4">
             <div className="flex flex-col items-center">

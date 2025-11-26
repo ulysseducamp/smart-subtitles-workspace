@@ -18,7 +18,6 @@ function getSetupProgress(pathname: string): number {
     '/landing/setup/native-language': 63,
     '/landing/setup/auth': 70,
     '/landing/setup/post-auth': 77,
-    '/landing/setup/reminder': 84,
     '/landing/setup/pricing': 91,
     '/landing/setup/complete': 100,
   }
