@@ -83,12 +83,13 @@ export async function POST(req: NextRequest) {
             html: `
               <p>Hi it's Ulysse, the developer behind Subly!</p>
 
-              <p>You can download the extension <a href="https://chromewebstore.google.com/detail/subly/lhkamocmjgjikhmfiogfdjhlhffoaaek" style="color: #000; text-decoration: underline;">here</a>.</p>
+              <p>You can download the extension <a href="https://chromewebstore.google.com/detail/subly/lhkamocmjgjikhmfiogfdjhlhffoaaek">here</a>.</p>
 
               <p><strong>Important:</strong> Once the extension is downloaded, click on <strong>"Already have an account? Sign in with Google"</strong> to load the information you already provided.</p>
 
               <p>Best,</p>
               <p>Ulysse Ducamp</p>
+              <p>(you can contact me at unducamp.pro@gmail.com)</p>
             `,
           })
 
