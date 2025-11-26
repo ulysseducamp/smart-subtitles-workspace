@@ -126,7 +126,7 @@ Add BOTH wildcards AND exact callbacks for all environments:
 
 Webapp syncs auth session to Chrome extension via `chrome.runtime.sendMessage()` after OAuth. See `lib/syncExtension.ts`.
 
-**Extension ID**: `lhkamocmjgilkhmfiogfdjhlhfrfoaaek` (Chrome Web Store)
+**Extension ID**: `lhkamocmjgjikhmfiogfdjhlhffoaaek` (Chrome Web Store)
 **Status**: Submitted to Chrome Web Store (Phase 3)
 
 Extension `manifest.json` must include in `externally_connectable.matches`:

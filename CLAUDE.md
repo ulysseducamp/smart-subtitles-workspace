@@ -302,7 +302,7 @@ python -m pytest tests/ -v
 
 ### Chrome Web Store
 - **Status**: ✅ Production-ready (Phase 4 complete - January 13, 2025)
-- **Extension ID**: `lhkamocmjgilkhmfiogfdjhlhfrfoaaek`
+- **Extension ID**: `lhkamocmjgjikhmfiogfdjhlhffoaaek`
 - **Name**: Subly - Smart Netflix Subtitles
 - **Version**: 1.1.0+ (production deployment with Stripe LIVE)
 - **Note**: manifest.json `"key"` field must match Chrome Web Store for updates

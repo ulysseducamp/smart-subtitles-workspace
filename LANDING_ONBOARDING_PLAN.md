@@ -175,7 +175,7 @@ X+10. **All Set / Download** (`/landing/setup/complete`)
     - Heading: "You are all set!"
     - Text: "If you are on your computer, you can download the extension directly here: [Download Extension]"
     - Text: "Otherwise, we've sent you an email with the download link."
-    - Link: `https://chrome.google.com/webstore/detail/lhkamocmjgilkhmfiogfdjhlhfrfoaaek`
+    - Link: `https://chrome.google.com/webstore/detail/lhkamocmjgjikhmfiogfdjhlhffoaaek`
     - Additional text: Instructions for installing extension (see wireframe)
     - **No device detection**: Same text shown on all devices (KISS)
 
@@ -583,7 +583,7 @@ const handleCheckout = async () => {
 ```typescript
 // /landing/setup/complete/page.tsx
 const CHROME_WEB_STORE_URL =
-  'https://chrome.google.com/webstore/detail/lhkamocmjgilkhmfiogfdjhlhfrfoaaek'
+  'https://chrome.google.com/webstore/detail/lhkamocmjgjikhmfiogfdjhlhffoaaek'
 
 <a
   href={CHROME_WEB_STORE_URL}

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/service'
+import { Resend } from 'resend'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -66,6 +68,38 @@ export async function POST(req: NextRequest) {
         )
       } else {
         console.log('✅ Subscription créée dans Supabase:', data)
+      }
+
+      // Send extension download email
+      const customerEmail = session.customer_email
+      if (customerEmail) {
+        try {
+          const { data: emailData, error: emailError } = await resend.emails.send({
+            from: 'Subly <subly@resend.dev>',
+            to: [customerEmail],
+            subject: 'Download Subly',
+            html: `
+              <p>Hi it's Ulysse, the developer behind Subly!</p>
+
+              <p>You can download the extension <a href="https://chromewebstore.google.com/detail/subly/lhkamocmjgjikhmfiogfdjhlhffoaaek" style="color: #000; text-decoration: underline;">here</a>.</p>
+
+              <p><strong>Important:</strong> Once the extension is downloaded, click on <strong>"Already have an account? Sign in with Google"</strong> to load the information you already provided.</p>
+
+              <p>Best,</p>
+              <p>Ulysse Ducamp</p>
+            `,
+          })
+
+          if (emailError) {
+            console.error('❌ Erreur envoi email:', emailError)
+          } else {
+            console.log('✅ Email envoyé:', emailData)
+          }
+        } catch (emailErr) {
+          console.error('❌ Exception envoi email:', emailErr)
+        }
+      } else {
+        console.warn('⚠️ Pas de customer_email, email non envoyé')
       }
       break
     }

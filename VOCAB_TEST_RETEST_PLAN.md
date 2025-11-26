@@ -450,7 +450,7 @@ user_id: alice-123 | language: fr    | level: 1000
 **Location:** `webapp-next/src/lib/constants.ts` (or similar)
 
 ```typescript
-export const EXTENSION_ID = 'lhkamocmjgilkhmfiogfdjhlhfrfoaaek' // Chrome Web Store ID
+export const EXTENSION_ID = 'lhkamocmjgjikhmfiogfdjhlhffoaaek' // Chrome Web Store ID
 ```
 
 **Important:** This ID must match the `key` field in `manifest.json` for message passing to work.
