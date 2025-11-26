@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       if (customerEmail && isLandingFlow) {
         try {
           const { data: emailData, error: emailError } = await resend.emails.send({
-            from: 'Subly <subly@resend.dev>',
+            from: 'Subly <noreply@sublyy.com>',
             to: [customerEmail],
             subject: 'Download Subly',
             html: `
