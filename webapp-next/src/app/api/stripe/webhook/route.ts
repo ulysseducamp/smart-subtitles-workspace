@@ -70,9 +70,11 @@ export async function POST(req: NextRequest) {
         console.log('✅ Subscription créée dans Supabase:', data)
       }
 
-      // Send extension download email
+      // Send extension download email (only for landing flow)
       const customerEmail = session.customer_email
-      if (customerEmail) {
+      const isLandingFlow = session.metadata?.flow === 'landing'
+
+      if (customerEmail && isLandingFlow) {
         try {
           const { data: emailData, error: emailError } = await resend.emails.send({
             from: 'Subly <subly@resend.dev>',
@@ -99,7 +101,11 @@ export async function POST(req: NextRequest) {
           console.error('❌ Exception envoi email:', emailErr)
         }
       } else {
-        console.warn('⚠️ Pas de customer_email, email non envoyé')
+        if (!customerEmail) {
+          console.warn('⚠️ Pas de customer_email, email non envoyé')
+        } else if (!isLandingFlow) {
+          console.log('ℹ️ Flow non-landing détecté, email non envoyé (attendu pour ancien onboarding)')
+        }
       }
       break
     }

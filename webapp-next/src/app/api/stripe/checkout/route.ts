@@ -31,6 +31,13 @@ export async function POST(req: NextRequest) {
     const finalSuccessUrl = successUrl || '/onboarding/complete'
     const finalCancelUrl = cancelUrl || '/onboarding/pricing-details'
 
+    // Detect flow type based on successUrl for conditional email sending in webhook
+    const isLandingFlow = finalSuccessUrl.startsWith('/landing/')
+    const sessionMetadata: Record<string, string> = { user_id: userId }
+    if (isLandingFlow) {
+      sessionMetadata.flow = 'landing'
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer_email: email,
@@ -45,7 +52,7 @@ export async function POST(req: NextRequest) {
         trial_period_days: 3,
         metadata: { user_id: userId },
       },
-      metadata: { user_id: userId }, // ← Aussi au niveau session pour webhook checkout.session.completed
+      metadata: sessionMetadata, // ← Inclut flow: 'landing' si applicable
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}${finalSuccessUrl}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${finalCancelUrl}`,
     })
