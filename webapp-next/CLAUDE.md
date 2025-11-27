@@ -113,6 +113,15 @@ Add BOTH wildcards AND exact callbacks for all environments:
 ### Customer Portal
 ✅ Active in both TEST and LIVE modes. Tested and functional for subscription management (cancel, update payment).
 
+### Automated Emails (Resend)
+- **Service**: Resend with custom domain `sublyy.com`
+- **Sender**: `Subly <noreply@sublyy.com>`
+- **Trigger**: Sent automatically after Stripe `checkout.session.completed` (landing flow only)
+- **Content**: Extension download link + setup instructions
+- **Flow detection**: Uses `session.metadata.flow === 'landing'` to distinguish flows
+- **DNS**: Configured via IONOS (DKIM, SPF, MX records verified)
+- **Backward compatibility**: Old onboarding flow receives no email
+
 ## Analytics
 
 **Vercel Analytics** tracks user behavior across onboarding flow. Automatically enabled via `<Analytics />` component in `app/layout.tsx`.

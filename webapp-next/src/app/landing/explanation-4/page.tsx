@@ -37,7 +37,7 @@ export default function Explanation4Page() {
 
         {/* Explanation text */}
         <p className="text-lg">
-          (So you can learn new words without needing to pause)
+          (So you can learn new words on the go)
         </p>
 
         <Button

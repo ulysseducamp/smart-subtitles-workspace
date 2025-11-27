@@ -105,7 +105,7 @@ npm run dev  # Runs on http://localhost:3000
 npm run build
 ```
 
-**Tech Stack:** Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Supabase SSR + Stripe
+**Tech Stack:** Next.js 15 + App Router + TypeScript + Tailwind CSS v4 + Shadcn UI + Supabase SSR + Stripe + Resend
 **Status:** ✅ Production deployment complete (January 13, 2025)
 
 **Onboarding Flow (9 pages):**
@@ -133,6 +133,7 @@ npm run build
 - **Product**: "Subly Premium" - $9/year with 3-day trial
 - **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*` (verified in production)
 - **Customer Portal**: Active in both TEST and LIVE modes
+- **Automated Emails**: Resend sends extension download link after checkout (landing flow only, from `noreply@sublyy.com`)
 
 **Deployment:**
 - **Staging**: `staging-subly-extension.vercel.app` (branch: `develop`) - Stripe TEST mode
@@ -143,7 +144,7 @@ npm run build
 - **Development**: `NEXT_PUBLIC_APP_URL=http://localhost:3000`
 - **Preview**: `NEXT_PUBLIC_APP_URL=https://staging-subly-extension.vercel.app`
 - **Production**: `NEXT_PUBLIC_APP_URL=https://subly-extension.vercel.app`
-- Plus: Supabase URL/keys, Stripe keys, webhook secret
+- Plus: Supabase URL/keys, Stripe keys/webhook secret, Resend API key
 
 **Supabase OAuth:**
 - **Site URL**: `https://subly-extension.vercel.app`

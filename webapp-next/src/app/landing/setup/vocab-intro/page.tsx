@@ -29,7 +29,7 @@ export default function VocabIntroPage() {
 
         {/* Additional note */}
         <p className="text-sm text-muted-foreground">
-          (it takes 30sec, no need to be on your computer)
+          (it takes 30sec, you can do it from your phone/computer/tablet)
         </p>
       </div>
     </div>

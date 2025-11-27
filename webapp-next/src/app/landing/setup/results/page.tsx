@@ -22,7 +22,7 @@ export default function ResultsPage() {
 
         {/* Title */}
         <h1 className="text-3xl font-bold">
-          Congrats! you know approximately {vocabLevel} of the most used words in {languageName}
+          Congrats! You know approximately {vocabLevel} of the most used words in {languageName}
         </h1>
 
         {/* Explanation */}

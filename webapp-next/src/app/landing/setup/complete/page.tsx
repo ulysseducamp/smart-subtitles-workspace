@@ -16,7 +16,7 @@ export default function CompletePage() {
           </p>
 
           <p>
-            If you're on your computer you can download the extension directly{' '}
+            If you're already on your computer you can download the extension directly{' '}
             <a
               href="https://chromewebstore.google.com/detail/subly/lhkamocmjgjikhmfiogfdjhlhffoaaek"
               target="_blank"

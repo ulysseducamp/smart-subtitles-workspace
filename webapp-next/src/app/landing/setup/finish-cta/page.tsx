@@ -17,14 +17,14 @@ export default function FinishCtaPage() {
 
         {/* Description */}
         <p className="text-lg">
-          Now that we know the words that you know and don't know (approximately), There are just a few steps left to set-up Subly entirely.
+          Now that we know the words that you know (approximately), There are just a few steps left to set-up Subly entirely.
         </p>
 
         {/* Good to know */}
         <div className="flex items-start gap-3 text-left bg-muted p-4 rounded-lg">
           <Lightbulb className="h-5 w-5 mt-1 flex-shrink-0" />
           <p className="text-sm">
-            <strong>Good to know:</strong> No need to be on your computer
+            <strong>Good to know:</strong> You can do it on your phone/computer/tablet.
           </p>
         </div>
 

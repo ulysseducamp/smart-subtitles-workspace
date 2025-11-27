@@ -27,7 +27,7 @@ export default function Explanation5Page() {
 
         {/* Explanation text */}
         <p className="text-lg">
-          (so you don't lose time trying to understand it)
+          (so you focus on subtitles adapted to your level)
         </p>
 
         <Button
