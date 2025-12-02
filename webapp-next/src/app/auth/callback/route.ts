@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     if (redirectParam) {
       // Validate redirect URL (whitelist - security against open redirect attacks)
       const isValidRedirect = (url: string) => {
-        return url.startsWith('/landing/') || url.startsWith('/onboarding/')
+        return url.startsWith('/landing/') || url.startsWith('/landing-v3/') || url.startsWith('/onboarding/')
       }
 
       if (!isValidRedirect(redirectParam)) {

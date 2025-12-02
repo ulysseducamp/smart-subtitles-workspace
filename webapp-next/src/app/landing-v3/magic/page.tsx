@@ -2,9 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useLandingV3 } from '@/contexts/LandingV3Context'
 
 export default function MagicPage() {
   const router = useRouter()
+  const { targetLanguage, nativeLanguage } = useLandingV3()
 
   return (
     <div className="flex-1 flex items-center justify-center p-8">
@@ -21,14 +23,19 @@ export default function MagicPage() {
           Subly's magic
         </h1>
 
-        {/* Text from wireframe */}
-        <p className="text-lg">
-          When you watch Netflix, for each subtitle, Subly chooses if it should be displayed in your target language or in your native language (based on the words you know and don't know)
-        </p>
+        {/* Text with dynamic language values */}
+        <div className="space-y-4">
+          <p className="text-lg">
+            When you watch Netflix, for each subtitle, Subly chooses if it should be displayed in <strong>{targetLanguage}</strong> or in <strong>{nativeLanguage}</strong> based on your level.
+          </p>
+          <p className="text-lg">
+            But how do we know your "level"?
+          </p>
+        </div>
 
         <Button
           size="lg"
-          onClick={() => router.push('/landing/known-words')}
+          onClick={() => router.push('/landing-v3/vocab-level')}
           className="w-full md:w-auto"
         >
           Ok
