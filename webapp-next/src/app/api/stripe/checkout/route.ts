@@ -10,19 +10,19 @@ export async function POST(req: NextRequest) {
     // Validate URLs (whitelist - security)
     const isValidUrl = (url?: string) => {
       if (!url) return true // Optional - will use fallback
-      return url.startsWith('/onboarding/') || url.startsWith('/landing/')
+      return url.startsWith('/onboarding/') || url.startsWith('/landing/') || url.startsWith('/landing-v3/')
     }
 
     if (!isValidUrl(successUrl)) {
       return NextResponse.json(
-        { error: 'Invalid successUrl - must start with /onboarding/ or /landing/' },
+        { error: 'Invalid successUrl - must start with /onboarding/, /landing/, or /landing-v3/' },
         { status: 400 }
       )
     }
 
     if (!isValidUrl(cancelUrl)) {
       return NextResponse.json(
-        { error: 'Invalid cancelUrl - must start with /onboarding/ or /landing/' },
+        { error: 'Invalid cancelUrl - must start with /onboarding/, /landing/, or /landing-v3/' },
         { status: 400 }
       )
     }
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const finalCancelUrl = cancelUrl || '/onboarding/pricing-details'
 
     // Detect flow type based on successUrl for conditional email sending in webhook
-    const isLandingFlow = finalSuccessUrl.startsWith('/landing/')
+    const isLandingFlow = finalSuccessUrl.startsWith('/landing/') || finalSuccessUrl.startsWith('/landing-v3/')
     const sessionMetadata: Record<string, string> = { user_id: userId }
     if (isLandingFlow) {
       sessionMetadata.flow = 'landing'
