@@ -8,6 +8,12 @@ import {
 } from '@/lib/emails/templates'
 import { Resend } from 'resend'
 
+// TypeScript workaround: stripe-node types missing subscription property on Invoice
+// This property exists in webhook events but is not typed in @stripe/stripe-js
+interface InvoiceWithSubscription extends Stripe.Invoice {
+  subscription: string | null
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
@@ -177,12 +183,12 @@ export async function POST(req: NextRequest) {
     }
 
     case 'invoice.paid': {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object as InvoiceWithSubscription
 
       console.log('🔍 Invoice paid:', {
         id: invoice.id,
         billing_reason: invoice.billing_reason,
-        subscription: invoice.subscription as string | null,
+        subscription: invoice.subscription,
       })
 
       // Scenario 3: Send email ONLY on first payment (after trial ends)
@@ -195,7 +201,7 @@ export async function POST(req: NextRequest) {
         const { data: subData } = await supabase
           .from('subscriptions')
           .select('user_id')
-          .eq('stripe_subscription_id', invoice.subscription as string)
+          .eq('stripe_subscription_id', invoice.subscription)
           .single()
 
         if (subData?.user_id) {
