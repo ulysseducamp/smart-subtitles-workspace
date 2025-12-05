@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendEmailFromTemplate } from '@/lib/emails/sendEmail'
+import {
+  getEmail2_CancelledDuringTrial,
+  getEmail3_FirstPayment,
+} from '@/lib/emails/templates'
 import { Resend } from 'resend'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -117,10 +122,136 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription
 
-      await supabase
+      console.log('🔍 Subscription deleted:', {
+        id: subscription.id,
+        status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+      })
+
+      // Update subscription status in Supabase
+      const { data: subData } = await supabase
         .from('subscriptions')
         .update({ status: 'canceled' })
         .eq('stripe_subscription_id', subscription.id)
+        .select('user_id')
+        .single()
+
+      // Scenario 2: Send email if cancelled DURING trial (before first payment)
+      // Check if subscription was in trialing status (means cancelled before first payment)
+      if (subscription.status === 'canceled' && subData?.user_id) {
+        // Get user email from auth.users
+        const { data: userData } = await supabase.auth.admin.getUserById(
+          subData.user_id
+        )
+
+        if (userData?.user?.email) {
+          console.log(
+            `📧 Sending cancellation email to ${userData.user.email} (cancelled during trial)`
+          )
+
+          const emailResult = await sendEmailFromTemplate(
+            userData.user.email,
+            getEmail2_CancelledDuringTrial()
+          )
+
+          if (emailResult.success) {
+            console.log(`✅ Cancellation email sent (${emailResult.emailId})`)
+          } else {
+            console.error(`❌ Failed to send cancellation email:`, emailResult.error)
+          }
+        }
+
+        // Mark user as having had a subscription (prevent trial reminder email)
+        await supabase.from('user_email_tracking').upsert(
+          {
+            user_id: subData.user_id,
+            had_subscription: true,
+          },
+          {
+            onConflict: 'user_id',
+          }
+        )
+      }
+
+      break
+    }
+
+    case 'invoice.paid': {
+      const invoice = event.data.object as Stripe.Invoice
+
+      console.log('🔍 Invoice paid:', {
+        id: invoice.id,
+        billing_reason: invoice.billing_reason,
+        subscription: invoice.subscription,
+      })
+
+      // Scenario 3: Send email ONLY on first payment (after trial ends)
+      // billing_reason === 'subscription_cycle' means it's a regular billing (first payment or renewal)
+      if (
+        invoice.billing_reason === 'subscription_cycle' &&
+        invoice.subscription
+      ) {
+        // Check if this is the FIRST invoice for this subscription
+        const { data: subData } = await supabase
+          .from('subscriptions')
+          .select('user_id')
+          .eq('stripe_subscription_id', invoice.subscription as string)
+          .single()
+
+        if (subData?.user_id) {
+          // Check if we already sent the first payment email
+          const { data: trackingData } = await supabase
+            .from('user_email_tracking')
+            .select('user_id')
+            .eq('user_id', subData.user_id)
+            .eq('had_subscription', true)
+            .maybeSingle()
+
+          // Only send if we haven't sent the email yet (means this is the first payment)
+          if (!trackingData) {
+            // Get user email
+            const { data: userData } = await supabase.auth.admin.getUserById(
+              subData.user_id
+            )
+
+            if (userData?.user?.email) {
+              console.log(
+                `📧 Sending first payment email to ${userData.user.email}`
+              )
+
+              const emailResult = await sendEmailFromTemplate(
+                userData.user.email,
+                getEmail3_FirstPayment()
+              )
+
+              if (emailResult.success) {
+                console.log(`✅ First payment email sent (${emailResult.emailId})`)
+              } else {
+                console.error(
+                  `❌ Failed to send first payment email:`,
+                  emailResult.error
+                )
+              }
+            }
+
+            // Mark user as having had a subscription (prevent trial reminder + track first payment email sent)
+            await supabase.from('user_email_tracking').upsert(
+              {
+                user_id: subData.user_id,
+                had_subscription: true,
+              },
+              {
+                onConflict: 'user_id',
+              }
+            )
+          } else {
+            console.log(
+              '  ℹ️ First payment email already sent (renewal detected), skipping'
+            )
+          }
+        }
+      }
+
       break
     }
   }
