@@ -6,13 +6,13 @@ import { getEmail1_NoCreditCard } from '@/lib/emails/templates'
 /**
  * Vercel Cron Job: Send trial reminder emails
  *
- * Runs every hour to check for users who:
- * 1. Signed up 2-3 hours ago
+ * Runs daily to check for users who:
+ * 1. Signed up 24-25 hours ago
  * 2. Have NOT entered a credit card (no stripe_customer_id)
  * 3. Have NOT received the trial reminder email yet
  * 4. Have NEVER had a subscription (had_subscription = false)
  *
- * Schedule: Every hour (configured in vercel.json)
+ * Schedule: Daily at midnight UTC (configured in vercel.json)
  */
 export async function GET(req: NextRequest) {
   console.log('⏰ Cron: Trial reminder check started')
@@ -25,18 +25,18 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
 
   try {
-    // Calculate time window: 2-3 hours ago
+    // Calculate time window: 24-25 hours ago
     const now = new Date()
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
-    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const twentyFiveHoursAgo = new Date(now.getTime() - 25 * 60 * 60 * 1000)
 
     console.log('🔍 Looking for users created between:', {
-      start: threeHoursAgo.toISOString(),
-      end: twoHoursAgo.toISOString(),
+      start: twentyFiveHoursAgo.toISOString(),
+      end: twentyFourHoursAgo.toISOString(),
     })
 
     // Step 1: Fetch last 100 users via Admin API (auth.users is protected)
-    // 100 users = sufficient for finding those created 2-3h ago (unless >100 signups/hour!)
+    // 100 users = sufficient for finding those created 24-25h ago
     const { data: allUsersData, error: usersError } =
       await supabase.auth.admin.listUsers({
         page: 1,
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       .filter((user) => {
         if (!user.created_at || !user.email) return false
         const createdAt = new Date(user.created_at)
-        return createdAt >= threeHoursAgo && createdAt <= twoHoursAgo
+        return createdAt >= twentyFiveHoursAgo && createdAt <= twentyFourHoursAgo
       })
       .map((user) => ({
         id: user.id,
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     if (recentUsers.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No users in 2-3h window',
+        message: 'No users in 24-25h window',
         processed: 0,
       })
     }
