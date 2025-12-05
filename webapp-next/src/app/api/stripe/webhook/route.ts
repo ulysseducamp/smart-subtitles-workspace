@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
       console.log('🔍 Invoice paid:', {
         id: invoice.id,
         billing_reason: invoice.billing_reason,
-        subscription: invoice.subscription,
+        subscription: invoice.subscription as string | null,
       })
 
       // Scenario 3: Send email ONLY on first payment (after trial ends)
