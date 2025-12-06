@@ -61,16 +61,16 @@ export async function GET(req: NextRequest) {
       if (subData?.user_id) {
         console.log(`👤 Found user for subscription: ${subData.user_id}`)
 
-        // Check if first payment email already sent
+        // Check if first payment email already sent (anti-spam)
         const { data: trackingData } = await supabase
           .from('user_email_tracking')
-          .select('user_id, had_subscription')
+          .select('first_payment_email_sent_at')
           .eq('user_id', subData.user_id)
           .maybeSingle()
 
         console.log('📊 Email tracking:', trackingData)
 
-        if (trackingData?.had_subscription === true) {
+        if (trackingData?.first_payment_email_sent_at) {
           console.log('⏭️ First payment email already sent - skipping')
           return NextResponse.json({
             success: true,
@@ -102,12 +102,13 @@ export async function GET(req: NextRequest) {
         if (emailResult.success) {
           console.log(`✅ Email sent (ID: ${emailResult.emailId})`)
 
-          // Update tracking
+          // Update tracking: first payment email sent + had_subscription (for Scenario 1)
           const { error: upsertError } = await supabase
             .from('user_email_tracking')
             .upsert(
               {
                 user_id: subData.user_id,
+                first_payment_email_sent_at: new Date().toISOString(),
                 had_subscription: true,
               },
               { onConflict: 'user_id' }
