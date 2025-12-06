@@ -8,6 +8,12 @@ import {
 } from '@/lib/emails/templates'
 import { Resend } from 'resend'
 
+// TypeScript workaround: stripe-node types missing subscription property on Invoice
+// This property exists in webhook events but is not typed in @stripe/stripe-js
+interface InvoiceWithSubscription extends Stripe.Invoice {
+  subscription: string | null
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
@@ -139,6 +145,18 @@ export async function POST(req: NextRequest) {
       // Scenario 2: Send email if cancelled DURING trial (before first payment)
       // Check if subscription was in trialing status (means cancelled before first payment)
       if (subscription.status === 'canceled' && subData?.user_id) {
+        // Check if cancellation email already sent (anti-spam)
+        const { data: trackingData } = await supabase
+          .from('user_email_tracking')
+          .select('cancellation_email_sent_at')
+          .eq('user_id', subData.user_id)
+          .maybeSingle()
+
+        if (trackingData?.cancellation_email_sent_at) {
+          console.log('⏭️ Cancellation email already sent - skipping')
+          break
+        }
+
         // Get user email from auth.users
         const { data: userData } = await supabase.auth.admin.getUserById(
           subData.user_id
@@ -156,28 +174,29 @@ export async function POST(req: NextRequest) {
 
           if (emailResult.success) {
             console.log(`✅ Cancellation email sent (${emailResult.emailId})`)
+
+            // Update tracking: cancellation email sent + had_subscription (for Scenario 1)
+            await supabase.from('user_email_tracking').upsert(
+              {
+                user_id: subData.user_id,
+                cancellation_email_sent_at: new Date().toISOString(),
+                had_subscription: true,
+              },
+              {
+                onConflict: 'user_id',
+              }
+            )
           } else {
             console.error(`❌ Failed to send cancellation email:`, emailResult.error)
           }
         }
-
-        // Mark user as having had a subscription (prevent trial reminder email)
-        await supabase.from('user_email_tracking').upsert(
-          {
-            user_id: subData.user_id,
-            had_subscription: true,
-          },
-          {
-            onConflict: 'user_id',
-          }
-        )
       }
 
       break
     }
 
     case 'invoice.paid': {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object as InvoiceWithSubscription
 
       console.log('🔍 Invoice paid:', {
         id: invoice.id,
@@ -195,59 +214,57 @@ export async function POST(req: NextRequest) {
         const { data: subData } = await supabase
           .from('subscriptions')
           .select('user_id')
-          .eq('stripe_subscription_id', invoice.subscription as string)
+          .eq('stripe_subscription_id', invoice.subscription)
           .single()
 
         if (subData?.user_id) {
-          // Check if we already sent the first payment email
+          // Check if first payment email already sent (anti-spam)
           const { data: trackingData } = await supabase
             .from('user_email_tracking')
-            .select('user_id')
+            .select('first_payment_email_sent_at')
             .eq('user_id', subData.user_id)
-            .eq('had_subscription', true)
             .maybeSingle()
 
-          // Only send if we haven't sent the email yet (means this is the first payment)
-          if (!trackingData) {
-            // Get user email
-            const { data: userData } = await supabase.auth.admin.getUserById(
-              subData.user_id
-            )
+          if (trackingData?.first_payment_email_sent_at) {
+            console.log('⏭️ First payment email already sent - skipping')
+            break
+          }
 
-            if (userData?.user?.email) {
-              console.log(
-                `📧 Sending first payment email to ${userData.user.email}`
-              )
+          // Get user email
+          const { data: userData } = await supabase.auth.admin.getUserById(
+            subData.user_id
+          )
 
-              const emailResult = await sendEmailFromTemplate(
-                userData.user.email,
-                getEmail3_FirstPayment()
-              )
-
-              if (emailResult.success) {
-                console.log(`✅ First payment email sent (${emailResult.emailId})`)
-              } else {
-                console.error(
-                  `❌ Failed to send first payment email:`,
-                  emailResult.error
-                )
-              }
-            }
-
-            // Mark user as having had a subscription (prevent trial reminder + track first payment email sent)
-            await supabase.from('user_email_tracking').upsert(
-              {
-                user_id: subData.user_id,
-                had_subscription: true,
-              },
-              {
-                onConflict: 'user_id',
-              }
-            )
-          } else {
+          if (userData?.user?.email) {
             console.log(
-              '  ℹ️ First payment email already sent (renewal detected), skipping'
+              `📧 Sending first payment email to ${userData.user.email}`
             )
+
+            const emailResult = await sendEmailFromTemplate(
+              userData.user.email,
+              getEmail3_FirstPayment()
+            )
+
+            if (emailResult.success) {
+              console.log(`✅ First payment email sent (${emailResult.emailId})`)
+
+              // Update tracking: first payment email sent + had_subscription (for Scenario 1)
+              await supabase.from('user_email_tracking').upsert(
+                {
+                  user_id: subData.user_id,
+                  first_payment_email_sent_at: new Date().toISOString(),
+                  had_subscription: true,
+                },
+                {
+                  onConflict: 'user_id',
+                }
+              )
+            } else {
+              console.error(
+                `❌ Failed to send first payment email:`,
+                emailResult.error
+              )
+            }
           }
         }
       }

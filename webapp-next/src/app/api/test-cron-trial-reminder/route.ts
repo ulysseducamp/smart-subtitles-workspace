@@ -4,22 +4,28 @@ import { sendEmailFromTemplate } from '@/lib/emails/sendEmail'
 import { getEmail1_NoCreditCard } from '@/lib/emails/templates'
 
 /**
- * Vercel Cron Job: Send trial reminder emails
+ * TEST ENDPOINT: Trial reminder cron with email whitelist
  *
- * Runs daily to check for users who:
- * 1. Signed up 2-27 hours ago (give time to add card, avoid old users)
- * 2. Have NOT entered a credit card (no stripe_customer_id)
- * 3. Have NOT received the trial reminder email yet
- * 4. Have NEVER had a subscription (had_subscription = false)
+ * Same logic as /api/cron/trial-reminder but ONLY processes whitelisted emails.
+ * This allows safe testing in staging without sending emails to real users.
  *
- * Schedule: Daily at midnight UTC (configured in vercel.json)
+ * ⚠️ FOR TESTING ONLY - Whitelist: unducamp@gmail.com
+ *
+ * To test:
+ * 1. Create user with unducamp@gmail.com in staging
+ * 2. Manually update created_at in Supabase to simulate "2h30 ago"
+ * 3. Call: GET https://staging-subly-extension.vercel.app/api/test-cron-trial-reminder
+ * 4. Verify email received
  */
 export async function GET(req: NextRequest) {
-  console.log('⏰ Cron: Trial reminder check started')
+  console.log('🧪 TEST: Trial reminder check started (with email whitelist)')
+
+  // ⚠️ WHITELIST: Only process these emails (prevents sending to real users)
+  const TEST_EMAIL_WHITELIST = ['unducamp@gmail.com']
 
   // ⚠️ SECURITY: Using service client to bypass RLS
   // This is safe because:
-  // 1. Cron endpoints are server-side only
+  // 1. Test endpoint with email whitelist
   // 2. We need to query across auth.users and public tables
   // 3. Service key is server-side only (never exposed to client)
   const supabase = createServiceClient()
@@ -35,10 +41,10 @@ export async function GET(req: NextRequest) {
     console.log('🔍 Looking for users created between:', {
       start: twentySevenHoursAgo.toISOString(),
       end: twoHoursAgo.toISOString(),
+      whitelist: TEST_EMAIL_WHITELIST,
     })
 
     // Step 1: Fetch last 100 users via Admin API (auth.users is protected)
-    // 100 users = sufficient for finding those created in 2-27h window
     const { data: allUsersData, error: usersError } =
       await supabase.auth.admin.listUsers({
         page: 1,
@@ -53,7 +59,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Sort by created_at desc to get most recent first, then filter users who signed up 2-3 hours ago
+    // Sort by created_at desc to get most recent first
     const sortedUsers = [...allUsersData.users].sort(
       (a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()
     )
@@ -72,11 +78,19 @@ export async function GET(req: NextRequest) {
 
     console.log(`📋 Found ${recentUsers.length} users in time window (out of ${allUsersData.users.length} total)`)
 
-    if (recentUsers.length === 0) {
+    // WHITELIST FILTER: Only process whitelisted emails
+    const whitelistedUsers = recentUsers.filter((user) =>
+      TEST_EMAIL_WHITELIST.includes(user.email)
+    )
+
+    console.log(`🔐 Whitelisted users: ${whitelistedUsers.length} (filtered from ${recentUsers.length})`)
+
+    if (whitelistedUsers.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No users in 2-27h window',
+        message: 'No whitelisted users in 2-27h window',
         processed: 0,
+        whitelist: TEST_EMAIL_WHITELIST,
       })
     }
 
@@ -86,7 +100,7 @@ export async function GET(req: NextRequest) {
       .select('user_id, stripe_customer_id')
       .in(
         'user_id',
-        recentUsers.map((u) => u.id)
+        whitelistedUsers.map((u) => u.id)
       )
       .not('stripe_customer_id', 'is', null)
 
@@ -98,7 +112,7 @@ export async function GET(req: NextRequest) {
       .select('user_id, trial_reminder_sent_at, had_subscription')
       .in(
         'user_id',
-        recentUsers.map((u) => u.id)
+        whitelistedUsers.map((u) => u.id)
       )
 
     const usersAlreadySent = new Set(
@@ -110,24 +124,31 @@ export async function GET(req: NextRequest) {
     )
 
     // Step 4: Find eligible users
-    const eligibleUsers = recentUsers.filter(
+    const eligibleUsers = whitelistedUsers.filter(
       (user) => !usersWithCard.has(user.id) && !usersAlreadySent.has(user.id)
     )
 
-    console.log(`✅ Found ${eligibleUsers.length} eligible users for reminder email`)
+    console.log(`✅ Eligible users: ${eligibleUsers.length}`)
+    console.log(`   - With card: ${usersWithCard.size}`)
+    console.log(`   - Already sent: ${usersAlreadySent.size}`)
 
     if (eligibleUsers.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No eligible users found',
+        message: 'No eligible whitelisted users',
         processed: 0,
+        stats: {
+          inTimeWindow: whitelistedUsers.length,
+          withCard: usersWithCard.size,
+          alreadySent: usersAlreadySent.size,
+        },
       })
     }
 
     // Step 5: Send emails and update tracking
     const results = []
     for (const user of eligibleUsers) {
-      console.log(`📧 Sending reminder to ${user.email} (user_id: ${user.id})`)
+      console.log(`📧 Sending TEST reminder to ${user.email} (user_id: ${user.id})`)
 
       // Send email
       const emailResult = await sendEmailFromTemplate(
@@ -198,17 +219,18 @@ export async function GET(req: NextRequest) {
     const successCount = results.filter((r) => r.success).length
 
     console.log(
-      `✅ Cron completed: ${successCount}/${eligibleUsers.length} emails sent successfully`
+      `🎉 TEST Cron completed: ${successCount}/${eligibleUsers.length} emails sent successfully`
     )
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${eligibleUsers.length} users`,
+      message: `Processed ${eligibleUsers.length} whitelisted users`,
       successCount,
+      whitelist: TEST_EMAIL_WHITELIST,
       results,
     })
   } catch (err) {
-    console.error('❌ Cron exception:', err)
+    console.error('❌ TEST Cron exception:', err)
     return NextResponse.json(
       {
         success: false,
