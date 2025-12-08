@@ -61,7 +61,7 @@ export default function PricingDetailsPage() {
           <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-foreground" />
           <div>
             <h3 className="font-bold text-lg">In 3 days - Billing</h3>
-            <p className="text-muted-foreground">You'll be charged $9/year, unless you cancel before.</p>
+            <p className="text-muted-foreground">You'll be charged $19.99/year, unless you cancel before.</p>
           </div>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function PricingDetailsPage() {
       </Button>
 
       <p className="text-center text-muted-foreground">
-        3 days free, then just <strong>$9/year</strong>
+        3 days free, then just <strong>$19.99/year</strong>
       </p>
     </div>
   )
