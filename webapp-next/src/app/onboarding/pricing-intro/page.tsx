@@ -70,7 +70,7 @@ export default function PricingIntroPage() {
       </Button>
 
       <p className="text-center text-muted-foreground">
-        After, Just <strong>$9 per year</strong> for full access
+        After, Just <strong>$19.99 per year</strong> for full access
       </p>
     </div>
   )

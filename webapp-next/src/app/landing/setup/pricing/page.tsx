@@ -104,7 +104,7 @@ export default function PricingPage() {
 
           {/* Pricing info */}
           <p className="text-base text-muted-foreground">
-            3 days free, then just 9$ per year (0,75$/mo)
+            3 days free, then just 19,99$ per year (1,67$/mo)
           </p>
         </div>
       </div>

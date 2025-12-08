@@ -91,7 +91,7 @@ export default function PostAuthPage() {
 
           {/* Pricing info */}
           <p className="text-base text-muted-foreground">
-            After, Just 9$ per year (0,75$/mo)
+            After, Just 19,99$ per year (1,67$/mo)
           </p>
         </div>
       </div>
