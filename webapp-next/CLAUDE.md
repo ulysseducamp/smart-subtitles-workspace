@@ -98,10 +98,10 @@ Add BOTH wildcards AND exact callbacks for all environments:
 
 ### Product
 - **Name**: "Subly Premium"
-- **Price**: $9/year
+- **Price**: $19.99/year (early customers grandfathered at $9/year)
 - **Trial**: 3 days (configured in code via `subscription_data.trial_period_days`)
-- **Staging**: TEST mode (card: 4242 4242 4242 4242, price ID: `price_1SScLTCpd12v3sCmb1baxznb`)
-- **Production**: LIVE mode (real cards, separate price ID in env vars)
+- **Staging**: TEST mode (card: 4242 4242 4242 4242, price ID: `price_1Sc5hPCpd12v3sCmbEJ3EBmC`)
+- **Production**: LIVE mode (real cards, price ID: `price_1Sc77rCpd12v3sCm1s2LqWi2`)
 
 ### Webhooks
 - **Staging**: `https://staging-subly-extension.vercel.app/api/stripe/webhook` ✅ Tested
@@ -124,12 +124,44 @@ Add BOTH wildcards AND exact callbacks for all environments:
 
 ## Analytics
 
-**Vercel Analytics** tracks user behavior across onboarding flow. Automatically enabled via `<Analytics />` component in `app/layout.tsx`.
+### Vercel Analytics
+
+**Vercel Analytics** tracks basic user behavior. Automatically enabled via `<Analytics />` component in `app/layout.tsx`.
 
 - **Free tier**: 50K events/month
 - **Tracks**: Page views, unique visitors, bounce rate, top pages
-- **Use case**: Identify drop-off points in onboarding funnel
+- **Use case**: Basic metrics
 - **Dashboard**: Vercel project → Analytics tab
+
+### PostHog Analytics (✅ Configured - January 2025)
+
+**PostHog** provides advanced product analytics with session replay and funnel analysis. Configured via `PostHogProvider` in `src/providers/PostHogProvider.tsx`.
+
+**Features**:
+- ✅ **Session Replay**: Watch user interactions, clicks, time on page
+- ✅ **Funnel Analysis**: Track conversion through landing tunnel (20 steps)
+- ✅ **Auto-capture**: Automatic event tracking (pageviews, clicks, etc.)
+- ✅ **Privacy-first**: Masks all inputs, sensitive data, and Stripe iframes
+
+**Configuration**:
+- **Project ID**: 107396
+- **Host**: `https://eu.i.posthog.com`
+- **API Key**: `phc_KDT8LPdCMBCmCrN70dYu4FU3I1YbEco3bbCdv3fMdlw` (public key, safe to expose)
+- **Pageview tracking**: Automatic via `defaults: '2025-11-30'`
+
+**Environment Variables**:
+```bash
+NEXT_PUBLIC_POSTHOG_KEY=phc_KDT8LPdCMBCmCrN70dYu4FU3I1YbEco3bbCdv3fMdlw
+NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+```
+
+**Primary Use Case**: Analyze **Landing Funnel** (20 steps):
+- **Partie 1: Discovery** (7 steps) - `/landing/*` pages
+- **Partie 2: Setup** (13 steps) - `/landing/setup/*` pages
+
+**Documentation**: See `POSTHOG_SETUP.md` for complete funnel setup guide
+
+**Dashboard**: https://app.posthog.com/project/107396
 
 ## Extension Integration
 
