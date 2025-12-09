@@ -130,8 +130,8 @@ npm run build
 
 **Stripe Integration (✅ LIVE):**
 - **API Routes**: `/api/stripe/checkout`, `/api/stripe/webhook`, `/api/stripe/portal`
-- **Product**: "Subly Premium" - $9/year with 3-day trial
-- **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*` (verified in production)
+- **Product**: "Subly Premium" - $19.99/year with 3-day trial (early customers grandfathered at $9/year)
+- **Webhook**: Handles `checkout.session.completed`, `customer.subscription.*`, `invoice.paid` (verified in production)
 - **Customer Portal**: Active in both TEST and LIVE modes
 - **Automated Emails**: Resend sends extension download link after checkout (landing flow only, from `noreply@sublyy.com`)
 
